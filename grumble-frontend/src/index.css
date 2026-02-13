@@ -23,6 +23,50 @@
   .error-text {
     @apply text-red-500 text-sm mt-1;
   }
+
+  .explore-page {
+    @apply w-full p-6;
+  }
+
+  .explore-header {
+    @apply mb-4;
+  }
+
+  .explore-tab-bar {
+    @apply flex items-center justify-between border-b border-gray-200 mb-6 pb-2;
+  }
+
+  .tab {
+    @apply text-sm font-medium pb-2 transition-colors;
+  }
+
+  .tab-active {
+    @apply text-gray-900 border-b-2 border-gray-900;
+  }
+
+  .tab-inactive {
+    @apply text-gray-500 hover:text-gray-800;
+  }
+
+  .posts-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+  }
+
+  .post-card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden;
+  }
+
+  .post-interaction {
+    @apply flex items-center gap-1 text-gray-700 hover:text-gray-900 transition-colors;
+  }
+
+  .icon-btn {
+    @apply p-1 rounded-full hover:bg-gray-100 transition-colors;
+  }
+
+  .pulse-once {
+    @apply animate-pulse;
+  }
 }
 
 /* Base styles */

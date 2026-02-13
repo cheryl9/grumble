@@ -1,8 +1,9 @@
+// src/pages/Explore.jsx
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import FoodPostCard from '../components/explorePage/FoodPostCard';
 import { mockPosts } from '../components/explorePage/mockData';
-import {logo} from '../assets/logo.png';
+import logo from '../assets/logo.png';
 
 const Explore = () => {
   const [activeTab, setActiveTab] = useState('forYou');
@@ -16,8 +17,7 @@ const Explore = () => {
         </div>
       </div>
 
-      {/* 3 tabs */}
-      <div className="explore-tab-bar">
+  <div className="explore-tab-bar">
         <div className="flex gap-6">
           <button
             onClick={() => setActiveTab('forYou')}
@@ -45,8 +45,7 @@ const Explore = () => {
         </button>
       </div>
 
-      {/* Posts Grid */}
-      <div className="posts-grid fade-in">
+      <div className="posts-grid">
         {mockPosts.map((post) => (
           <FoodPostCard key={post.id} post={post} />
         ))}
