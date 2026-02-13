@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+/* Tailwind v4 theme tokens */
+@theme {
+  --color-primary: #ff6b6b;
+  --color-secondary: #4ecdc4;
+  --color-dark: #2c3e50;
+  --color-light: #f8f9fa;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* Custom components */
+@layer components {
+  .btn-primary {
+    @apply bg-[#F78660] hover:bg-[#2945A8] text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-transparent border-2 border-[#F78660] text-[#F78660] hover:bg-[#2945A8] hover:text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200;
+  }
+
+  .post-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200;
+  }
+
+  .tab-active {
+    @apply text-black border-b-2 border-black;
+  }
+
+  .tab-inactive {
+    @apply text-gray-500 hover:text-gray-700; 
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#F78660] focus:border-transparent;
+  }
+
+  .error-text {
+    @apply text-red-500 text-sm mt-1;
+  }
+
+  /* Explore page custom components */
+  .explore-header {
+    @apply bg-[#FCF1DD] px-8 py-6;
+  }
+
+  .explore-tab-bar {
+    @apply bg-white px-8 py-4 flex items-center justify-between border-b border-gray-200;
+  }
+  
+  .posts-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-8 py-8;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .bg-cream {
+    background-color: #FCF1DD;
+  }
+  
+  .bg-yellow {
+    background-color: #FFCC7A;
+  }
+
+  .bg-coral {
+    background-color: #F78660;
+  }
+
+  .bg-blue {
+    background-color: #2945A8;
+  }
+
+  /* Hover and transition effects */
+  .hover-lift {
+    @apply transition-transform duration-200;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1;
+  }
+
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Text truncation */
+  .line-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* hides text beyond 3 lines */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Page-specific styles */
+.explore-page {
+  @apply min-h-screen bg-gray-50;
+}
+
+.post-interaction {
+  @apply flex items-center gap-1 hover:opacity-70 transition-opacity cursor-pointer;
+}
+
+.sidebar-item {
+  @apply w-full px-6 py-3 flex items-center gap-3 text-left transition-colors;
+}
+
+.sidebar-item-active {
+  @apply bg-[#2945A8];
+}
+
+.sidebar-item-inactive {
+  @apply text-gray-300 hover:bg-[#34495E] hover:text-white;
+}
