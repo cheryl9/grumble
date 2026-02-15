@@ -64,10 +64,62 @@ export const mockPosts = [
   },
 ];
 
-// Helper function for when you integrate with backend
+export const trendingSpots = [
+    {
+      id: 1,
+      name: 'Tiong Bahru Bakery',
+      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400',
+      cuisine: 'Bakery',
+      location: 'Tiong Bahru'
+    },
+    {
+      id: 2,
+      name: 'Elephant Grounds',
+      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400',
+      cuisine: 'Cafe',
+      location: 'Star Vista'
+    },
+    {
+      id: 3,
+      name: 'All Hands Cafe',
+      image: 'https://images.unsplash.com/photo-1501492693086-7f79d7f1b5de?w=400',
+      cuisine: 'Cafe',
+      location: 'Holland Village'
+    },
+    {
+      id: 4,
+      name: 'Medusa',
+      image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400',
+      cuisine: 'Mediterranean',
+      location: 'Dempsey'
+    },
+    {
+      id: 5,
+      name: "Frankie & Fern's",
+      image: 'https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=400',
+      cuisine: 'Brunch',
+      location: 'Boat Quay'
+    },
+    {
+      id: 6,
+      name: 'Monsterland',
+      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400',
+      cuisine: 'Fusion',
+      location: 'Clarke Quay'
+    }
+  ];
+
+  // Helper function for when you integrate with backend
 export const fetchPosts = async () => {
   // TODO: Replace with actual API call
   // const response = await fetch('/api/posts');
   // return response.json();
   return mockPosts;
+};
+
+  export const fetchSpots = async () => {
+  // TODO: Replace with actual API call
+  // const response = await fetch('/api/posts');
+  // return response.json();
+  return trendingSpots;
 };

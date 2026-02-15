@@ -59,6 +59,34 @@
   .posts-grid {
     @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-8 py-8;
   }
+
+  .explore-feed {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .feed-tabs {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+
+  .feed-tab {
+    padding: 10px 0;
+    border: none;
+    background: none;
+    color: #666;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .feed-tab-active {
+    color: #000;
+    border-bottom: 2px solid #000;
+  }
+
 }
 /* Sidebar custom components */
 .sidebar {
@@ -113,31 +141,130 @@
   padding: 0 16px 16px 16px;
 }
 
-.explore-feed {
-  max-width: 600px;
+/* Food Search custom components */
+.find-spots-page {
+  padding: 2rem;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
 }
 
-.feed-tabs {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #e0e0e0;
+.search-bar-container {
+  position: relative;
+  flex: 1;
+  min-width: 250px;
 }
 
-.feed-tab {
-  padding: 10px 0;
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  color: white;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 48px;
   border: none;
-  background: none;
-  color: #666;
+  border-radius: 8px;
+  background: #F78660;
+  color: white;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Filters custom components */
+.filter-dropdown {
+  position: relative;
+}
+
+.filer-select {
+  appearance: none;
+  padding: 12px 40px 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background:#F78660;
+  color: white;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  min-width: 120px;
+}
+
+.filter-select option {
+  background: white;
+  color: #333;
+}
+
+.filter-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  color: white;
+  pointer-events: none;
+}
+
+.reset-button {
+  background: #2945A8;
+  border-radius: 8px;
+  padding: 12px 24px;
+  border: none;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.feed-tab-active {
-  color: #000;
-  border-bottom: 2px solid #000;
+.reset-button:hover {
+  background:lightgrey;
+}
+
+.trending-section {
+  padding: 2rem 0; 
+}
+
+.trending-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+}
+
+.trending-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.trending-card-image {
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+.trending-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.trending-card:hover .trending-card-image img {
+  transform: scale(1.05);
+}
+
+.trending-card-name {
+  padding: 1rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #333;
 }
 
 /* Utilities */
