@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
-import Logo from '../../components/common/Logo';
+import logo from '../../assets/logo.png';
 import useContactPermission from '../../hooks/useContactPermission';
 import { validatePassword, validatePhoneNumber, validateUsername } from '../../utils/validation';
 import { ROUTES } from '../../utils/constants';
@@ -67,7 +67,7 @@ export default function Registration() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       await requestContactPermission();
       navigate(ROUTES.ONBOARDING);
-    } catch (error) {
+    } catch (_error) {
       setErrors({ submit: 'Registration failed. Please try again.' });
     } finally {
       setIsSubmitting(false);
@@ -79,100 +79,106 @@ export default function Registration() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 px-4 py-8">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
-        <Logo size="lg" />
-        
-        <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">Create Account</h1>
-        <p className="text-gray-600 text-center mb-8">Join the Grumble community</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 p-4">
+      <div 
+        className="w-full bg-white rounded-2xl shadow-xl overflow-hidden"
+        style={{ maxWidth: '480px' }}
+      >
+        {/* Inner content with padding */}
+        <div style={{ padding: '40px 48px' }}>
+          <img src={logo} alt="Grumble Logo" className="w-16 h-16 mx-auto mb-4" />
+          
+          <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">Create Account</h1>
+          <p className="text-gray-600 text-center mb-8">Join the Grumble community</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Input
-            label="Phone Number"
-            type="tel"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            error={errors.phoneNumber}
-            placeholder="81234567"
-            required
-          />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <Input
+              label="Phone Number"
+              type="tel"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              error={errors.phoneNumber}
+              placeholder="81234567"
+              required
+            />
 
-          {permissionStatus === 'prompt' && (
-            <button
-              type="button"
-              onClick={handleRequestContacts}
-              className="w-full px-4 py-2 text-sm text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition-all duration-200 font-medium"
-            >
-              📱 Import Contacts (Optional)
-            </button>
-          )}
+            {permissionStatus === 'prompt' && (
+              <button
+                type="button"
+                onClick={handleRequestContacts}
+                className="w-full h-12 px-4 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
+              >
+                📱 Import Contacts (Optional)
+              </button>
+            )}
 
-          {permissionStatus === 'granted' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-sm text-green-700 font-medium">✓ Contacts imported successfully</p>
+            {permissionStatus === 'granted' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-700 font-medium">✓ Contacts imported successfully</p>
+              </div>
+            )}
+
+            <Input
+              label="Username"
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              error={errors.username}
+              placeholder="johndoe123"
+              required
+            />
+
+            <Input
+              label="Password"
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+              placeholder="Enter a strong password"
+              required
+            />
+
+            <Input
+              label="Confirm Password"
+              type="password"
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              error={errors.confirmPassword}
+              placeholder="Re-enter your password"
+              required
+            />
+
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-700">{errors.submit}</p>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+              </Button>
             </div>
-          )}
+          </form>
 
-          <Input
-            label="Username"
-            type="text"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            error={errors.username}
-            placeholder="johndoe123"
-            required
-          />
-
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            placeholder="Enter a strong password"
-            required
-          />
-
-          <Input
-            label="Confirm Password"
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            error={errors.confirmPassword}
-            placeholder="Re-enter your password"
-            required
-          />
-
-          {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-700">{errors.submit}</p>
-            </div>
-          )}
-
-          <div className="pt-2">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating Account...' : 'Sign Up'}
-            </Button>
+          <div className="mt-8 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <button
+                onClick={() => navigate(ROUTES.LOGIN)}
+                className="text-primary font-semibold hover:underline"
+              >
+                Log in
+              </button>
+            </p>
           </div>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate(ROUTES.LOGIN)}
-              className="text-primary font-semibold hover:underline"
-            >
-              Log in
-            </button>
-          </p>
         </div>
       </div>
     </div>
