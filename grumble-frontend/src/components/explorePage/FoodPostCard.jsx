@@ -1,24 +1,26 @@
-// src/components/explore/FoodPostCard.jsx
 import React, { useState } from 'react';
 import { Heart, MessageCircle, Send, Bookmark, MapPin, User } from 'lucide-react';
+import PostDetailModal from './PostDetailModal';
 
 const FoodPostCard = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [likes, setLikes] = useState(post.likes);
+  const [showDetail, setShowDetail] = useState(false);
 
-  const handleLike = () => {
+  const handleLike = (error) => {
+    error.stopPropagation();
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
   };
 
-  const handleSave = () => {
+  const handleSave = (error) => {
+    error.stopPropagation();
     setIsSaved(!isSaved);
   };
 
   return (
-    <div className="post-card">
-      {/* User Header */}
+    <div className="post-card" onClick = {() => setShowDetail(true)}>
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
@@ -32,7 +34,7 @@ const FoodPostCard = ({ post }) => {
         </div>
       </div>
 
-      <div className="relative aspect-square">
+      <div className = "post-image">
         <img
           src={post.image}
           alt={post.caption}
@@ -73,11 +75,31 @@ const FoodPostCard = ({ post }) => {
           </button>
         </div>
 
-        <div>
-          <p className="text-sm text-gray-800 line-clamp-2">{post.caption}</p>
-          <p className="text-xs text-gray-500 mt-1">{post.timeAgo}</p>
+        {/* Caption Button */}
+        <div className="post-caption">
+          <p className="text-sm line-clamp-2">
+            <span className="font-semibold">{post.username}</span> {post.caption}
+          </p>
+          {post.tags && post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {post.tags.map((tag, index) => (
+                <span key={index} className="text-blue-600 text-sm">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-2">{post.timeAgo}</p>
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {showDetail && (
+        <PostDetailModal 
+          post={post} 
+          onClose={() => setShowDetail(false)} 
+        />
+      )}
     </div>
   );
 };

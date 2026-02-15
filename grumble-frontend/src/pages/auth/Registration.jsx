@@ -109,7 +109,7 @@ export default function Registration() {
                 onClick={handleRequestContacts}
                 className="w-full h-12 px-4 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
               >
-                📱 Import Contacts (Optional)
+                Import Contacts (Optional)
               </button>
             )}
 

@@ -1,51 +1,66 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { ROUTES } from '../../utils/constants';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Home, Search, Globe, MessageCircle, User, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function Sidebar() {
+const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleLogout = () => {
-    // TODO: Add logout logic
-    navigate(ROUTES.LOGIN);
-  };
+  const menuItems = [
+    { id : 'explore', label: 'Explore', icon: Home, path: '/explore' },
+    { id: 'find spots', label: 'Find Spots', icon: Search, path: '/find-spots'},
+    { id: 'food map', label: 'Food Map', icon: Globe, path: '/food-map'},
+    { id: 'chats', label: 'Chats', icon: MessageCircle, path: '/chats'},
+    { id: 'profile', label: 'Profile', icon: User, path: '/profile'},
+  ]
 
-  const navItems = [
-    { path: ROUTES.EXPLORE, label: 'Explore', icon: '🔍' },
-    { path: ROUTES.FIND_SPOTS, label: 'Find Spots', icon: '📍' },
-    { path: ROUTES.FOOD_MAP, label: 'Food Map', icon: '🗺️' },
-    { path: ROUTES.CHATS, label: 'Chats', icon: '💬' },
-    { path: ROUTES.PROFILE, label: 'Profile', icon: '👤' },
-  ];
+  const toggleSidebar = () => {
+    setIsOpen(!isOpen);
+  }
 
   return (
-    <aside className="w-64 bg-dark text-white flex flex-col">
-      <div className="p-4 text-2xl font-bold border-b border-gray-700">
-        Grumble
-      </div>
-      
-      <nav className="flex-1 p-4">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-                isActive ? 'bg-primary' : 'hover:bg-gray-700'
-              }`
-            }
-          >
-            <span className="text-xl">{item.icon}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+    <div className = {`sidebar ${isOpen ? 'sidebar-open' : 'sidebar-closed'} `}>
+      <nav className = "flex-1 pt-4"> 
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          const Icon = item.icon;
+
+          return (
+            <button 
+              key = {item.id} 
+              onClick = {() => navigate(item.path)}
+              className = {`sidebar-item ${isActive ? 'sidebar-item-active' : 'sidebar-item-inactive'}`}
+              title = {!isOpen ? item.label : ' '}
+              >
+              <Icon size = {24} strokeWidth = {2} />
+              {isOpen && <span className = "font-medium"> {item.label} </span>}
+              </button>
+          )
+        })}
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="m-4 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+      <div className="mt-auto pb-4">
+        <button 
+          onClick={() => navigate('/login')}
+          className="sidebar-item sidebar-item-inactive"
+          title={!isOpen ? 'Logout' : ''}
+        >
+          <LogOut size={24} className="text-red-500" strokeWidth={2.5} />
+          {isOpen && <span className="font-medium text-red-500">Logout</span>}
+        </button>
+      </div>
+
+      <button 
+        onClick = {toggleSidebar}
+        className = "sidebar-toggle" 
+        aria-label = {isOpen ? 'Close sidebar' : 'Open sidebar'}
       >
-        Logout
+        {isOpen ? (<ChevronLeft size = {20} strokeWidth = {2.5} />) : 
+          (<ChevronRight size = {20} strokeWidth = {2.5} />)}
       </button>
-    </aside>
-  );
+      
+    </div>
+  )
 }
+
+export default Sidebar;
