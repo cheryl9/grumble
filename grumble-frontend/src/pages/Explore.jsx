@@ -1,4 +1,3 @@
-// src/pages/Explore.jsx
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import FoodPostCard from '../components/explorePage/FoodPostCard';
@@ -39,7 +38,7 @@ const Explore = () => {
           </button>
         </div>
 
-        <button className="btn-primary flex items-center gap-2">
+        <button className="btn-primary flex items-center gap-3">
           <Plus size={20} strokeWidth={2.5} />
           Upload New
         </button>
