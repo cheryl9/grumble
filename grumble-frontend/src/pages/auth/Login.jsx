@@ -5,9 +5,11 @@ import Input from '../../components/common/Input';
 import logo from '../../assets/logo.png';
 import { validateUsername } from '../../utils/validation';
 import { ROUTES } from '../../utils/constants';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     username: '',
@@ -23,7 +25,7 @@ export default function Login() {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -49,19 +51,18 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
 
     try {
-      // TODO: Add actual login API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await login(formData.username, formData.password);
       // Navigate to explore page on successful login
       navigate(ROUTES.EXPLORE);
-    } catch (_error) {
-      setErrors({ submit: 'Invalid username or password. Please try again.' });
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Invalid username or password. Please try again.';
+      setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -69,14 +70,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 p-4">
-      <div 
+      <div
         className="w-full bg-white rounded-2xl shadow-xl overflow-hidden"
         style={{ maxWidth: '480px' }}
       >
         {/* Inner content with padding */}
         <div style={{ padding: '40px 48px' }}>
           <img src={logo} alt="Grumble Logo" className="w-16 h-16 mx-auto mb-4" />
-          
+
           <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">Welcome Back</h1>
           <p className="text-gray-600 text-center mb-8">Log in to your Grumble account</p>
 

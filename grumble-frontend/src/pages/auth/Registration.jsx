@@ -6,9 +6,11 @@ import logo from '../../assets/logo.png';
 import useContactPermission from '../../hooks/useContactPermission';
 import { validatePassword, validatePhoneNumber, validateUsername } from '../../utils/validation';
 import { ROUTES } from '../../utils/constants';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Registration() {
   const navigate = useNavigate();
+  const { register: registerUser } = useAuth();
   const { requestContactPermission, permissionStatus } = useContactPermission();
 
   const [formData, setFormData] = useState({
@@ -27,7 +29,7 @@ export default function Registration() {
       ...prev,
       [name]: value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -58,17 +60,18 @@ export default function Registration() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await registerUser(formData.phoneNumber, formData.username, formData.password);
       await requestContactPermission();
       navigate(ROUTES.ONBOARDING);
-    } catch (_error) {
-      setErrors({ submit: 'Registration failed. Please try again.' });
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -80,14 +83,14 @@ export default function Registration() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 p-4">
-      <div 
+      <div
         className="w-full bg-white rounded-2xl shadow-xl overflow-hidden"
         style={{ maxWidth: '480px' }}
       >
         {/* Inner content with padding */}
         <div style={{ padding: '40px 48px' }}>
           <img src={logo} alt="Grumble Logo" className="w-16 h-16 mx-auto mb-4" />
-          
+
           <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">Create Account</h1>
           <p className="text-gray-600 text-center mb-8">Join the Grumble community</p>
 
