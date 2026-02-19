@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import logo from '../../assets/logo.png';
@@ -9,18 +9,17 @@ import * as authService from '../../services/authService';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const resetToken = searchParams.get('token');
 
-  const [step, setStep] = useState(resetToken ? 'reset' : 'request');
+  const [step, setStep] = useState('phone'); // 'phone' | 'otp' | 'newPassword'
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleRequestReset = async (e) => {
+  const handleSendOTP = async (e) => {
     e.preventDefault();
     setErrors({});
     setSuccessMessage('');
@@ -34,10 +33,35 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      await authService.forgotPassword(phoneNumber);
-      setSuccessMessage('If this phone number is registered, you will receive a password reset link in the console (development mode).');
+      await authService.sendPasswordResetOTP(phoneNumber);
+      setStep('otp');
+      setSuccessMessage('OTP sent to your phone!');
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to send reset link. Please try again.';
+      const errorMessage = error.response?.data?.message || 'Failed to send OTP. Please try again.';
+      setErrors({ submit: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    setSuccessMessage('');
+
+    if (otp.length !== 6) {
+      setErrors({ otp: 'OTP must be 6 digits' });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await authService.verifyPasswordResetOTP(phoneNumber, otp);
+      setStep('newPassword');
+      setSuccessMessage('OTP verified! Set your new password.');
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Invalid OTP. Please try again.';
       setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
@@ -63,14 +87,27 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      await authService.resetPassword(resetToken, newPassword);
+      await authService.resetPasswordWithOTP(phoneNumber, otp, newPassword);
       setSuccessMessage('Password reset successful! Redirecting to login...');
       setTimeout(() => navigate(ROUTES.LOGIN), 2000);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to reset password. Invalid or expired token.';
+      const errorMessage = error.response?.data?.message || 'Failed to reset password. Please try again.';
       setErrors({ submit: errorMessage });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setErrors({});
+    setSuccessMessage('');
+
+    try {
+      await authService.sendPasswordResetOTP(phoneNumber);
+      setSuccessMessage('OTP resent to your phone!');
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to resend OTP.';
+      setErrors({ submit: errorMessage });
     }
   };
 
@@ -84,16 +121,32 @@ export default function ForgotPassword() {
           <img src={logo} alt="Grumble Logo" className="w-16 h-16 mx-auto mb-4" />
 
           <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
-            {step === 'request' ? 'Forgot Password' : 'Reset Password'}
+            {step === 'phone' ? 'Forgot Password' : 
+             step === 'otp' ? 'Verify OTP' : 
+             'Set New Password'}
           </h1>
           <p className="text-gray-600 text-center mb-8">
-            {step === 'request'
-              ? 'Enter your phone number to receive a reset link'
+            {step === 'phone'
+              ? 'Enter your phone number to receive an OTP'
+              : step === 'otp'
+              ? `We've sent a 6-digit code to ${phoneNumber}`
               : 'Enter your new password'}
           </p>
 
-          {step === 'request' ? (
-            <form onSubmit={handleRequestReset} className="flex flex-col gap-5">
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-5">
+              <p className="text-sm text-green-700">{successMessage}</p>
+            </div>
+          )}
+
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5">
+              <p className="text-sm text-red-700">{errors.submit}</p>
+            </div>
+          )}
+
+          {step === 'phone' && (
+            <form onSubmit={handleSendOTP} className="flex flex-col gap-5">
               <Input
                 label="Phone Number"
                 type="tel"
@@ -108,25 +161,53 @@ export default function ForgotPassword() {
                 required
               />
 
-              {successMessage && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-700">{successMessage}</p>
-                </div>
-              )}
-
-              {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm text-red-700">{errors.submit}</p>
-                </div>
-              )}
-
               <div className="pt-2">
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                  {isSubmitting ? 'Sending OTP...' : 'Send OTP'}
                 </Button>
               </div>
             </form>
-          ) : (
+          )}
+
+          {step === 'otp' && (
+            <form onSubmit={handleVerifyOTP} className="flex flex-col gap-5">
+              <Input
+                label="Enter OTP"
+                type="text"
+                name="otp"
+                value={otp}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, ''); // Only digits
+                  if (value.length <= 6) {
+                    setOtp(value);
+                  }
+                  if (errors.otp) setErrors({});
+                }}
+                error={errors.otp}
+                placeholder="123456"
+                maxLength={6}
+                required
+              />
+
+              <div className="pt-2">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Verifying...' : 'Verify OTP'}
+                </Button>
+              </div>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  className="text-sm text-[#F78660] hover:text-[#2945A8] font-medium"
+                >
+                  Resend OTP
+                </button>
+              </div>
+            </form>
+          )}
+
+          {step === 'newPassword' && (
             <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
               <Input
                 label="New Password"
@@ -155,18 +236,6 @@ export default function ForgotPassword() {
                 placeholder="Re-enter new password"
                 required
               />
-
-              {successMessage && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-sm text-green-700">{successMessage}</p>
-                </div>
-              )}
-
-              {errors.submit && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-sm text-red-700">{errors.submit}</p>
-                </div>
-              )}
 
               <div className="pt-2">
                 <Button type="submit" disabled={isSubmitting}>

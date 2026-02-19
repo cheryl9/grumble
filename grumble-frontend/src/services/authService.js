@@ -64,27 +64,63 @@ export const logout = async () => {
 };
 
 /**
- * Request password reset
+ * Send OTP for password reset
  * @param {string} phoneNumber - User's phone number
  */
-export const forgotPassword = async (phoneNumber) => {
-    const response = await api.post('/auth/forgot-password', {
-        phoneNumber
-    });
-    return response.data;
+export const sendPasswordResetOTP = async (phoneNumber) => {
+    // ==================== ORIGINAL CODE (UNCOMMENT WHEN BACKEND IS READY) ====================
+    // const response = await api.post('/auth/forgot-password/send-otp', {
+    //     phoneNumber
+    // });
+    // return response.data;
+    // ========================================================================================
+
+    // ⚠️ TEMPORARY MOCK - DELETE THIS SECTION WHEN BACKEND IS READY ⚠️
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+    return { success: true, message: 'OTP sent (mocked)' }; // Fake success response
+    // ⚠️ END OF MOCK - DELETE ABOVE ⚠️
 };
 
 /**
- * Reset password with token
- * @param {string} token - Reset token from email
+ * Verify OTP for password reset
+ * @param {string} phoneNumber - User's phone number
+ * @param {string} otp - 6-digit OTP code
+ */
+export const verifyPasswordResetOTP = async (phoneNumber, otp) => {
+    // ==================== ORIGINAL CODE (UNCOMMENT WHEN BACKEND IS READY) ====================
+    // const response = await api.post('/auth/forgot-password/verify-otp', {
+    //     phoneNumber,
+    //     otp
+    // });
+    // return response.data;
+    // ========================================================================================
+
+    // ⚠️ TEMPORARY MOCK - DELETE THIS SECTION WHEN BACKEND IS READY ⚠️
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+    return { success: true, message: 'OTP verified (mocked)' }; // Fake success response
+    // ⚠️ END OF MOCK - DELETE ABOVE ⚠️
+};
+
+/**
+ * Reset password with verified OTP
+ * @param {string} phoneNumber - User's phone number
+ * @param {string} otp - Verified OTP code
  * @param {string} newPassword - New password
  */
-export const resetPassword = async (token, newPassword) => {
-    const response = await api.post('/auth/reset-password', {
-        token,
-        newPassword
-    });
-    return response.data;
+export const resetPasswordWithOTP = async (phoneNumber, otp, newPassword) => {
+    // ==================== ORIGINAL CODE (UNCOMMENT WHEN BACKEND IS READY) ====================
+    // const response = await api.post('/auth/forgot-password/reset', {
+    //     phoneNumber,
+    //     otp,
+    //     newPassword
+    // });
+    // return response.data;
+    // ========================================================================================
+
+    // ⚠️ TEMPORARY MOCK - DELETE THIS SECTION WHEN BACKEND IS READY ⚠️
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+    return { success: true, message: 'Password reset (mocked)' }; // Fake success response
+    // ⚠️ END OF MOCK - DELETE ABOVE ⚠️
 };
 
 /**
@@ -113,8 +149,9 @@ export default {
     register,
     login,
     logout,
-    forgotPassword,
-    resetPassword,
+    sendPasswordResetOTP,
+    verifyPasswordResetOTP,
+    resetPasswordWithOTP,
     getCurrentUser,
     getAuthToken,
     isAuthenticated
