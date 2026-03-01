@@ -48,7 +48,6 @@ const FindSpots = () => {
     }));
   };
 
-  // Filter restaurants based on search and filters
   const filteredRestaurants = mockRestaurants.filter(restaurant => {
     const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocation = !filters.location || restaurant.location === filters.location;
