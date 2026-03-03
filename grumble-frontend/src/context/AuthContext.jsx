@@ -8,16 +8,28 @@ export const AuthProvider = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load user from local storage on mount
+    // Load user from local storage on mount, then sync with server
     useEffect(() => {
-        const loadUser = () => {
+        const loadUser = async () => {
             try {
                 const currentUser = authService.getCurrentUser();
                 const token = authService.getAuthToken();
 
                 if (currentUser && token) {
+                    // Set user from localStorage first (for immediate UI)
                     setUser(currentUser);
                     setIsAuthenticated(true);
+                    
+                    // Then fetch fresh data from server (to sync Telegram connection status)
+                    try {
+                        const freshUser = await authService.fetchCurrentUser();
+                        if (freshUser) {
+                            setUser(freshUser);
+                        }
+                    } catch (error) {
+                        console.error('Error fetching fresh user data:', error);
+                        // Keep using localStorage data if server fetch fails
+                    }
                 }
             } catch (error) {
                 console.error('Error loading user:', error);
@@ -70,6 +82,7 @@ export const AuthProvider = ({ children }) => {
 
     const value = {
         user,
+        setUser, // Expose setUser for updating user data
         isAuthenticated,
         isLoading,
         login,

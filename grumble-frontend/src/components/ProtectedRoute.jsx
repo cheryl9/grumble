@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }) {
     const { isAuthenticated, isLoading } = useAuth();
 
     // 🚧 DEV MODE: Bypass authentication (set to false in production!)
-    const DEV_MODE = true;
+    const DEV_MODE = false;
     if (DEV_MODE) {
         return children;
     }

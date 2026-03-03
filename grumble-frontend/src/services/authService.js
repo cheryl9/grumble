@@ -68,17 +68,10 @@ export const logout = async () => {
  * @param {string} phoneNumber - User's phone number
  */
 export const sendPasswordResetOTP = async (phoneNumber) => {
-    // ==================== ORIGINAL CODE (UNCOMMENT WHEN BACKEND IS READY) ====================
-    // const response = await api.post('/auth/forgot-password/send-otp', {
-    //     phoneNumber
-    // });
-    // return response.data;
-    // ========================================================================================
-
-    // ⚠️ TEMPORARY MOCK - DELETE THIS SECTION WHEN BACKEND IS READY ⚠️
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-    return { success: true, message: 'OTP sent (mocked)' }; // Fake success response
-    // ⚠️ END OF MOCK - DELETE ABOVE ⚠️
+    const response = await api.post('/auth/forgot-password/send-otp', {
+        phoneNumber
+    });
+    return response.data;
 };
 
 /**
@@ -87,18 +80,11 @@ export const sendPasswordResetOTP = async (phoneNumber) => {
  * @param {string} otp - 6-digit OTP code
  */
 export const verifyPasswordResetOTP = async (phoneNumber, otp) => {
-    // ==================== ORIGINAL CODE (UNCOMMENT WHEN BACKEND IS READY) ====================
-    // const response = await api.post('/auth/forgot-password/verify-otp', {
-    //     phoneNumber,
-    //     otp
-    // });
-    // return response.data;
-    // ========================================================================================
-
-    // ⚠️ TEMPORARY MOCK - DELETE THIS SECTION WHEN BACKEND IS READY ⚠️
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-    return { success: true, message: 'OTP verified (mocked)' }; // Fake success response
-    // ⚠️ END OF MOCK - DELETE ABOVE ⚠️
+    const response = await api.post('/auth/forgot-password/verify-otp', {
+        phoneNumber,
+        otp
+    });
+    return response.data;
 };
 
 /**
@@ -108,19 +94,12 @@ export const verifyPasswordResetOTP = async (phoneNumber, otp) => {
  * @param {string} newPassword - New password
  */
 export const resetPasswordWithOTP = async (phoneNumber, otp, newPassword) => {
-    // ==================== ORIGINAL CODE (UNCOMMENT WHEN BACKEND IS READY) ====================
-    // const response = await api.post('/auth/forgot-password/reset', {
-    //     phoneNumber,
-    //     otp,
-    //     newPassword
-    // });
-    // return response.data;
-    // ========================================================================================
-
-    // ⚠️ TEMPORARY MOCK - DELETE THIS SECTION WHEN BACKEND IS READY ⚠️
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-    return { success: true, message: 'Password reset (mocked)' }; // Fake success response
-    // ⚠️ END OF MOCK - DELETE ABOVE ⚠️
+    const response = await api.post('/auth/forgot-password/reset', {
+        phoneNumber,
+        otp,
+        newPassword
+    });
+    return response.data;
 };
 
 /**
@@ -129,6 +108,21 @@ export const resetPasswordWithOTP = async (phoneNumber, otp, newPassword) => {
 export const getCurrentUser = () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
+};
+
+/**
+ * Fetch current user from server (with latest Telegram connection status)
+ */
+export const fetchCurrentUser = async () => {
+    const response = await api.get('/auth/user');
+    
+    if (response.data.success) {
+        // Update local storage with fresh user data
+        localStorage.setItem('user', JSON.stringify(response.data.data.user));
+        return response.data.data.user;
+    }
+    
+    return null;
 };
 
 /**
@@ -145,6 +139,25 @@ export const isAuthenticated = () => {
     return !!getAuthToken();
 };
 
+/**
+ * Connect Telegram account
+ * @param {string} chatId - Telegram chat ID
+ */
+export const connectTelegram = async (chatId) => {
+    const response = await api.post('/auth/telegram/connect', {
+        chatId
+    });
+    return response.data;
+};
+
+/**
+ * Disconnect Telegram account
+ */
+export const disconnectTelegram = async () => {
+    const response = await api.post('/auth/telegram/disconnect');
+    return response.data;
+};
+
 export default {
     register,
     login,
@@ -153,6 +166,9 @@ export default {
     verifyPasswordResetOTP,
     resetPasswordWithOTP,
     getCurrentUser,
+    fetchCurrentUser,
     getAuthToken,
-    isAuthenticated
+    isAuthenticated,
+    connectTelegram,
+    disconnectTelegram
 };
