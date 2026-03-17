@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
+const pool = require('../config/db');
 
 /**
  * Authentication Middleware
  * Verifies JWT token and adds user info to request
  */
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
@@ -23,6 +24,29 @@ const authMiddleware = (req, res, next) => {
       token,
       process.env.JWT_SECRET || 'grumble-secret-key'
     );
+
+    // Check if user account is still active
+    const userCheck = await pool.query(
+      'SELECT id, username, account_status, is_deleted, frozen_reason FROM users WHERE id = $1',
+      [decoded.id]
+    );
+
+    const user = userCheck.rows[0];
+
+    if (!user || user.is_deleted) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been deleted. Please contact support.'
+      });
+    }
+
+    if (user.account_status === 'frozen') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been frozen.',
+        reason: user.frozen_reason
+      });
+    }
 
     // Add user info to request
     req.user = {

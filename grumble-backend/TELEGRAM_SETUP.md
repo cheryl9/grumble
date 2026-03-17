@@ -19,11 +19,13 @@
 ### Step 2: Get Your Chat ID
 
 #### Method 1: Using the Bot (Manual)
+
 1. Search for your bot in Telegram (e.g., `@GrumbleOTPBot`)
 2. Click **START** or send `/start`
 3. The bot will reply with your Chat ID
 
 #### Method 2: Using Telegram API
+
 1. Send `/start` to your bot
 2. Visit this URL in your browser:
    ```
@@ -46,6 +48,7 @@
 ## Features
 
 Once connected, you will:
+
 - ✅ Receive password reset OTP via Telegram
 - ✅ Get instant chat notifications (coming soon)
 - ✅ No need for SMS or email verification
@@ -55,16 +58,19 @@ Once connected, you will:
 ## Troubleshooting
 
 ### "Failed to connect"
+
 - Make sure you sent `/start` to your bot first
 - Verify the Chat ID is correct (numbers only)
 - Check that your bot token is correct in `.env`
 
 ### "Not receiving OTP"
+
 - Verify Telegram is connected in Profile page
 - Check that you sent `/start` to the bot
 - Restart the backend server after adding bot token
 
 ### "Bot not responding"
+
 - Make sure `TELEGRAM_BOT_TOKEN` is set in `.env`
 - Restart the backend server
 - Check backend console for errors
@@ -77,7 +83,7 @@ Once connected, you will:
 
 ```javascript
 // Check if bot is configured
-const telegramService = require('./services/telegramService');
+const telegramService = require("./services/telegramService");
 const botInfo = await telegramService.getBotInfo();
 console.log(botInfo); // Should show your bot details
 ```
@@ -86,7 +92,7 @@ console.log(botInfo); // Should show your bot details
 
 ```sql
 -- Connect a test user
-UPDATE users 
+UPDATE users
 SET telegram_chat_id = 123456789,
     telegram_username = '@testuser',
     telegram_first_name = 'Test',

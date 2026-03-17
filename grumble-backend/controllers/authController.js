@@ -92,6 +92,24 @@ const login = async (req, res, next) => {
       });
     }
     
+    // Check if account is frozen
+    if (user.error === 'frozen') {
+      return res.status(403).json({
+        success: false,
+        message: user.message,
+        reason: user.reason,
+        frozenAt: user.frozenAt
+      });
+    }
+    
+    // Check if account is deleted
+    if (user.error === 'deleted') {
+      return res.status(403).json({
+        success: false,
+        message: user.message
+      });
+    }
+    
     // Generate JWT token
     const token = jwt.sign(
       { id: user.id, username: user.username },

@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
+import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminProtectedRoute from './components/admin/AdminProtectedRoute';
 import Registration from './pages/auth/Registration';
 import Login from './pages/auth/Login';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -10,6 +12,14 @@ import FindSpots from './pages/FindSpots';
 import FoodMap from './pages/FoodMap';
 import Chats from './pages/Chats';
 import Profile from './pages/Profile';
+import AdminLogin from './pages/admin/AdminLogin';
+import Dashboard from './pages/admin/Dashboard';
+import UserManagement from './pages/admin/UserManagement';
+import PostManagement from './pages/admin/PostManagement';
+import ReportReview from './pages/admin/ReportReview';
+import FAQManagement from './pages/admin/FAQManagement';
+import ActivityLogs from './pages/admin/ActivityLogs';
+import Settings from './pages/admin/Settings';
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +48,24 @@ export const router = createBrowserRouter([
       { path: 'food-map', element: <FoodMap /> },
       { path: 'chats', element: <Chats /> },
       { path: 'profile', element: <Profile /> }
+    ]
+  },
+  // Admin routes
+  {
+    path: '/admin/login',
+    element: <AdminLogin />
+  },
+  {
+    path: '/admin',
+    element: <AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>,
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: 'users', element: <UserManagement /> },
+      { path: 'posts', element: <PostManagement /> },
+      { path: 'reports', element: <ReportReview /> },
+      { path: 'faqs', element: <FAQManagement /> },
+      { path: 'logs', element: <ActivityLogs /> },
+      { path: 'settings', element: <Settings /> }
     ]
   }
 ]);

@@ -11,7 +11,7 @@ const bcrypt = require('bcrypt');
  */
 const findUserById = async (userId) => {
   const result = await pool.query(
-    'SELECT id, phone_number, username, telegram_chat_id, telegram_username, telegram_first_name, telegram_connected_at, created_at FROM users WHERE id = $1',
+    'SELECT id, phone_number, username, account_status, is_deleted, frozen_at, frozen_reason, telegram_chat_id, telegram_username, telegram_first_name, telegram_connected_at, created_at FROM users WHERE id = $1',
     [userId]
   );
   return result.rows[0];
@@ -80,6 +80,21 @@ const verifyPassword = async (username, password) => {
   
   if (!user) {
     return null;
+  }
+  
+  // Check if account is deleted
+  if (user.is_deleted) {
+    return { error: 'deleted', message: 'This account has been deleted' };
+  }
+  
+  // Check if account is frozen
+  if (user.account_status === 'frozen') {
+    return { 
+      error: 'frozen', 
+      message: 'This account has been frozen', 
+      reason: user.frozen_reason,
+      frozenAt: user.frozen_at 
+    };
   }
   
   const isValid = await bcrypt.compare(password, user.password_hash);
