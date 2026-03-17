@@ -1,12 +1,14 @@
 # Grumble Backend
 
 ## Prerequisites
+
 - Node.js
 - npm
 
 ## 1. Install PostgreSQL
 
 ### Mac
+
 ```bash
 brew install postgresql@17
 brew services start postgresql@17
@@ -14,6 +16,7 @@ brew link postgresql@17 --force --overwrite
 ```
 
 ### Windows
+
 Download and run the installer from https://www.postgresql.org/download/windows/
 Follow the installer steps and take note of the password you set.
 
@@ -22,11 +25,13 @@ Follow the installer steps and take note of the password you set.
 ## 2. Install PostGIS
 
 ### Mac
+
 ```bash
 brew install postgis
 ```
 
 ### Windows
+
 During the PostgreSQL installation, use the included Stack Builder tool to install PostGIS.
 
 ---
@@ -36,16 +41,19 @@ During the PostgreSQL installation, use the included Stack Builder tool to insta
 Connect to PostgreSQL:
 
 ### Mac
+
 ```bash
 psql -d postgres
 ```
 
 ### Windows / Linux
+
 ```bash
 psql -U postgres
 ```
 
 Then run:
+
 ```sql
 CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD 'yourpassword';
 -- password up to you, here the role name is postgres. You will use this to access the db in the system
@@ -57,11 +65,13 @@ CREATE ROLE postgres WITH SUPERUSER LOGIN PASSWORD 'yourpassword';
 ## 4. Create the Database
 
 Connect to PostgreSQL:
+
 ```bash
 psql -U postgres
 ```
 
 Then run:
+
 ```sql
 CREATE DATABASE grumble;
 \q
@@ -87,6 +97,7 @@ psql -U postgres -d grumble -f migrations/003_add_telegram_fields.sql
 ---
 
 ## 6. Install Dependencies
+
 ```bash
 npm install
 ```
@@ -96,6 +107,7 @@ npm install
 ## 7. Set Up Environment Variables
 
 Create a `.env` file in the backend root based on `.env.example`:
+
 ```
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/grumble
 PORT=5001
@@ -104,6 +116,7 @@ TELEGRAM_BOT_TOKEN=your-telegram-bot-token-here
 ```
 
 Replace:
+
 - `yourpassword` with the password you set in Step 3
 - `your-secret-key-here` with a random secret string (e.g., generated from `openssl rand -hex 32`)
 - `your-telegram-bot-token-here` with your Telegram bot token from [@BotFather](https://t.me/BotFather)
@@ -116,6 +129,7 @@ Replace:
 
 This fetches all food places in Singapore and stores them in your database.
 Note: This may take a few minutes.
+
 ```bash
 node scripts/syncOSM.js
 ```
@@ -123,6 +137,7 @@ node scripts/syncOSM.js
 ---
 
 ## 9. Start the Server
+
 ```bash
 node server.js
 ```
@@ -134,6 +149,7 @@ Server will run on http://localhost:5001
 ## 10. (Optional) Start Telegram Bot Helper
 
 To help users get their Chat ID easily, run this script alongside the server:
+
 ```bash
 node scripts/telegramBotHelper.js
 ```
@@ -147,29 +163,32 @@ See [TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md) for full details.
 ## API Endpoints
 
 ### Food Places
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/food-places | Get all food places |
-| GET | /api/food-places?category=cafe | Filter by category |
-| GET | /api/food-places?cuisine=chinese | Filter by cuisine |
-| GET | /api/food-places?category=restaurant&cuisine=japanese | Filter by both |
-| GET | /api/food-places/:id | Get a single food place by ID |
+
+| Method | Endpoint                                              | Description                   |
+| ------ | ----------------------------------------------------- | ----------------------------- |
+| GET    | /api/food-places                                      | Get all food places           |
+| GET    | /api/food-places?category=cafe                        | Filter by category            |
+| GET    | /api/food-places?cuisine=chinese                      | Filter by cuisine             |
+| GET    | /api/food-places?category=restaurant&cuisine=japanese | Filter by both                |
+| GET    | /api/food-places/:id                                  | Get a single food place by ID |
 
 ### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /api/auth/register | Register a new user (phone, username, password) |
-| POST | /api/auth/login | Login with phone and password |
-| GET | /api/auth/user | Get logged-in user details (requires JWT) |
-| POST | /api/auth/forgot-password/send-otp | Send password reset OTP via Telegram |
-| POST | /api/auth/forgot-password/verify-otp | Verify OTP code |
-| POST | /api/auth/forgot-password/reset | Reset password with verified OTP |
-| POST | /api/auth/telegram/connect | Connect Telegram account (requires JWT) |
-| POST | /api/auth/telegram/disconnect | Disconnect Telegram account (requires JWT) |
+
+| Method | Endpoint                             | Description                                     |
+| ------ | ------------------------------------ | ----------------------------------------------- |
+| POST   | /api/auth/register                   | Register a new user (phone, username, password) |
+| POST   | /api/auth/login                      | Login with phone and password                   |
+| GET    | /api/auth/user                       | Get logged-in user details (requires JWT)       |
+| POST   | /api/auth/forgot-password/send-otp   | Send password reset OTP via Telegram            |
+| POST   | /api/auth/forgot-password/verify-otp | Verify OTP code                                 |
+| POST   | /api/auth/forgot-password/reset      | Reset password with verified OTP                |
+| POST   | /api/auth/telegram/connect           | Connect Telegram account (requires JWT)         |
+| POST   | /api/auth/telegram/disconnect        | Disconnect Telegram account (requires JWT)      |
 
 ---
 
 ## Available Categories
+
 - restaurant
 - cafe
 - fast_food
