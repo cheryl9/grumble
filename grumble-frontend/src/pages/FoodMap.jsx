@@ -3,7 +3,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from '../services/api';
 import logo from '../assets/logo.png';
-import { Users, User, Bookmark } from 'lucide-react';import AddFoodSpotModal from '../components/foodMapPage/AddFoodSpotModal';import AddFoodSpotModal from '../components/foodMapPage/AddFoodSpotModal';
+import { Users, User, Bookmark } from 'lucide-react';
+import AddFoodSpotModal from '../components/foodMapPage/AddFoodSpotModal';
 
 const TABS = [
   { key: "self", label: "Self", icon: <User size={16} /> },
@@ -223,24 +224,6 @@ const FoodMap = () => {
     loadAndRenderMarkers(tab);
   };
 
-  const handleAddSpot = async () => {
-    if (!newSpot.name.trim()) return;
-    try {
-      await api.post('/posts', {
-        locationName: newSpot.name,
-        description:  newSpot.note,
-        rating:       newSpot.rating,
-        visibility:   'public',
-      });
-      setShowAddModal(false);
-      setNewSpot({ name: '', note: '', rating: 5 });
-      // Reload self tab so the new pin appears
-      loadAndRenderMarkers('self');
-    } catch (err) {
-      console.error('Failed to create post:', err);
-      alert('Failed to pin spot. Please try again.');
-    }
-  };
 
   return (
     <div className="food-map-page flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
@@ -351,63 +334,17 @@ const FoodMap = () => {
         </div>
       </div>
 
-      {/* Add Spot Modal — unchanged, still placeholder until posts backend */}
+      {/* Add Spot Modal */}
       {showAddModal && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center overflow-hidden"
-          onClick={() => setShowAddModal(false)}
-        >
-          <div className="map-bottom-sheet w-full max-w-sm p-6 pb-50 shadow-2xl h-fit rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-            <h2 className="text-xl font-bold text-gray-900">Pin a food spot</h2>
-            <p className="text-sm text-gray-400 font-medium mb-5">Share where you ate at</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Place Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Maxwell Food Centre"
-                  value={newSpot.name}
-                  onChange={(e) => setNewSpot({ ...newSpot, name: e.target.value })}
-                  className="input-field bg-gray-50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Rating</label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setNewSpot({ ...newSpot, rating: star })}
-                      className={`text-2xl transition-transform hover:scale-110 ${star <= newSpot.rating ? 'star-filled' : 'star-empty'}`}
-                    >★</button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Your Note</label>
-                <input
-                  type="text"
-                  placeholder="How was this place?"
-                  value={newSpot.note}
-                  onChange={(e) => setNewSpot({ ...newSpot, note: e.target.value })}
-                  className="input-field bg-gray-50"
-                />
-              </div>
-
-              <button
-                onClick={handleAddSpot}
-                disabled={!newSpot.name.trim()}
-                className="btn-primary w-full py-3.5 rounded-xl text-base disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Pin it!
-              </button>
-            </div>
-          </div>
-        </div>
+        <AddFoodSpotModal
+          onClose={() => setShowAddModal(false)}
+          onSpotAdded={() => {
+            setShowAddModal(false);
+            loadAndRenderMarkers('self');
+          }}
+          lat={spotCoords?.lat || 1.3521}
+          lon={spotCoords?.lon || 103.8198}
+        />
       )}
     </div>
   );

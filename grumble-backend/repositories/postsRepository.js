@@ -26,6 +26,8 @@ async function getFeedPosts(userId, tab = 'foryou', limit = 20, offset = 0) {
         fp.name  AS place_name,
         fp.cuisine,
         fp.category,
+        fp.lat,
+        fp.lon,
         EXISTS (
           SELECT 1 FROM likes l
           WHERE l.post_id = p.id AND l.user_id = $1
