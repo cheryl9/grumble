@@ -1,21 +1,27 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 const foodPlaceRoutes = require('./routes/foodPlaceRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const postRoutes = require('./routes/postRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.get('/', (req, res) => {
+    res.send('Grumble API is running');
+});
+
+app.use('/api/posts', postRoutes);
 app.use('/api/food-places', foodPlaceRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes); // Admin panel routes
+app.use('/api/admin', adminRoutes); 
 
-// Error handler (must be last)
 app.use(errorHandler);
 
 module.exports = app;
