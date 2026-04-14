@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { mockPins } from '../components/foodMapPage/mockData';
+import api from '../services/api';
 import logo from '../assets/logo.png';
-import { Users, User, Bookmark } from 'lucide-react';
+import { Users, User, Bookmark } from 'lucide-react';import AddFoodSpotModal from '../components/foodMapPage/AddFoodSpotModal';import AddFoodSpotModal from '../components/foodMapPage/AddFoodSpotModal';
 
 const TABS = [
   { key: "self", label: "Self", icon: <User size={16} /> },
@@ -11,27 +11,25 @@ const TABS = [
   { key: "saved", label: "Saved", icon: <Bookmark size={16} /> },
 ];
 
-  // this is to create pins, but for now is just a placeholder instead of the customised avatars
+// simplified pin icon — no user avatar data from food-places endpoint
+// when posts backend exists, pass user avatar in pin.avatarUrl and it'll render
 function createPinIcon(pin, isSelected = false) {
   const color = '#F78660';
   const size = isSelected ? 52 : 42;
   const imgSize = size - 10;
 
-  const avatarHtml = pin.avatarUrl ? 
-    `<img
-      src="${pin.avatarUrl}"
-      style="width:${imgSize}px;height:${imgSize}px;border-radius:50%;object-fit:cover;"
-    />` : 
-    `<div style="
-      width:${imgSize}px;height:${imgSize}px;
-      border-radius:50%;
-      background:#FCF1DD;
-      display:flex;align-items:center;justify-content:center;
-      font-size:${Math.round(imgSize * 0.45)}px;
-      font-weight:800;
-      color:#F78660;
-    ">${pin.friend ? pin.friend[0].toUpperCase() : 'Me'}</div>`;
-    
+  const avatarHtml = pin.avatarUrl
+    ? `<img src="${pin.avatarUrl}" style="width:${imgSize}px;height:${imgSize}px;border-radius:50%;object-fit:cover;" />`
+    : `<div style="
+        width:${imgSize}px;height:${imgSize}px;
+        border-radius:50%;
+        background:#FCF1DD;
+        display:flex;align-items:center;justify-content:center;
+        font-size:${Math.round(imgSize * 0.35)}px;
+        font-weight:800;
+        color:#F78660;
+      ">🍴</div>`;
+
   const html = `
     <div style="position:relative;width:${size}px;height:${size + 8}px;display:flex;flex-direction:column;align-items:center;">
       <div style="
@@ -59,6 +57,43 @@ function createPinIcon(pin, isSelected = false) {
   });
 }
 
+// Fetch food places (used for the default/all-places view on 'self' tab fallback)
+async function fetchPlacesInBounds(bounds) {
+  const { _southWest: sw, _northEast: ne } = bounds;
+  const res = await api.get('/food-places', {
+    params: {
+      minLat: sw.lat,
+      maxLat: ne.lat,
+      minLon: sw.lng,
+      maxLon: ne.lng,
+    }
+  });
+  return res.data;
+}
+
+// Fetch posts and extract pins with lat/lon from their linked food_place
+// tab maps directly to the posts feed tab param
+async function fetchPostPins(tab) {
+  const res = await api.get('/posts', { params: { tab } });
+  // Only keep posts that have a food place with coordinates
+  return res.data
+    .filter(p => p.food_place_id && p.lat != null && p.lon != null)
+    .map(p => ({
+      id:           p.id,
+      lat:          p.lat,
+      lon:          p.lon,
+      name:         p.place_name || p.location_name || 'Unnamed place',
+      cuisine:      p.cuisine,
+      category:     p.category,
+      rating:       p.rating,
+      description:  p.description,
+      username:     p.username,
+      liked_by_me:  p.liked_by_me,
+      likes_count:  p.likes_count,
+      isPost:       true,   // flag so pin card knows it's a post, not a bare place
+    }));
+}
+
 const FoodMap = () => {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -67,16 +102,70 @@ const FoodMap = () => {
   const [activeTab, setActiveTab] = useState('self');
   const [selectedPin, setSelectedPin] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newSpot, setNewSpot] = useState({ name: '', note: '', rating: 5 });
+  const [spotCoords, setSpotCoords] = useState(null);
 
+  const [places, setPlaces] = useState([]);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+
+  // Ref so the moveend listener always reads the current tab without needing re-registration
+  const activeTabRef = useRef('self');
+
+  // Fetch logic depends on active tab:
+  // 'self'    → user's own posts (mine tab on posts API)
+  // 'friends' → friends' posts  (friends tab on posts API)
+  // 'saved'   → saved posts     (saved tab on posts API — needs saves table)
+  // all tabs also fall back to food-places bounds fetch if no post pins exist
+  const loadAndRenderMarkers = useCallback(async (tab = 'self') => {
+    if (!mapRef.current) return;
+    setIsLoadingPlaces(true);
+    try {
+      let data;
+      if (tab === 'self') {
+        // My posts pinned on the map
+        data = await fetchPostPins('mine');
+        // If user has no posts yet, fall back to showing all nearby places
+        if (data.length === 0) {
+          const bounds = mapRef.current.getBounds();
+          data = await fetchPlacesInBounds(bounds);
+        }
+      } else if (tab === 'friends') {
+        data = await fetchPostPins('friends');
+      } else if (tab === 'saved') {
+        const res = await api.get('/posts/saved');
+        data = res.data
+          .filter(p => p.lat != null && p.lon != null)
+          .map(p => ({
+            id:          p.id,
+            lat:         p.lat,
+            lon:         p.lon,
+            name:        p.place_name || p.location_name || 'Unnamed place',
+            cuisine:     p.cuisine,
+            category:    p.category,
+            rating:      p.rating,
+            description: p.description,
+            username:    p.username,
+            liked_by_me: p.liked_by_me,
+            likes_count: p.likes_count,
+            isPost:      true,
+          }));
+      }
+      setPlaces(data);
+    } catch (err) {
+      console.error('Failed to fetch map pins:', err);
+    } finally {
+      setIsLoadingPlaces(false);
+    }
+  }, []);
+
+  // map init — attach moveend to re-fetch on pan/zoom
   useEffect(() => {
     if (mapRef.current) return;
     const map = L.map(mapContainerRef.current, {
       center: [1.3521, 103.8198],
-      zoom: 12, 
+      zoom: 12,
       zoomControl: false,
       attributionControl: true,
-    })
+    });
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
@@ -84,45 +173,73 @@ const FoodMap = () => {
       attribution: '© <a href="https://carto.com/">CARTO</a>',
     }).addTo(map);
 
-    L.control.zoom({ position: 'topright'}).addTo(map);
+    L.control.zoom({ position: 'topright' }).addTo(map);
     mapRef.current = map;
 
-    return () => { map.remove(); mapRef.current = null };
-  }, [])
+    // Fetch on ready; moveend reads activeTabRef so it always uses the current tab
+    map.whenReady(() => loadAndRenderMarkers('self'));
+    const onMoveEnd = () => loadAndRenderMarkers(activeTabRef.current);
+    map.on('moveend', onMoveEnd);
 
+    return () => {
+      map.off('moveend', onMoveEnd);
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [loadAndRenderMarkers]);
+
+  // CHANGED: render markers from real places data instead of mockPins
+  // NOTE: self/friends/saved tabs don't have different data yet — that needs the posts backend
+  // all tabs show the same place markers for now; replace places with user-filtered data later
   useEffect(() => {
     if (!mapRef.current) return;
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    mockPins[activeTab].forEach((pin) => {
-      const isSelected = selectedPin?.id === pin.id;
-      const marker = L.marker([pin.lat, pin.lng], {
-        icon: createPinIcon(pin, isSelected),
+    places.forEach((place) => {
+      // food_places rows have lat/lon columns (not lat/lng)
+      const isSelected = selectedPin?.id === place.id;
+      const marker = L.marker([place.lat, place.lon], {
+        icon: createPinIcon(place, isSelected),
         zIndexOffset: isSelected ? 1000 : 0,
       }).addTo(mapRef.current);
 
       marker.on('click', () => {
-        setSelectedPin((prev) => (prev?.id === pin.id ? null : pin));
-        mapRef.current.flyTo([pin.lat, pin.lng], Math.max(mapRef.current.getZoom(), 14), 
-        { duration: 0.6 });
-      })
+        setSelectedPin((prev) => (prev?.id === place.id ? null : place));
+        mapRef.current.flyTo([place.lat, place.lon], Math.max(mapRef.current.getZoom(), 14), {
+          duration: 0.6,
+        });
+      });
 
       markersRef.current.push(marker);
     });
-  }, [activeTab, selectedPin]);
+  }, [places, selectedPin]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    activeTabRef.current = tab;
     setSelectedPin(null);
     mapRef.current?.flyTo([1.3521, 103.8198], 12, { duration: 0.8 });
+    loadAndRenderMarkers(tab);
   };
 
-  const handleAddSpot = () => {
+  const handleAddSpot = async () => {
     if (!newSpot.name.trim()) return;
-    alert(`"${newSpot.name}" pinned!\n(Wire this to your backend API to persist.)`);
-    setShowAddModal(false);
-    setNewSpot({ name: '', note: '', rating: 5 });
+    try {
+      await api.post('/posts', {
+        locationName: newSpot.name,
+        description:  newSpot.note,
+        rating:       newSpot.rating,
+        visibility:   'public',
+      });
+      setShowAddModal(false);
+      setNewSpot({ name: '', note: '', rating: 5 });
+      // Reload self tab so the new pin appears
+      loadAndRenderMarkers('self');
+    } catch (err) {
+      console.error('Failed to create post:', err);
+      alert('Failed to pin spot. Please try again.');
+    }
   };
 
   return (
@@ -148,46 +265,76 @@ const FoodMap = () => {
                 className={`flex items-center justify-center w-12 h-10 rounded-full transition-all duration-200 ${
                   active ? 'bg-gray-100' : 'hover:bg-gray-50'
                 }`}
-            >
+              >
                 <span className={active ? 'text-gray-700' : 'text-gray-400'}>
                   {icon}
                 </span>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
 
       {/* Map */}
       <div className="relative flex-1 overflow-hidden">
         <div ref={mapContainerRef} className="absolute inset-0" />
 
-        {/* Pin detail card */}
+        {/* CHANGED: loading indicator for place fetches */}
+        {isLoadingPlaces && (
+          <div className="absolute top-4 right-16 z-[1000] bg-white rounded-full px-3 py-1 text-sm text-gray-500 shadow">
+            Loading...
+          </div>
+        )}
+
+        {/* Pin detail card — CHANGED: uses place fields (name, cuisine, category) instead of mock pin fields */}
         {selectedPin && (
           <div className="map-pin-card absolute bottom-24 left-1/2 z-[1000] w-80" style={{ transform: 'translateX(-50%)' }}>
             <div className="h-1.5 rounded-t-2xl bg-[#F78660]" />
             <div className="p-4">
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold flex-shrink-0 bg-[#FCF1DD] text-[#F78660]">
-                  {selectedPin.friend ? selectedPin.friend[0].toUpperCase() : 'Me'}
+                  {selectedPin.username ? selectedPin.username[0].toUpperCase() : '🍴'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  {selectedPin.friend && (
-                    <p className="text-xs text-gray-400 font-semibold mb-0.5">📌 {selectedPin.friend}</p>
+                  {/* Show username if it's a post pin */}
+                  {selectedPin.username && (
+                    <p className="text-xs text-gray-400 font-semibold mb-0.5">
+                      📌 {selectedPin.username}
+                    </p>
                   )}
-                  <h3 className="font-bold text-gray-900 text-base leading-tight">{selectedPin.name}</h3>
-                  <div className="flex gap-0.5 mt-0.5">
-                    {[1,2,3,4,5].map((i) => (
-                      <span key={i} className={i <= selectedPin.rating ? 'star-filled' : 'star-empty'}>★</span>
-                    ))}
-                  </div>
+                  {/* Show cuisine/category for bare place pins */}
+                  {!selectedPin.username && (selectedPin.cuisine || selectedPin.category) && (
+                    <p className="text-xs text-gray-400 font-semibold mb-0.5">
+                      {selectedPin.cuisine || selectedPin.category}
+                    </p>
+                  )}
+                  <h3 className="font-bold text-gray-900 text-base leading-tight">
+                    {selectedPin.name || 'Unnamed place'}
+                  </h3>
+                  {/* Star rating for posts */}
+                  {selectedPin.rating && (
+                    <div className="flex gap-0.5 mt-0.5">
+                      {[1,2,3,4,5].map((i) => (
+                        <span key={i} className={i <= selectedPin.rating ? 'star-filled' : 'star-empty'}>★</span>
+                      ))}
+                    </div>
+                  )}
+                  {selectedPin.address && !selectedPin.isPost && (
+                    <p className="text-xs text-gray-400 mt-0.5">{selectedPin.address}</p>
+                  )}
                 </div>
                 <button
                   onClick={() => setSelectedPin(null)}
                   className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold flex-shrink-0 transition-colors"
                 >✕</button>
               </div>
-              <p className="mt-2.5 text-sm text-gray-500 italic">"{selectedPin.note}"</p>
+              {/* Show post description or opening hours */}
+              {selectedPin.description && (
+                <p className="mt-2.5 text-sm text-gray-500 italic">"{selectedPin.description}"</p>
+              )}
+              {!selectedPin.description && selectedPin.opening_hours && (
+                <p className="mt-2.5 text-sm text-gray-500 italic">"{selectedPin.opening_hours}"</p>
+              )}
               <button className="btn-primary mt-3 w-full py-2.5 rounded-xl text-sm">
                 See post →
               </button>
@@ -204,7 +351,7 @@ const FoodMap = () => {
         </div>
       </div>
 
-      {/* Add Spot Modal */}
+      {/* Add Spot Modal — unchanged, still placeholder until posts backend */}
       {showAddModal && (
         <div
           className="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center overflow-hidden"
@@ -230,7 +377,7 @@ const FoodMap = () => {
               <div>
                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Rating</label>
                 <div className="flex gap-1">
-                  {[1,2,3,4,5].map((star) => (
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       onClick={() => setNewSpot({ ...newSpot, rating: star })}
@@ -256,7 +403,7 @@ const FoodMap = () => {
                 disabled={!newSpot.name.trim()}
                 className="btn-primary w-full py-3.5 rounded-xl text-base disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Pin it! 
+                Pin it!
               </button>
             </div>
           </div>

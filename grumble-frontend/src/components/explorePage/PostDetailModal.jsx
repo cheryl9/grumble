@@ -15,8 +15,8 @@ const PostDetailModal = ({ post, onClose }) => {
         {/* Image */}
         <div className="w-1/2 bg-gray-100 flex items-center justify-center">
           <img 
-            src={post.image} 
-            alt={post.caption}
+            src={post.image_url} 
+            alt={post.description}
             className="w-full h-full object-contain"
           />
         </div>
@@ -30,10 +30,10 @@ const PostDetailModal = ({ post, onClose }) => {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">{post.username}</h3>
-                {post.location && (
+                {post.location_name && (
                   <div className="flex items-center gap-1 text-sm text-gray-600">
                     <MapPin size={14} className="text-red-500" />
-                    <span>{post.location}</span>
+                    <span>{post.location_name}</span>
                   </div>
                 )}
               </div>
@@ -49,7 +49,7 @@ const PostDetailModal = ({ post, onClose }) => {
           {/* Caption Section */}
           <div className="p-4 border-b">
             <p className="text-sm mb-2">
-              <span className="font-semibold">{post.username}</span> {post.caption}
+              <span className="font-semibold">{post.username}</span> {post.description}
             </p>
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -60,7 +60,7 @@ const PostDetailModal = ({ post, onClose }) => {
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-500">{post.timeAgo}</p>
+            <p className="text-xs text-gray-500">{new Date(post.created_at).toLocaleDateString()}</p>
           </div>
 
           {/* Comments Header */}
@@ -79,9 +79,9 @@ const PostDetailModal = ({ post, onClose }) => {
                       <User size={20} />
                     </div>
                     <div className="flex-1">
-                      <h5 className="font-semibold text-sm mb-1">{comment.user}</h5>
+                      <h5 className="font-semibold text-sm mb-1">{comment.username}</h5>
                       <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
-                        {comment.text}
+                        {comment.content}
                       </p>
                     </div>
                   </div>

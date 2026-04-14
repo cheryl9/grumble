@@ -1,14 +1,102 @@
-import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
-import FoodPostCard from '../components/explorePage/FoodPostCard';
-import { mockPosts } from '../components/explorePage/mockData';
-import logo from '../assets/logo.png';
+import React, { useState, useEffect } from "react";
+import api from "../services/api";
+import FoodPostCard from "../components/explorePage/FoodPostCard";
+import PostDetailModal from "../components/explorePage/PostDetailModal";
+import CreatePostModal from "../components/explorePage/CreatePostModal";
+import logo from "../assets/logo.png";
+
+const TABS = [
+  { key: "foryou", label: "For You" },
+  { key: "friends", label: "Friends" },
+  { key: "mine", label: "My posts" },
+];
 
 const Explore = () => {
-  const [activeTab, setActiveTab] = useState('forYou');
+  const [activeTab, setActiveTab] = useState("foryou");
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  useEffect(() => {
+    const fetchFeed = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await api.get("/posts", { params: { tab: activeTab } });
+        setPosts(res.data);
+      } catch (err) {
+        console.error("Failed to fetch feed:", err);
+        setError("Could not load posts. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchFeed();
+  }, [activeTab]);
+
+  const handleLike = async (postId) => {
+    // Optimistic update
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const nowLiked = !p.liked_by_me;
+        return {
+          ...p,
+          liked_by_me: nowLiked,
+          likes_count: nowLiked
+            ? p.likes_count + 1
+            : Math.max(p.likes_count - 1, 0),
+        };
+      }),
+    );
+
+    try {
+      await api.post(`/posts/${postId}/like`);
+    } catch (err) {
+      console.error("Like failed, reverting:", err);
+      // Revert on failure
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const revert = !p.liked_by_me;
+          return {
+            ...p,
+            liked_by_me: revert,
+            likes_count: revert
+              ? p.likes_count + 1
+              : Math.max(p.likes_count - 1, 0),
+          };
+        }),
+      );
+    }
+  };
+
+  // Open post detail modal — fetches full post + comments
+  const handleOpenPost = async (post) => {
+    try {
+      const res = await api.get(`/posts/${post.id}`);
+      setSelectedPost(res.data);
+    } catch (err) {
+      console.error("Failed to fetch post detail:", err);
+      // Fall back to showing whatever data we already have
+      setSelectedPost(post);
+    }
+  };
+
+  // After adding a comment, update the comment count in the list
+  const handleCommentAdded = (postId) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p,
+      ),
+    );
+  };
 
   return (
     <div className="explore-page">
+      {/* Header */}
       <div className="explore-header">
         <div className="flex items-center gap-3 mb-4">
           <img src={logo} alt="Grumble" className="w-12 h-12" />
@@ -16,39 +104,104 @@ const Explore = () => {
         </div>
       </div>
 
-  <div className="explore-tab-bar">
-        <div className="flex gap-6">
+      {/* Tab bar */}
+      <div
+        className="explore-tabs"
+        style={{ display: "flex", borderBottom: "1.5px solid #e5e5e5" }}
+      >
+        {TABS.map(({ key, label }) => (
           <button
-            onClick={() => setActiveTab('forYou')}
-            className={`tab ${activeTab === 'forYou' ? 'tab-active' : 'tab-inactive'}`}
+            key={key}
+            onClick={() => setActiveTab(key)}
+            style={{
+              padding: "10px 20px",
+              fontSize: "14px",
+              fontWeight: 500,
+              background: "none",
+              border: "none",
+              borderBottom:
+                activeTab === key
+                  ? "2.5px solid #FF6B35"
+                  : "2.5px solid transparent",
+              color: activeTab === key ? "#FF6B35" : "#888",
+              marginBottom: "-1.5px",
+              cursor: "pointer",
+              transition: "color 0.15s",
+            }}
           >
-            For You
+            {label}
           </button>
-          <button
-            onClick={() => setActiveTab('friends')}
-            className={`tab ${activeTab === 'friends' ? 'tab-active' : 'tab-inactive'}`}
-          >
-            Friends
-          </button>
-          <button
-            onClick={() => setActiveTab('myPosts')}
-            className={`tab ${activeTab === 'myPosts' ? 'tab-active' : 'tab-inactive'}`}
-          >
-            My posts
-          </button>
-        </div>
+        ))}
+      </div>
 
-        <button className="btn-primary flex items-center gap-3">
-          <Plus size={20} strokeWidth={2.5} />
-          Upload New
+      {/* Upload button */}
+      <div className="flex justify-end px-4 mb-4">
+        <button
+          onClick={() => setShowCreate(true)}
+          className="btn-primary px-4 py-2 rounded-xl text-sm"
+        >
+          + Upload New
         </button>
       </div>
 
-      <div className="posts-grid">
-        {mockPosts.map((post) => (
-          <FoodPostCard key={post.id} post={post} />
-        ))}
-      </div>
+      {/* States */}
+      {isLoading && (
+        <div className="flex justify-center py-12">
+          <p className="text-gray-400">Loading posts...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex justify-center py-12">
+          <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
+      {!isLoading && !error && posts.length === 0 && (
+        <div className="flex justify-center py-12">
+          <p className="text-gray-400">
+            {activeTab === "mine"
+              ? "You haven't posted yet."
+              : activeTab === "friends"
+                ? "No posts from friends yet."
+                : "No posts yet. Be the first!"}
+          </p>
+        </div>
+      )}
+
+      {/* Post grid */}
+      {!isLoading && !error && posts.length > 0 && (
+        <div className="posts-grid">
+          {posts.map((post) => (
+            <FoodPostCard
+              key={post.id}
+              post={post}
+              onLike={() => handleLike(post.id)}
+              onClick={() => handleOpenPost(post)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Post detail modal */}
+      {selectedPost && (
+        <PostDetailModal
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          onLike={() => handleLike(selectedPost.id)}
+          onCommentAdded={() => handleCommentAdded(selectedPost.id)}
+        />
+      )}
+
+      {showCreate && (
+        <CreatePostModal
+          onClose={() => setShowCreate(false)}
+          onPostCreated={() => {
+            setShowCreate(false);
+            setActiveTab("mine");
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
-import { mockRestaurants } from '../components/findSpotsPage/mockData';
+import api from '../services/api';
 import RestaurantCard from '../components/findSpotsPage/RestaurantCard';
 import { SINGAPORE_REGIONS, CUISINE_CATEGORIES, PRICE_RANGES, OCCASIONS } from '../utils/constants';
 import logo from '../assets/logo.png';
@@ -19,6 +19,29 @@ const FindSpots = () => {
     price: false,
     occasion: false
   });
+
+  const [allRestaurants, setAllRestaurants] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const params = {};
+        if (filters.cuisine) params.cuisine = filters.cuisine;
+        const res = await api.get('/food-places', { params });
+        setAllRestaurants(res.data);
+      } catch (err) {
+        console.error('Failed to fetch food places:', err);
+        setError('Could not load restaurants. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPlaces();
+  }, [filters.cuisine]); 
 
   const handleResetFilters = () => {
     setFilters({
@@ -48,16 +71,16 @@ const FindSpots = () => {
     }));
   };
 
-  const filteredRestaurants = mockRestaurants.filter(restaurant => {
-    const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase());
+  
+  const filteredRestaurants = allRestaurants.filter(restaurant => {
+    const matchesSearch = restaurant.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocation = !filters.location || restaurant.location === filters.location;
     const matchesCuisine = !filters.cuisine || restaurant.cuisine === filters.cuisine;
     const matchesPrice = !filters.price || restaurant.priceRange === filters.price;
-    
     return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
   });
 
-  const trendingRestaurants = mockRestaurants.filter(r => r.rating >= 4.5);
+  const trendingRestaurants = allRestaurants.filter(r => r.rating >= 4.5);
 
   return (
     <div className="find-spots-page">
@@ -176,18 +199,38 @@ const FindSpots = () => {
         </button>
       </div>
 
-      {/* Trending Now Section */}
-      <div className="trending-section">
-        <h2 className="text-2xl font-bold mb-6">Trending Now</h2>
-        <div className="restaurant-grid">
-          {trendingRestaurants.map(restaurant => (
-            <RestaurantCard key={restaurant.id} restaurant={restaurant} />
-          ))}
+      {/* CHANGED: loading and error states */}
+      {isLoading && (
+        <div className="flex justify-center py-12">
+          <p className="text-gray-400">Loading spots...</p>
         </div>
-      </div>
+      )}
+
+      {error && (
+        <div className="flex justify-center py-12">
+          <p className="text-red-400">{error}</p>
+        </div>
+      )}
+
+      {/* Trending Now Section */}
+      {!isLoading && !error && (
+        <div className="trending-section">
+          <h2 className="text-2xl font-bold mb-6">Trending Now</h2>
+          {trendingRestaurants.length > 0 ? (
+            <div className="restaurant-grid">
+              {trendingRestaurants.map(restaurant => (
+                <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+              ))}
+            </div>
+          ) : (
+
+            <p className="text-gray-400">No trending spots yet.</p>
+          )}
+        </div>
+      )}
 
       {/* All Results */}
-      {searchQuery || Object.values(filters).some(f => f) ? (
+      {!isLoading && !error && (searchQuery || Object.values(filters).some(f => f)) && (
         <div className="results-section">
           <h2 className="text-2xl font-bold mb-6">
             Results ({filteredRestaurants.length})
@@ -198,7 +241,7 @@ const FindSpots = () => {
             ))}
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 };
