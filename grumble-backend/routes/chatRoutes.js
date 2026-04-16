@@ -29,6 +29,9 @@ router.patch("/:roomId", chatRoomController.updateChatRoom);
 // Add members to a chat room
 router.post("/:roomId/members", chatRoomController.addMembers);
 
+// Update a member role (admin/member)
+router.patch("/:roomId/members/:userId", chatRoomController.updateMemberRole);
+
 // Remove a member from a chat room
 router.delete("/:roomId/members/:userId", chatRoomController.removeMember);
 

@@ -142,14 +142,7 @@ const Explore = () => {
       );
     }
   };
-          };
-        });
-      }
-    }
-  };
-  // ────────────────────────────────────────────────────────────
-
->>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
+          
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);

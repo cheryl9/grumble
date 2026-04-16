@@ -53,8 +53,8 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
   if (count === 0) return null;
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-36 h-36">
+    <div className="flex flex-col items-center gap-5">
+      <div className="relative w-80 h-80">
         <svg
           viewBox="0 0 200 200"
           className="w-full h-full"
@@ -72,8 +72,8 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
             const y1 = 100 + 90 * Math.sin(startAngle);
             const x2 = 100 + 90 * Math.cos(endAngle);
             const y2 = 100 + 90 * Math.sin(endAngle);
-            const mx = 100 + 55 * Math.cos((startAngle + endAngle) / 2);
-            const my = 100 + 55 * Math.sin((startAngle + endAngle) / 2);
+            const mx = 100 + 58 * Math.cos((startAngle + endAngle) / 2);
+            const my = 100 + 58 * Math.sin((startAngle + endAngle) / 2);
             const largeArc = angle > 180 ? 1 : 0;
 
             return (
@@ -90,7 +90,7 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="white"
-                  fontSize="10"
+                  fontSize="14"
                   fontWeight="bold"
                   transform={`rotate(${i * angle + angle / 2}, ${mx}, ${my})`}
                 >
@@ -104,19 +104,20 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
           <circle cx="100" cy="100" r="10" fill="white" />
         </svg>
 
+        {/* Pointer */}
         <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1">
-          <div className="w-0 h-0 border-t-[8px] border-b-[8px] border-r-[14px] border-t-transparent border-b-transparent border-r-gray-700" />
+          <div className="w-0 h-0 border-t-[12px] border-b-[12px] border-r-[20px] border-t-transparent border-b-transparent border-r-gray-700" />
         </div>
       </div>
 
       {result && (
-        <p className="text-sm font-bold text-[#F78660]">🎉 {result}!</p>
+        <p className="text-base font-bold text-[#F78660]">🎉 {result}!</p>
       )}
 
       <button
         onClick={spin}
         disabled={spinning || count < 2}
-        className="btn-primary px-6 py-2 rounded-full text-sm font-bold disabled:opacity-50"
+        className="btn-primary px-8 py-2.5 rounded-full text-base font-bold disabled:opacity-50"
       >
         {spinning ? "Spinning..." : "SPIN THE WHEEL"}
       </button>

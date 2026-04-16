@@ -217,6 +217,14 @@ const getMemberRole = async (roomId, userId) => {
   return result.rows[0]?.role ?? null;
 };
 
+const updateMemberRole = async (roomId, userId, role) => {
+  const result = await pool.query(
+    "UPDATE chat_room_members SET role = $3 WHERE room_id = $1 AND user_id = $2 RETURNING *",
+    [roomId, userId, role],
+  );
+  return result.rows[0] || null;
+};
+
 module.exports = {
   createChatRoom,
   getChatRoomsForUser,
@@ -229,4 +237,5 @@ module.exports = {
   updateChatRoom,
   getOrCreateDirectRoom,
   getMemberRole,
+  updateMemberRole,
 };

@@ -6,11 +6,21 @@ import logo from "../assets/logo.png";
 import ChatList from "../components/chatsPage/ChatList";
 import ChatWindow from "../components/chatsPage/ChatWindow";
 import CreateGroupModal from "../components/chatsPage/CreateGroupModal";
+import GroupChatInfo from "../components/chatsPage/GroupChatInfo";
+import {
+  addMembersToChatRoom,
+  createGroupChatRoom,
+  getOrCreateDirectChatRoom,
+  getChats,
+} from "../services/chatService";
 
 const formatRelativeTime = (ts) => {
   if (!ts) return "";
   try {
-    return formatDistanceToNow(new Date(ts), { addSuffix: true });
+    // Add 8 hours to compensate for Singapore timezone (UTC+8)
+    const date = new Date(ts);
+    date.setHours(date.getHours() + 8);
+    return formatDistanceToNow(date, { addSuffix: true });
   } catch {
     return "";
   }
@@ -51,9 +61,11 @@ const Chats = () => {
   const [chats, setChats] = useState([]);
   const [friends, setFriends] = useState([]);
 
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState("friends");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChat, setActiveChat] = useState(null);
+  const [activeChatView, setActiveChatView] = useState("chat");
+  const [roomRefreshKey, setRoomRefreshKey] = useState(0);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [viewRestaurant, setViewRestaurant] = useState(null);
 
@@ -61,8 +73,7 @@ const Chats = () => {
   const [error, setError] = useState(null);
 
   const refreshChats = useCallback(async () => {
-    const res = await api.get("/chats");
-    const rooms = res.data?.data || [];
+    const rooms = (await getChats()) || [];
     setChats(rooms.map(mapRoomToChatListItem));
   }, []);
 
@@ -98,27 +109,91 @@ const Chats = () => {
     const name = title.trim();
     if (!name || !memberIds?.length) return;
 
-    const roomRes = await api.post("/chats", { type: "group", name });
-    const room = roomRes.data?.data;
+    const room = await createGroupChatRoom(name);
 
     if (!room?.id) throw new Error("Failed to create chat room");
 
-    await api.post(`/chats/${room.id}/members`, { user_ids: memberIds });
+    await addMembersToChatRoom(room.id, memberIds);
 
     await refreshChats();
   };
 
+  const chatListItems = useMemo(() => {
+    const groupItems = (chats || []).filter((c) => c.type === "group");
+    const friendItems = (friends || []).map((f) => ({
+      id: `friend-${f.id}`,
+      type: "friend",
+      name: f.username,
+      avatar_url: f.avatar_url,
+      lastMessage: "",
+      time: "",
+      unread: 0,
+      friend_user_id: f.id,
+      raw: f,
+    }));
+
+    return [...groupItems, ...friendItems];
+  }, [chats, friends]);
+
+  const handleSelectChat = useCallback(
+    async (item) => {
+      if (!item) return;
+
+      if (item.type === "friend") {
+        const friendUserId = Number(item.friend_user_id);
+        if (!Number.isInteger(friendUserId)) return;
+
+        const room = await getOrCreateDirectChatRoom(friendUserId);
+        if (!room?.id) throw new Error("Failed to open direct chat");
+
+        setActiveChat({
+          id: room.id,
+          type: room.type,
+          name: item.name,
+          avatar_url: room.avatar_url,
+          raw: room,
+        });
+
+        // Ensure list ordering stays fresh (e.g., last_message fields).
+        await refreshChats();
+        return;
+      }
+
+      setActiveChat(item);
+    },
+    [refreshChats],
+  );
+
   const activeChatDisplay = useMemo(() => activeChat, [activeChat]);
+
+  useEffect(() => {
+    // Reset sub-view when switching chats.
+    setActiveChatView("chat");
+  }, [activeChatDisplay?.id]);
 
   if (activeChatDisplay)
     return (
       <div className="chats-page flex flex-col" style={{ height: "100dvh" }}>
-        <ChatWindow
-          chat={activeChatDisplay}
-          onBack={() => setActiveChat(null)}
-          onViewRestaurant={setViewRestaurant}
-          onChatUpdated={refreshChats}
-        />
+        {activeChatView === "info" ? (
+          <GroupChatInfo
+            roomId={activeChatDisplay?.id}
+            onBack={() => setActiveChatView("chat")}
+            onLeftGroup={() => setActiveChat(null)}
+            onRoomUpdated={() => {
+              setRoomRefreshKey((k) => k + 1);
+              refreshChats();
+            }}
+          />
+        ) : (
+          <ChatWindow
+            key={`${activeChatDisplay?.id}-${roomRefreshKey}`}
+            chat={activeChatDisplay}
+            onBack={() => setActiveChat(null)}
+            onViewRestaurant={setViewRestaurant}
+            onChatUpdated={refreshChats}
+            onOpenGroupInfo={() => setActiveChatView("info")}
+          />
+        )}
 
         {viewRestaurant && (
           <div
@@ -178,12 +253,12 @@ const Chats = () => {
       {error && <div className="px-4 py-2 text-sm text-red-600">{error}</div>}
 
       <ChatList
-        chats={chats}
+        chats={chatListItems}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onSelectChat={setActiveChat}
+        onSelectChat={handleSelectChat}
         onCreateGroup={() => setShowCreateGroup(true)}
         isLoading={loading}
       />

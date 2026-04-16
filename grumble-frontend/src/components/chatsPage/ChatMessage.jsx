@@ -8,7 +8,10 @@ import FoodSuggestion from "./FoodSuggestion";
 const formatMessageTime = (ts) => {
   if (!ts) return "";
   try {
-    return format(new Date(ts), "p");
+    // Add 8 hours to compensate for Singapore timezone (UTC+8)
+    const date = new Date(ts);
+    date.setHours(date.getHours() + 8);
+    return format(date, "p");
   } catch {
     return "";
   }

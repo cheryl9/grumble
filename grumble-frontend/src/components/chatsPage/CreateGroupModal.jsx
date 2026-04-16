@@ -20,14 +20,13 @@ const CreateGroupModal = ({ onClose, onCreate, friends = [] }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-[2000] flex items-end justify-center"
+      className="fixed inset-0 bg-black/50 z-[2000] flex items-center justify-center"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-md rounded-t-3xl p-6 pb-10 shadow-2xl"
+        className="bg-white w-full max-w-md rounded-3xl p-6 pb-10 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-8 h-0.5 bg-gray-300 rounded-full mx-auto mb-4" />
         <h2 className="text-xl font-bold text-gray-900 mb-1">New Group Chat</h2>
         <p className="text-sm text-gray-400 mb-4">
           Add friends and give it a name

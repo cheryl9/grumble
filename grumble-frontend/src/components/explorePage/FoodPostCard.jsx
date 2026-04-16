@@ -123,7 +123,6 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
             {/* description instead of caption */}
             {post.description || 'No caption provided.'}
           </p>
-          </p>
           <p className="text-xs text-gray-500 mt-2">
             {new Date(post.created_at).toLocaleDateString()}
           </p>

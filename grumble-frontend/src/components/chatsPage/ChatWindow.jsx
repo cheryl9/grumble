@@ -4,8 +4,15 @@ import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import Avatar from "./Avatar";
 import ChatMessage from "./ChatMessage";
+import { getChatRoom } from "../../services/chatService";
 
-const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
+const ChatWindow = ({
+  chat,
+  onBack,
+  onViewRestaurant,
+  onChatUpdated,
+  onOpenGroupInfo,
+}) => {
   const { user } = useAuth();
   const roomId = chat?.id;
 
@@ -40,7 +47,7 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
         setError(null);
 
         const [roomRes, msgRes] = await Promise.all([
-          api.get(`/chats/${roomId}`),
+          getChatRoom(roomId),
           api.get(`/chats/${roomId}/messages`, {
             params: { limit: 50, offset: 0 },
           }),
@@ -48,7 +55,7 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
 
         if (cancelled) return;
 
-        const roomData = roomRes.data?.data;
+        const roomData = roomRes;
         setRoom(roomData);
         setMembers(roomData?.members || []);
 
@@ -211,18 +218,34 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
         <button onClick={onBack} className="btn-ghost p-1 rounded-full">
           <ArrowLeft size={20} className="text-gray-600" />
         </button>
-        <Avatar name={displayName} size="sm" />
 
-        <div className="min-w-0">
-          <p className="font-bold text-gray-900 text-sm leading-tight truncate">
-            {displayName}
-          </p>
-          {memberNames.length > 0 && (
-            <p className="text-xs text-gray-400 truncate">
-              {memberNames.join(", ")}
+        <button
+          type="button"
+          onClick={() => {
+            if (room?.type !== "group") return;
+            onOpenGroupInfo?.();
+          }}
+          className={`flex items-center gap-3 min-w-0 text-left ${
+            room?.type === "group" ? "cursor-pointer" : "cursor-default"
+          }`}
+        >
+          <Avatar
+            name={displayName}
+            src={room?.avatar_url || chat?.avatar_url || null}
+            size="sm"
+          />
+
+          <div className="min-w-0">
+            <p className="font-bold text-gray-900 text-sm leading-tight truncate">
+              {displayName}
             </p>
-          )}
-        </div>
+            {memberNames.length > 0 && (
+              <p className="text-xs text-gray-400 truncate">
+                {memberNames.join(", ")}
+              </p>
+            )}
+          </div>
+        </button>
       </div>
 
       {error && <div className="px-4 py-2 text-sm text-red-600">{error}</div>}

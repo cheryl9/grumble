@@ -321,6 +321,94 @@ const updateChatRoom = async (req, res) => {
 };
 
 /**
+ * PATCH /api/chats/:roomId/members/:userId - Update a member role (admin/member)
+ */
+const updateMemberRole = async (req, res) => {
+  try {
+    const { roomId, userId: memberIdParam } = req.params;
+    const { role } = req.body;
+    const currentUserId = req.user.id;
+
+    const memberId = Number(memberIdParam);
+    if (!Number.isInteger(memberId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid userId" });
+    }
+
+    if (!role || !["admin", "member"].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'role must be either "admin" or "member"',
+      });
+    }
+
+    const room = await chatRoomRepository.getChatRoomById(roomId);
+    if (!room) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat room not found" });
+    }
+
+    if (room.type === "direct") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot change roles in a direct chat",
+      });
+    }
+
+    const requesterRole = await chatRoomRepository.getMemberRole(
+      roomId,
+      currentUserId,
+    );
+    if (requesterRole !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admins can change roles",
+      });
+    }
+
+    const members = await chatRoomRepository.getChatRoomMembers(roomId);
+    const targetMember = members.find(
+      (m) => Number(m.user_id) === Number(memberId),
+    );
+    if (!targetMember) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User is not a member of this room" });
+    }
+
+    if (targetMember.role === "admin" && role === "member") {
+      const admins = members.filter((m) => m.role === "admin");
+      if (
+        admins.length === 1 &&
+        Number(admins[0].user_id) === Number(memberId)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Room must have at least one admin",
+        });
+      }
+    }
+
+    await chatRoomRepository.updateMemberRole(roomId, memberId, role);
+    const updatedMembers = await chatRoomRepository.getChatRoomMembers(roomId);
+
+    return res.json({
+      success: true,
+      data: updatedMembers,
+      message: "Role updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating member role:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update member role",
+    });
+  }
+};
+
+/**
  * DELETE /api/chats/:roomId/members/:userId - Remove a member from chat room
  */
 const removeMember = async (req, res) => {
@@ -352,12 +440,41 @@ const removeMember = async (req, res) => {
       });
     }
 
-    // Only the room creator (admin) can remove other members.
-    if (room.created_by !== currentUserId) {
+    const requesterRole = await chatRoomRepository.getMemberRole(
+      roomId,
+      currentUserId,
+    );
+    if (requesterRole !== "admin") {
       return res.status(403).json({
         success: false,
-        message: "Only the room creator can remove members",
+        message: "Only admins can remove members",
       });
+    }
+
+    if (Number(room.created_by) === Number(memberId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot remove the room creator",
+      });
+    }
+
+    const members = await chatRoomRepository.getChatRoomMembers(roomId);
+    const target = members.find((m) => Number(m.user_id) === Number(memberId));
+    if (!target) {
+      return res.status(404).json({
+        success: false,
+        message: "User is not a member of this room",
+      });
+    }
+
+    if (target.role === "admin") {
+      const admins = members.filter((m) => m.role === "admin");
+      if (admins.length === 1) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot remove the last admin",
+        });
+      }
     }
 
     await chatRoomRepository.removeMemberFromRoom(roomId, memberId);
@@ -432,5 +549,6 @@ module.exports = {
   updateChatRoom,
   addMembers,
   removeMember,
+  updateMemberRole,
   leaveRoom,
 };

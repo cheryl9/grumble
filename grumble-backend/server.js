@@ -1,6 +1,6 @@
 require("dotenv").config();
 const app = require("./app");
-const { syncFoodPlaces } = require("./services/syncService");
+//const { syncFoodPlaces } = require("./services/syncService");
 
 const http = require("http");
 const jwt = require("jsonwebtoken");
@@ -148,14 +148,7 @@ io.on("connection", (socket) => {
 
 setSocketServer(io);
 
-(async () => {
-  try {
-    console.log("🔄 Syncing OSM restaurant data on startup...");
-    await syncFoodPlaces();
-    console.log("✅ OSM sync complete. Starting server...\n");
-  } catch (err) {
-    console.error("⚠️  OSM sync failed, but starting server anyway:", err.message, "\n");
-  }
-
-  server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
-})();
+server.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🚀 Connected to Supabase DB`);
+});
