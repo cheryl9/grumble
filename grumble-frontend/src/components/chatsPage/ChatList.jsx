@@ -12,28 +12,29 @@ const ChatList = ({
   setSearchQuery,
   onSelectChat,
   onCreateGroup,
+  isLoading,
 }) => {
-  const filtered = chats.filter((c) => {
+  const filtered = (chats || []).filter((c) => {
+    const name = (c.name || "").toLowerCase();
     const matchTabs =
       activeTab === "all" ||
       (activeTab === "groups" && c.type === "group") ||
-      (activeTab === "friends" && c.type === "friends");
-    const matchSearch = c.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+      (activeTab === "friends" && c.type === "direct");
+    const matchSearch = name.includes((searchQuery || "").toLowerCase());
     return matchTabs && matchSearch;
   });
 
   return (
     <>
       <div className="chats-search-bar">
-
         <div className="flex gap-2 flex-shrink-0">
           {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`chats-tab capitalize ${activeTab === tab ? "chats-tab-active" : "chats-tab-inactive"}`}
+              className={`chats-tab capitalize ${
+                activeTab === tab ? "chats-tab-active" : "chats-tab-inactive"
+              }`}
             >
               {tab}
             </button>
@@ -65,7 +66,13 @@ const ChatList = ({
       </div>
 
       <div className="chats-list">
-        {filtered.length === 0 && (
+        {isLoading && (
+          <div className="text-center py-10 text-gray-400">
+            <p className="font-semibold">Loading…</p>
+          </div>
+        )}
+
+        {!isLoading && filtered.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-2">💬</p>
             <p className="font-semibold">No chats found</p>
@@ -101,4 +108,6 @@ const ChatList = ({
     </>
   );
 };
+
 export default ChatList;
+

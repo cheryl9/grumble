@@ -37,12 +37,17 @@ const sendMessage = async (chatId, text, options = {}) => {
   }
 
   try {
-    const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
+    const payload = {
       chat_id: chatId,
       text: text,
-      parse_mode: options.parse_mode || 'Markdown',
-      ...options
-    });
+      ...options,
+    };
+
+    if (!payload.parse_mode) {
+      delete payload.parse_mode;
+    }
+
+    const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, payload);
 
     return response.data;
   } catch (error) {
@@ -67,7 +72,7 @@ This code will expire in *10 minutes*.
 If you didn't request this, please ignore this message.`;
 
   try {
-    await sendMessage(chatId, message);
+    await sendMessage(chatId, message, { parse_mode: 'Markdown' });
     
     console.log(`✅ OTP sent via Telegram to chat_id: ${chatId}`);
     
@@ -90,12 +95,7 @@ If you didn't request this, please ignore this message.`;
 const sendChatNotification = async (chatId, notification) => {
   const { senderName, message, chatName } = notification;
   
-  const text = 
-`💬 *New message in ${chatName}*
-
-*${senderName}:* ${message}
-
-Open Grumble to reply`;
+  const text = `New message in ${chatName}\n\n${senderName}: ${message}\n\nOpen Grumble to reply`;
 
   try {
     await sendMessage(chatId, text);
