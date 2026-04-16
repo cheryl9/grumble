@@ -28,7 +28,3 @@ async function fetchFoodPlaces() {
 }
 
 module.exports = { fetchFoodPlaces };
-
-//DOUBLE CHECK THIS
-DATABASE_URL= 'postgresql://postgres:JBMY6772@localhost:5432/grumble'
-PORT=3000

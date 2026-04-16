@@ -3,6 +3,8 @@ import api from "../services/api";
 import FoodPostCard from "../components/explorePage/FoodPostCard";
 import PostDetailModal from "../components/explorePage/PostDetailModal";
 import CreatePostModal from "../components/explorePage/CreatePostModal";
+import ReportPostModal from "../components/explorePage/ReportPostModal";
+import EditPostModal from "../components/explorePage/EditPostModal";
 import logo from "../assets/logo.png";
 
 const TABS = [
@@ -17,6 +19,9 @@ const Explore = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [reportingPostId, setReportingPostId] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
@@ -73,6 +78,61 @@ const Explore = () => {
     }
   };
 
+  const handleSave = async (postId) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const nowSaved = !p.saved_by_me;
+        return {
+          ...p,
+          saved_by_me: nowSaved,
+          saves_count: nowSaved
+            ? p.saves_count + 1
+            : Math.max((p.saves_count || 0) - 1, 0),
+        };
+      }),
+    );
+
+    try {
+      const res = await api.post(`/posts/${postId}/save`);
+      const savedByMe =
+        res?.data?.saved_by_me !== undefined
+          ? res.data.saved_by_me
+          : Boolean(res?.data?.saved);
+
+      // Reconcile optimistic state with backend truth.
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          if (p.saved_by_me === savedByMe) return p;
+
+          return {
+            ...p,
+            saved_by_me: savedByMe,
+            saves_count: savedByMe
+              ? (p.saves_count || 0) + 1
+              : Math.max((p.saves_count || 0) - 1, 0),
+          };
+        }),
+      );
+    } catch (err) {
+      console.error("Save failed, reverting:", err);
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const revertSaved = !p.saved_by_me;
+          return {
+            ...p,
+            saved_by_me: revertSaved,
+            saves_count: revertSaved
+              ? p.saves_count + 1
+              : Math.max((p.saves_count || 0) - 1, 0),
+          };
+        }),
+      );
+    }
+  };
+
   // Open post detail modal — fetches full post + comments
   const handleOpenPost = async (post) => {
     try {
@@ -94,40 +154,87 @@ const Explore = () => {
     );
   };
 
+  const handleDeletePost = async (postId) => {
+    const confirmed = window.confirm("Delete this post? This action cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/posts/${postId}`);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      if (selectedPost?.id === postId) setSelectedPost(null);
+    } catch (err) {
+      const backendMessage = err?.response?.data?.error || err?.response?.data?.message;
+      alert(backendMessage || "Failed to delete post.");
+    }
+  };
+
+  const handleEditPost = async (payload) => {
+    if (!editingPost) return;
+
+    try {
+      setIsEditing(true);
+      const res = await api.patch(`/posts/${editingPost.id}`, payload);
+      const updatedPost = res.data;
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === updatedPost.id
+            ? {
+                ...p,
+                location_name: updatedPost.location_name,
+                description: updatedPost.description,
+                rating: updatedPost.rating,
+                visibility: updatedPost.visibility,
+                image_url: updatedPost.image_url,
+              }
+            : p,
+        ),
+      );
+
+      if (selectedPost?.id === updatedPost.id) {
+        setSelectedPost((prev) =>
+          prev
+            ? {
+                ...prev,
+                location_name: updatedPost.location_name,
+                description: updatedPost.description,
+                rating: updatedPost.rating,
+                visibility: updatedPost.visibility,
+                image_url: updatedPost.image_url,
+              }
+            : prev,
+        );
+      }
+
+      setEditingPost(null);
+    } catch (err) {
+      const backendMessage = err?.response?.data?.error || err?.response?.data?.message;
+      alert(backendMessage || "Failed to edit post.");
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
   return (
     <div className="explore-page">
       {/* Header */}
       <div className="explore-header">
         <div className="flex items-center gap-3 mb-4">
           <img src={logo} alt="Grumble" className="w-12 h-12" />
-          <h1 className="text-4xl font-bold">Explore</h1>
+          <div>
+            <h1 className="text-4xl font-bold">Explore</h1>
+            <p className="explore-subtitle">Discover what the community is eating today</p>
+          </div>
         </div>
       </div>
 
       {/* Tab bar */}
-      <div
-        className="explore-tabs"
-        style={{ display: "flex", borderBottom: "1.5px solid #e5e5e5" }}
-      >
+      <div className="explore-tabs-shell">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            style={{
-              padding: "10px 20px",
-              fontSize: "14px",
-              fontWeight: 500,
-              background: "none",
-              border: "none",
-              borderBottom:
-                activeTab === key
-                  ? "2.5px solid #FF6B35"
-                  : "2.5px solid transparent",
-              color: activeTab === key ? "#FF6B35" : "#888",
-              marginBottom: "-1.5px",
-              cursor: "pointer",
-              transition: "color 0.15s",
-            }}
+            className={`explore-tab-btn ${activeTab === key ? "explore-tab-active" : "explore-tab-inactive"}`}
           >
             {label}
           </button>
@@ -135,10 +242,10 @@ const Explore = () => {
       </div>
 
       {/* Upload button */}
-      <div className="flex justify-end px-4 mb-4">
+      <div className="explore-toolbar">
         <button
           onClick={() => setShowCreate(true)}
-          className="btn-primary px-4 py-2 rounded-xl text-sm"
+          className="explore-upload-btn"
         >
           + Upload New
         </button>
@@ -177,6 +284,11 @@ const Explore = () => {
               key={post.id}
               post={post}
               onLike={() => handleLike(post.id)}
+              onSave={() => handleSave(post.id)}
+              onReport={() => setReportingPostId(post.id)}
+              onEdit={() => setEditingPost(post)}
+              onDelete={() => handleDeletePost(post.id)}
+              canManage={activeTab === "mine"}
               onClick={() => handleOpenPost(post)}
             />
           ))}
@@ -200,6 +312,22 @@ const Explore = () => {
             setShowCreate(false);
             setActiveTab("mine");
           }}
+        />
+      )}
+
+      {reportingPostId && (
+        <ReportPostModal
+          postId={reportingPostId}
+          onClose={() => setReportingPostId(null)}
+        />
+      )}
+
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          onClose={() => setEditingPost(null)}
+          onSave={handleEditPost}
+          isSaving={isEditing}
         />
       )}
     </div>

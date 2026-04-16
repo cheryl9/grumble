@@ -1,7 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, MapPin, User, MessageCircle } from 'lucide-react';
+import api from '../../services/api';
 
-const PostDetailModal = ({ post, onClose }) => {
+const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
+  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState(post.comments || []);
+  const [isPostingComment, setIsPostingComment] = useState(false);
+
+  useEffect(() => {
+    setComments(post.comments || []);
+  }, [post]);
+
+  const handlePostComment = async () => {
+    const content = commentText.trim();
+    if (!content || isPostingComment) return;
+
+    try {
+      setIsPostingComment(true);
+      const response = await api.post(`/posts/${post.id}/comments`, { content });
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const createdComment = response.data;
+
+      const commentWithUsername = {
+        ...createdComment,
+        username: createdComment.username || currentUser.username || 'You'
+      };
+
+      setComments((prev) => [...prev, commentWithUsername]);
+      onCommentAdded?.();
+      setCommentText('');
+    } catch (error) {
+      console.error('Failed to post comment:', error);
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
+
   return (
     <div 
       className="fixed inset-0 bg-grey bg-opacity-60 flex items-center justify-center z-50 p-4"
@@ -71,9 +105,9 @@ const PostDetailModal = ({ post, onClose }) => {
 
           {/* Comments List */}
           <div className="flex-1 overflow-y-auto px-4 py-4">
-            {post.comments && post.comments.length > 0 ? (
+            {comments.length > 0 ? (
               <div className="space-y-4">
-                {post.comments.map((comment) => (
+                {comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
                     <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
                       <User size={20} />
@@ -100,10 +134,16 @@ const PostDetailModal = ({ post, onClose }) => {
               <input 
                 type="text"
                 placeholder="Add a comment..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
                 className="flex-1 border border-gray-300 rounded-full px-4 py-3 text-sm focus:outline-none focus:border-gray-400"
               />
-              <button className="px-8 py-3 bg-coral text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition">
-                Post
+              <button
+                onClick={handlePostComment}
+                disabled={isPostingComment || !commentText.trim()}
+                className="px-8 py-3 bg-coral text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPostingComment ? 'Posting...' : 'Post'}
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('../config/loadEnv');
 const axios = require('axios');
 
 /**

@@ -30,9 +30,47 @@ const FindSpots = () => {
       setError(null);
       try {
         const params = {};
-        if (filters.cuisine) params.cuisine = filters.cuisine;
+        if (filters.cuisine) params.cuisine = filters.cuisine.toLowerCase();
         const res = await api.get('/food-places', { params });
-        setAllRestaurants(res.data);
+
+        const normalized = (res.data || []).map((p) => ({
+          id: p.id,
+          name: p.name || 'Unknown place',
+          cuisine: p.cuisine || 'Unknown',
+          category: p.category || '',
+          location: p.address || 'Address unavailable',
+          openingHours: p.opening_hours || 'Not available',
+          image: p.image_url || null,
+          priceRange: '-',
+          rating: p.rating != null ? Number(p.rating) : null,
+          reviewCount: p.review_count != null ? Number(p.review_count) : null,
+          website: p.website || null,
+          lat: p.lat,
+          lon: p.lon
+        }));
+
+        const curated = normalized
+          .filter((r) => {
+            const hasKnownName = r.name && r.name.toLowerCase() !== 'unknown' && r.name.toLowerCase() !== 'unknown place';
+            const hasAnyUsefulMeta =
+              r.location !== 'Address unavailable' ||
+              r.openingHours !== 'Not available' ||
+              r.website ||
+              r.image ||
+              r.rating != null;
+            return hasKnownName && hasAnyUsefulMeta;
+          })
+          .sort((a, b) => {
+            const score = (x) =>
+              (x.image ? 1 : 0) +
+              (x.rating != null ? 1 : 0) +
+              (x.location !== 'Address unavailable' ? 1 : 0) +
+              (x.website ? 1 : 0);
+
+            return score(b) - score(a);
+          });
+
+        setAllRestaurants(curated);
       } catch (err) {
         console.error('Failed to fetch food places:', err);
         setError('Could not load restaurants. Please try again.');
@@ -75,12 +113,17 @@ const FindSpots = () => {
   const filteredRestaurants = allRestaurants.filter(restaurant => {
     const matchesSearch = restaurant.name?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLocation = !filters.location || restaurant.location === filters.location;
-    const matchesCuisine = !filters.cuisine || restaurant.cuisine === filters.cuisine;
+    const matchesCuisine = !filters.cuisine || restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
     const matchesPrice = !filters.price || restaurant.priceRange === filters.price;
     return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
   });
 
-  const trendingRestaurants = allRestaurants.filter(r => r.rating >= 4.5);
+  const trendingRestaurants = allRestaurants
+    .filter((r) => r.rating != null)
+    .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    .slice(0, 8);
+
+  const fallbackTrending = trendingRestaurants.length > 0 ? trendingRestaurants : allRestaurants.slice(0, 8);
 
   return (
     <div className="find-spots-page">
@@ -216,9 +259,9 @@ const FindSpots = () => {
       {!isLoading && !error && (
         <div className="trending-section">
           <h2 className="text-2xl font-bold mb-6">Trending Now</h2>
-          {trendingRestaurants.length > 0 ? (
+          {fallbackTrending.length > 0 ? (
             <div className="restaurant-grid">
-              {trendingRestaurants.map(restaurant => (
+              {fallbackTrending.map(restaurant => (
                 <RestaurantCard key={restaurant.id} restaurant={restaurant} />
               ))}
             </div>
@@ -230,10 +273,12 @@ const FindSpots = () => {
       )}
 
       {/* All Results */}
-      {!isLoading && !error && (searchQuery || Object.values(filters).some(f => f)) && (
+      {!isLoading && !error && (
         <div className="results-section">
           <h2 className="text-2xl font-bold mb-6">
-            Results ({filteredRestaurants.length})
+            {searchQuery || Object.values(filters).some(f => f)
+              ? `Results (${filteredRestaurants.length})`
+              : `All Spots (${filteredRestaurants.length})`}
           </h2>
           <div className="restaurant-grid">
             {filteredRestaurants.map(restaurant => (

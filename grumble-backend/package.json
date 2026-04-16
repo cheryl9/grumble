@@ -1,4 +1,20 @@
 {
+  "name": "grumble-backend",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "sync:osm": "node scripts/syncOSM.js",
+    "admin:create": "node scripts/createAdmin.js",
+    "telegram:helper": "node scripts/telegramBotHelper.js",
+    "migrate:001": "psql -U postgres -d grumble -f migrations/001_create_food_places.sql",
+    "migrate:002": "psql -U postgres -d grumble -f migrations/002_create_users.sql",
+    "migrate:003": "psql -U postgres -d grumble -f migrations/003_add_telegram_fields.sql",
+    "migrate:004": "psql -U postgres -d grumble -f migrations/004_create_admin_tables.sql",
+    "migrate:005": "psql -U postgres -d grumble -f migrations/005_create_saves.sql",
+    "migrate:006": "psql -U postgres -d grumble -f migrations/006_add_food_place_enrichment_fields.sql",
+    "migrate:all": "npm run migrate:001 && npm run migrate:002 && npm run migrate:003 && npm run migrate:004 && npm run migrate:005 && npm run migrate:006"
+  },
   "dependencies": {
     "axios": "^1.13.5",
     "bcrypt": "^5.1.1",
