@@ -3,6 +3,10 @@ const bcrypt = require("bcrypt");
 const telegramService = require("../services/telegramService");
 const jwt = require("jsonwebtoken");
 const { get } = require("../app");
+const {
+  getUserAchievements,
+  equipAvatar,
+} = require('../services/achievementService');
 
 /**
  * Register a new user
@@ -517,18 +521,31 @@ const getStreak = async (req, res, next) => {
 };
 
 // achievements
-const getAchievements = async (req, res, next) => {
+async function getAchievements(req, res) {
   try {
-    const stats = await authRepository.getUserStats(req.user.id);
-    const unlockedKeys = [];
-    if (stats.posts >= 1) unlockedKeys.push("first_bite");
-    if (stats.posts >= 10) unlockedKeys.push("ten_posts");
-    if (stats.currentStreak >= 3) unlockedKeys.push("streak_3");
-    res.json({ success: true, data: { unlockedKeys } });
-  } catch (error) {
-    next(error);
+    const data = await getUserAchievements(req.user.id, req.db);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('getAchievements error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch achievements' });
   }
-};
+}
+
+async function equipAvatarController(req, res) {
+  try {
+    const { achievementKey } = req.body;
+    const data = await equipAvatar(req.user.id, achievementKey ?? null, req.db);
+    res.json({ success: true, data });
+  } catch (err) {
+    if (err.message === 'Achievement not unlocked') {
+      return res.status(403).json({ success: false, message: err.message });
+    }
+    console.error('equipAvatar error:', err);
+    res.status(500).json({ success: false, message: 'Failed to equip avatar' });
+  }
+}
+
+
 
 module.exports = {
   register,
@@ -546,4 +563,5 @@ module.exports = {
   savePreferences,
   getStreak,
   getAchievements,
+  equipAvatarController,
 };

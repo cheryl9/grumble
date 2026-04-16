@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
+import { getAvatarSrc } from "../utils/avatarUtils";
 import * as authService from "../services/authService";
 import api from "../services/api";
 import logoImg from "../assets/logo.png";
+import defaultPng from "../assets/avatars/default.png";
 
 import ProfileDashboard from "../components/profilePage/ProfileDashboard";
 import AchievementsSection from "../components/profilePage/AchievementsSection";
@@ -30,6 +32,7 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
   const [toast, setToast] = useState({ msg: "", type: "" });
+  const [equippedAvatar, setEquippedAvatar] = useState(null);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -60,15 +63,25 @@ export default function Profile() {
         achievementsRes.status === "fulfilled" &&
         achievementsRes.value.data.success
       ) {
-        setUnlockedAchievements(
-          achievementsRes.value.data.data?.unlockedKeys ?? [],
-        );
+        const { unlockedKeys = [], equippedAvatar: ea = null } =
+          achievementsRes.value.data.data ?? {};
+        setUnlockedAchievements(unlockedKeys);
+        setEquippedAvatar(ea);
       }
     } catch {
       // fail silently — placeholders already in state
     } finally {
       setLoadingStats(false);
     }
+  };
+
+  const handleAvatarChange = (newKey) => {
+    setEquippedAvatar(newKey);
+    // Also persist to user object so other components see it immediately
+    const updatedUser = { ...user, equipped_avatar: newKey };
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    showToast(newKey ? "Avatar updated!" : "Avatar removed");
   };
 
   const handleLogout = async () => {
@@ -203,11 +216,20 @@ export default function Profile() {
               }}
             >
               <img
-                src={logoImg}
-                alt="Grumble logo"
-                style={{ width: "70px", height: "70px" }}
+                src={getAvatarSrc(equippedAvatar)}
+                alt="Profile avatar"
+                style={{
+                  width: "70px",
+                  height: "70px",
+                  borderRadius: "50%",
+                  objectFit: "contain",
+                  backgroundColor: "#FCF1DD",
+                  border: equippedAvatar ? "1px solid #cdcdcd" : "none",
+                }}
+                onError={(e) => {
+                  e.currentTarget.src = defaultPng;
+                }}
               />
-
               <div style={{ flex: 1 }}>
                 <div
                   style={{ fontSize: "22px", fontWeight: "800", color: "#111" }}
@@ -275,7 +297,9 @@ export default function Profile() {
 
             <AchievementsSection
               unlockedKeys={unlockedAchievements}
+              equippedAvatar={equippedAvatar}
               onViewAll={() => showToast("Viewing all achievements...")}
+              onAvatarChange={handleAvatarChange}
             />
 
             <SettingsSection
