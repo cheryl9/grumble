@@ -1,4 +1,25 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
+
+// Helper function to construct full image URL
+function getFullImageUrl(imageUrl) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http")) return imageUrl; // Already a full URL
+  return `http://localhost:5001${imageUrl}`; // Prepend backend URL
+}
+
+// Helper function to transform a post row to include full image URLs
+function transformPost(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    image_url: getFullImageUrl(row.image_url),
+  };
+}
+
+// Helper function to transform multiple posts
+function transformPosts(rows) {
+  return rows.map(transformPost);
+}
 
 // feed
 
@@ -11,11 +32,11 @@ const pool = require('../config/db');
  * NOTE: 'friends' tab requires a friends/follows table that doesn't exist yet.
  * Falls back to 'foryou' behaviour until that table is added.
  */
-async function getFeedPosts(userId, tab = 'foryou', limit = 20, offset = 0) {
+async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
   let query;
   let params;
 
-  if (tab === 'mine') {
+  if (tab === "mine") {
     query = `
       SELECT
         p.id, p.user_id, p.food_place_id, p.location_name,
@@ -71,7 +92,7 @@ async function getFeedPosts(userId, tab = 'foryou', limit = 20, offset = 0) {
   }
 
   const result = await pool.query(query, params);
-  return result.rows;
+  return transformPosts(result.rows);
 }
 
 // single post with comments
@@ -95,14 +116,22 @@ async function getPostById(postId, userId) {
     LEFT JOIN food_places fp ON fp.id = p.food_place_id
     WHERE p.id = $1
       AND p.is_deleted = false`,
-    [postId, userId]
+    [postId, userId],
   );
-  return result.rows[0] || null;
+  return transformPost(result.rows[0] || null);
 }
 
-// create post 
+// create post
 
-async function createPost({ userId, foodPlaceId, locationName, rating, imageUrl, description, visibility }) {
+async function createPost({
+  userId,
+  foodPlaceId,
+  locationName,
+  rating,
+  imageUrl,
+  description,
+  visibility,
+}) {
   const result = await pool.query(
     `INSERT INTO posts
        (user_id, food_place_id, location_name, rating, image_url, description, visibility)
@@ -110,18 +139,18 @@ async function createPost({ userId, foodPlaceId, locationName, rating, imageUrl,
      RETURNING *`,
     [
       userId,
-      foodPlaceId   || null,
-      locationName  || null,
-      rating        || null,
-      imageUrl      || null,
-      description   || null,
-      visibility    || 'public',
-    ]
+      foodPlaceId || null,
+      locationName || null,
+      rating || null,
+      imageUrl || null,
+      description || null,
+      visibility || "public",
+    ],
   );
-  return result.rows[0];
+  return transformPost(result.rows[0]);
 }
 
-// likes 
+// likes
 
 /**
  * Toggle like on a post.
@@ -131,27 +160,27 @@ async function createPost({ userId, foodPlaceId, locationName, rating, imageUrl,
 async function toggleLike(postId, userId) {
   const existing = await pool.query(
     `SELECT id FROM likes WHERE post_id = $1 AND user_id = $2`,
-    [postId, userId]
+    [postId, userId],
   );
 
   if (existing.rows.length > 0) {
-    await pool.query(
-      `DELETE FROM likes WHERE post_id = $1 AND user_id = $2`,
-      [postId, userId]
-    );
+    await pool.query(`DELETE FROM likes WHERE post_id = $1 AND user_id = $2`, [
+      postId,
+      userId,
+    ]);
     await pool.query(
       `UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = $1`,
-      [postId]
+      [postId],
     );
     return { liked: false };
   } else {
-    await pool.query(
-      `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
-      [postId, userId]
-    );
+    await pool.query(`INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`, [
+      postId,
+      userId,
+    ]);
     await pool.query(
       `UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1`,
-      [postId]
+      [postId],
     );
     return { liked: true };
   }
@@ -168,7 +197,7 @@ async function getCommentsByPostId(postId) {
     WHERE c.post_id = $1
       AND c.is_deleted = false
     ORDER BY c.created_at ASC`,
-    [postId]
+    [postId],
   );
   return result.rows;
 }
@@ -178,45 +207,45 @@ async function createComment(postId, userId, content) {
     `INSERT INTO comments (post_id, user_id, content)
      VALUES ($1, $2, $3)
      RETURNING *`,
-    [postId, userId, content]
+    [postId, userId, content],
   );
   await pool.query(
     `UPDATE posts SET comments_count = comments_count + 1 WHERE id = $1`,
-    [postId]
+    [postId],
   );
   return result.rows[0];
 }
 
-// saves 
+// saves
 async function toggleSave(postId, userId) {
   const existing = await pool.query(
     `SELECT id FROM saves WHERE post_id = $1 AND user_id = $2`,
-    [postId, userId]
+    [postId, userId],
   );
- 
+
   if (existing.rows.length > 0) {
-    await pool.query(
-      `DELETE FROM saves WHERE post_id = $1 AND user_id = $2`,
-      [postId, userId]
-    );
+    await pool.query(`DELETE FROM saves WHERE post_id = $1 AND user_id = $2`, [
+      postId,
+      userId,
+    ]);
     await pool.query(
       `UPDATE posts SET saves_count = GREATEST(saves_count - 1, 0) WHERE id = $1`,
-      [postId]
+      [postId],
     );
     return { saved: false };
   } else {
-    await pool.query(
-      `INSERT INTO saves (post_id, user_id) VALUES ($1, $2)`,
-      [postId, userId]
-    );
+    await pool.query(`INSERT INTO saves (post_id, user_id) VALUES ($1, $2)`, [
+      postId,
+      userId,
+    ]);
     await pool.query(
       `UPDATE posts SET saves_count = saves_count + 1 WHERE id = $1`,
-      [postId]
+      [postId],
     );
     return { saved: true };
   }
 }
- 
+
 /**
  * Get all posts saved by the current user, newest save first.
  * Returns same shape as getFeedPosts so the frontend can treat them uniformly.
@@ -247,9 +276,9 @@ async function getSavedPosts(userId, limit = 20, offset = 0) {
       AND p.is_deleted = false
     ORDER BY s.created_at DESC
     LIMIT $2 OFFSET $3`,
-    [userId, limit, offset]
+    [userId, limit, offset],
   );
-  return result.rows;
+  return transformPosts(result.rows);
 }
 
 module.exports = {
@@ -260,5 +289,5 @@ module.exports = {
   getCommentsByPostId,
   createComment,
   toggleSave,
-  getSavedPosts
+  getSavedPosts,
 };

@@ -1,162 +1,332 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { ROUTES } from '../utils/constants';
-import TelegramConnectionModal from '../components/common/TelegramConnectionModal';
-import * as authService from '../services/authService';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { ROUTES } from "../utils/constants";
+import * as authService from "../services/authService";
+import api from "../services/api";
+import logoImg from "../assets/logo.png";
+
+import ProfileDashboard from "../components/profilePage/ProfileDashboard";
+import AchievementsSection from "../components/profilePage/AchievementsSection";
+import SettingsSection from "../components/profilePage/SettingsSection";
+import StreakDisplay from "../components/profilePage/StreakDisplay";
+import EditProfileModal from "../components/profilePage/EditProfileModal";
+import TelegramConnectionModal from "../components/common/TelegramConnectionModal";
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, logout, setUser } = useAuth();
+
+  const [stats, setStats] = useState({
+    friends: 0,
+    posts: 0,
+    liked: 0,
+    saved: 0,
+  });
+  const [streak, setStreak] = useState({ currentStreak: 0, longestStreak: 0 });
+  const [unlockedAchievements, setUnlockedAchievements] = useState([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [toast, setToast] = useState({ msg: "", type: "" });
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: "", type: "" }), 3000);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    fetchStats();
+  }, [user]);
+
+  const fetchStats = async () => {
+    setLoadingStats(true);
+    try {
+      const [statsRes, streakRes, achievementsRes] = await Promise.allSettled([
+        api.get("/auth/stats"),
+        api.get("/auth/streak"),
+        api.get("/auth/achievements"),
+      ]);
+
+      if (statsRes.status === "fulfilled" && statsRes.value.data.success) {
+        setStats(statsRes.value.data.data);
+      }
+      if (streakRes.status === "fulfilled" && streakRes.value.data.success) {
+        setStreak(streakRes.value.data.data);
+      }
+      if (
+        achievementsRes.status === "fulfilled" &&
+        achievementsRes.value.data.success
+      ) {
+        setUnlockedAchievements(
+          achievementsRes.value.data.data?.unlockedKeys ?? [],
+        );
+      }
+    } catch {
+      // fail silently — placeholders already in state
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate(ROUTES.LOGIN);
   };
 
+  const handleShareProfile = () => {
+    const profileUrl = `${window.location.origin}/profile/${user?.username}`;
+    navigator.clipboard.writeText(profileUrl).then(() => {
+      showToast("Profile link copied to clipboard!");
+    });
+  };
+
+  const handleProfileSaved = (updatedUser) => {
+    setUser(updatedUser);
+    // update localStorage
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setShowEditModal(false);
+    showToast("Profile updated successfully!");
+  };
+
   const handleConnectTelegram = async (chatId) => {
     try {
       await authService.connectTelegram(chatId);
-      
-      // Fetch fresh user data from server to get updated Telegram info
       const freshUser = await authService.fetchCurrentUser();
-      if (freshUser) {
-        setUser(freshUser);
-      }
-      
-      setSuccessMessage('Telegram connected successfully! 🎉');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      if (freshUser) setUser(freshUser);
+      showToast("Telegram connected!");
     } catch (error) {
-      throw error; // Let modal handle the error
+      throw error;
     }
   };
 
-  const handleDisconnectTelegram = async () => {
-    if (!window.confirm('Are you sure you want to disconnect Telegram? You won\'t receive OTP or notifications.')) {
-      return;
-    }
-
-    setIsDisconnecting(true);
-    setError('');
-
-    try {
-      await authService.disconnectTelegram();
-      
-      // Fetch fresh user data from server to confirm disconnection
-      const freshUser = await authService.fetchCurrentUser();
-      if (freshUser) {
-        setUser(freshUser);
-      }
-      
-      setSuccessMessage('Telegram disconnected');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (err) {
-      setError('Failed to disconnect. Please try again.');
-    } finally {
-      setIsDisconnecting(false);
-    }
+  const handleViewAll = (key) => {
+    // Navigate to the relevant page / section
+    // Extend as those routes are built
+    showToast(`Opening ${key}...`, "info");
   };
 
-  const isTelegramConnected = user?.telegramChatId;
+  const joinDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-SG", {
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+  const pageStyle = {
+    minHeight: "100vh",
+    backgroundColor: "#faf9f7",
+    padding: "0 0 32px 0",
+  };
+
+  const headerBarStyle = {
+    backgroundColor: "#FCF1DD",
+    padding: "16px 20px",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  };
+
+  const bodyStyle = {
+    maxWidth: "560px",
+    margin: "0 auto",
+    padding: "20px 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "0",
+  };
+
+  const actionBtnStyle = (variant = "primary") => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "8px 16px",
+    borderRadius: "8px",
+    border: variant === "primary" ? "none" : "1.5px solid #F78660",
+    backgroundColor: variant === "primary" ? "#F78660" : "transparent",
+    color: variant === "primary" ? "#fff" : "#F78660",
+    fontWeight: "600",
+    fontSize: "13px",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "opacity 0.15s",
+  });
 
   return (
-    <div className="p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Profile</h1>
+    <div style={pageStyle}>
+      <div style={headerBarStyle}>
+        {/* Grumble logo/wordmark */}
+        <img
+          src={logoImg}
+          alt="Grumble logo"
+          style={{ width: "70px", height: "70px" }}
+        />
+        <span style={{ fontSize: "20px", fontWeight: "800", color: "#111" }}>
+          Profile
+        </span>
+      </div>
 
-        {/* Success/Error Messages */}
-        {successMessage && (
-          <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            {successMessage}
-          </div>
-        )}
-        {error && (
-          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
+      {toast.msg && (
+        <div
+          style={{
+            position: "fixed",
+            top: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: toast.type === "success" ? "#166534" : "#1e40af",
+            color: "#fff",
+            padding: "10px 20px",
+            borderRadius: "999px",
+            fontSize: "13px",
+            fontWeight: "600",
+            zIndex: 3000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
 
+      <div style={bodyStyle}>
         {user && (
           <>
-            {/* Account Information */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Account Information</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-gray-600">Username</label>
-                  <p className="font-medium">{user.username}</p>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+                marginBottom: "20px",
+                marginTop: "4px",
+              }}
+            >
+              <img
+                src={logoImg}
+                alt="Grumble logo"
+                style={{ width: "70px", height: "70px" }}
+              />
+
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{ fontSize: "22px", fontWeight: "800", color: "#111" }}
+                >
+                  {user.username}
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600">Phone Number</label>
-                  <p className="font-medium">{user.phoneNumber}</p>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "#888",
+                    marginTop: "2px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Foodie since {joinDate}
                 </div>
-                <div>
-                  <label className="text-sm text-gray-600">Member Since</label>
-                  <p className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</p>
-                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  style={actionBtnStyle("primary")}
+                  onClick={() => setShowEditModal(true)}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
+                  Edit Profile
+                </button>
+                <button
+                  style={actionBtnStyle("outline")}
+                  onClick={handleShareProfile}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = "#FCF1DD")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = "transparent")
+                  }
+                >
+                  ↗ Share Profile
+                </button>
+                <button
+                  style={actionBtnStyle("primary")}
+                  onClick={() => showToast("Friend search coming soon!")}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                >
+                  ⊕ Add friends
+                </button>
               </div>
             </div>
 
-            {/* Telegram Integration */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-2">Telegram Integration</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                Connect your Telegram to receive OTP codes and chat notifications instantly
-              </p>
+            <StreakDisplay
+              currentStreak={streak.currentStreak}
+              longestStreak={streak.longestStreak}
+            />
 
-              {isTelegramConnected ? (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl">✅</div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-green-900">Telegram Connected</p>
-                        {user.telegramUsername && (
-                          <p className="text-sm text-green-700 mt-1">
-                            Account: <span className="font-medium">{user.telegramUsername}</span>
-                          </p>
-                        )}
-                        <p className="text-xs text-green-600 mt-1">
-                          Connected on {new Date(user.telegramConnectedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            <ProfileDashboard stats={stats} onViewAll={handleViewAll} />
 
-                  <button
-                    onClick={handleDisconnectTelegram}
-                    disabled={isDisconnecting}
-                    className="w-full px-4 py-2.5 border-2 border-red-500 text-red-600 font-semibold rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isDisconnecting ? 'Disconnecting...' : 'Disconnect Telegram'}
-                  </button>
+            <AchievementsSection
+              unlockedKeys={unlockedAchievements}
+              onViewAll={() => showToast("Viewing all achievements...")}
+            />
+
+            <SettingsSection
+              onAccountInfo={() => setShowEditModal(true)}
+              onChangePassword={() => {
+                setShowEditModal(true);
+                // EditProfileModal defaults to 'info', but you can pass a prop
+                // e.g. initialTab="password" if desired
+              }}
+              onHelpSupport={() => navigate("/help-support")}
+            />
+
+            <div
+              style={{
+                backgroundColor: "#FDDCB5",
+                borderRadius: "16px",
+                padding: "20px",
+                marginBottom: "16px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#555",
+                  marginBottom: "10px",
+                }}
+              >
+                Telegram Integration
+              </div>
+              {user.telegramChatId ? (
+                <div style={{ fontSize: "13px", color: "#166534" }}>
+                  Connected as {user.telegramUsername || "your account"}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="text-2xl">⚠️</div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-yellow-900">Not Connected</p>
-                        <p className="text-sm text-yellow-700 mt-1">
-                          Connect Telegram to receive password reset codes and notifications
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setShowTelegramModal(true)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-                  >
-                    <span className="text-xl">📱</span>
-                    Connect Telegram
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowTelegramModal(true)}
+                  style={{
+                    backgroundColor: "#2945A8",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 16px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                  }}
+                >
+                  Connect Telegram
+                </button>
               )}
             </div>
           </>
@@ -164,13 +334,39 @@ export default function Profile() {
 
         <button
           onClick={handleLogout}
-          className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+          style={{
+            width: "100%",
+            backgroundColor: "#e53e3e",
+            color: "#fff",
+            border: "none",
+            borderRadius: "12px",
+            padding: "15px",
+            fontWeight: "800",
+            fontSize: "16px",
+            cursor: "pointer",
+            marginTop: "8px",
+            boxShadow: "0 2px 8px rgba(229,62,62,0.3)",
+            transition: "background 0.15s",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.backgroundColor = "#c53030")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.backgroundColor = "#e53e3e")
+          }
         >
           Logout
         </button>
       </div>
 
-      {/* Telegram Connection Modal */}
+      {showEditModal && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleProfileSaved}
+        />
+      )}
+
       <TelegramConnectionModal
         isOpen={showTelegramModal}
         onClose={() => setShowTelegramModal(false)}

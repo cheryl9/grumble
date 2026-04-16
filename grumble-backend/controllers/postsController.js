@@ -1,4 +1,5 @@
 const postsRepo = require('../repositories/postsRepository');
+const authRepo = require('../repositories/authRepository');
 
 async function getFeed(req, res) {
   try {
@@ -50,6 +51,12 @@ async function createPost(req, res) {
       description,
       visibility,
     });
+
+    try {
+      await authRepo.calculateAndUpdateStreak(userId);
+    } catch (streakErr) {
+      console.error('Error updating streak:', streakErr);
+    }
 
     res.status(201).json(post);
   } catch (err) {

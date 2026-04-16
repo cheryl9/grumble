@@ -20,6 +20,7 @@ import ReportReview from './pages/admin/ReportReview';
 import FAQManagement from './pages/admin/FAQManagement';
 import ActivityLogs from './pages/admin/ActivityLogs';
 import Settings from './pages/admin/Settings';
+import HelpSupport from './pages/HelpSupport';
 
 export const router = createBrowserRouter([
   {
@@ -47,7 +48,9 @@ export const router = createBrowserRouter([
       { path: 'find-spots', element: <FindSpots /> },
       { path: 'food-map', element: <FoodMap /> },
       { path: 'chats', element: <Chats /> },
-      { path: 'profile', element: <Profile /> }
+      { path: 'profile', element: <Profile /> },
+      { path: 'help-support', element: <HelpSupport /> },
+
     ]
   },
   // Admin routes
@@ -65,7 +68,7 @@ export const router = createBrowserRouter([
       { path: 'reports', element: <ReportReview /> },
       { path: 'faqs', element: <FAQManagement /> },
       { path: 'logs', element: <ActivityLogs /> },
-      { path: 'settings', element: <Settings /> }
+      { path: 'settings', element: <Settings /> },
     ]
   }
 ]);

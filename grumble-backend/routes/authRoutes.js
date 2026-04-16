@@ -32,4 +32,13 @@ router.post('/forgot-password/reset', authController.resetPassword);
 router.post('/telegram/connect', authMiddleware, authController.connectTelegram);
 router.post('/telegram/disconnect', authMiddleware, authController.disconnectTelegram);
 
+// Profile management
+router.get('/stats', authMiddleware, authController.getUserStats);
+router.put('/profile', authMiddleware, authController.updateProfile);
+router.put('/password', authMiddleware, authController.changePassword);
+router.post('/preferences', authMiddleware, authController.savePreferences);
+
+router.get('/streak', authMiddleware, authController.getStreak);
+router.get('/achievements', authMiddleware, authController.getAchievements);
+
 module.exports = router;
