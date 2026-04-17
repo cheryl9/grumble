@@ -12,11 +12,17 @@ const RestaurantCard = ({ restaurant }) => {
         onClick={() => setShowDetail(true)}
       >
         <div className="restaurant-image">
-          <img
-            src={restaurant.image}
-            alt={restaurant.name}
-            className="w-full h-full object-cover"
-          />
+          {restaurant.image ? (
+            <img
+              src={restaurant.image}
+              alt={restaurant.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 text-sm">
+              No image
+            </div>
+          )}
         </div>
         
         <div className="p-4">
@@ -25,7 +31,7 @@ const RestaurantCard = ({ restaurant }) => {
           <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
             <div className="flex items-center gap-1">
               <Star size={16} className="text-yellow-500 fill-yellow-500" />
-              <span>{restaurant.rating}</span>
+              <span>{restaurant.rating ?? 'N/A'}</span>
             </div>
             <div className="flex items-center gap-1">
               <MapPin size={16} className="text-red-500" />

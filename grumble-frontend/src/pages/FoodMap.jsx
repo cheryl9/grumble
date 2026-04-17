@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import api from "../services/api";
@@ -97,6 +98,7 @@ async function fetchPostPins(tab) {
 }
 
 const FoodMap = () => {
+  const navigate = useNavigate();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -356,7 +358,14 @@ const FoodMap = () => {
                   "{selectedPin.opening_hours}"
                 </p>
               )}
-              <button className="btn-primary mt-3 w-full py-2.5 rounded-xl text-sm">
+              <button
+                onClick={() =>
+                  navigate("/explore", {
+                    state: { selectedPostId: selectedPin.id },
+                  })
+                }
+                className="btn-primary mt-3 w-full py-2.5 rounded-xl text-sm"
+              >
                 See post →
               </button>
             </div>

@@ -1,5 +1,5 @@
-require("dotenv").config();
-const axios = require("axios");
+require('../config/loadEnv');
+const axios = require('axios');
 
 /**
  * Telegram Bot Service

@@ -38,3 +38,6 @@ migrations/data/
 *.njsproj
 *.sln
 *.sw?
+
+# Runtime uploads
+uploads/

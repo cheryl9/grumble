@@ -13,8 +13,13 @@ async function storeFoodPlaces(places) {
     const tags = place.tags || {};
 
     await pool.query(
-      `INSERT INTO food_places (osm_id, name, cuisine, category, lat, lon, address, opening_hours, geom)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, ST_SetSRID(ST_MakePoint($9, $10), 4326))
+      `INSERT INTO food_places (
+        osm_id, name, cuisine, category, lat, lon, address, opening_hours, geom
+       )
+       VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8,
+        ST_SetSRID(ST_MakePoint($9, $10), 4326)
+       )
        ON CONFLICT (osm_id) DO UPDATE
        SET name = EXCLUDED.name,
            cuisine = EXCLUDED.cuisine,

@@ -15,6 +15,8 @@ const messageRoutes = require("./routes/messageRoutes");
 const userRoutes = require("./routes/userRoutes");
 const friendRoutes = require("./routes/friendRoutes");
 const errorHandler = require("./middleware/errorHandler");
+const supportRoutes = require('./routes/supportRoutes');
+const faqController = require('./controllers/admin/faqController');
 
 app.use(cors());
 app.use(express.json());
@@ -36,6 +38,8 @@ app.use("/api/suggestions", suggestionRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);
+app.get('/api/faqs', faqController.getFAQs);
+app.use('/api/support', supportRoutes);
 
 app.use(errorHandler);
 

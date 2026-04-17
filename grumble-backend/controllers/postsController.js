@@ -1,4 +1,7 @@
 const postsRepo = require("../repositories/postsRepository");
+const authRepo = require("../repositories/authRepository");
+const achievementService = require("../services/achievementService");
+const pool = require("../config/db");
 
 async function getFeed(req, res) {
   try {
@@ -62,10 +65,99 @@ async function createPost(req, res) {
       postal_code,
     });
 
+    try {
+      await authRepo.calculateAndUpdateStreak(userId);
+    } catch (streakErr) {
+      console.error("Error updating streak:", streakErr);
+    }
+
+    try {
+      const newlyUnlocked = await achievementService.checkAndUnlockAchievements(
+        userId,
+        pool,
+      );
+      console.log(`Achievements unlocked for user ${userId}:`, newlyUnlocked);
+    } catch (achievementErr) {
+      console.error("Error checking achievements:", achievementErr);
+    }
+
     res.status(201).json(post);
   } catch (err) {
     console.error("createPost error:", err);
     res.status(500).json({ error: "Failed to create post" });
+  }
+}
+
+async function editPost(req, res) {
+  try {
+    const userId = req.user.id;
+    const postId = parseInt(req.params.id, 10);
+    const { locationName, rating, imageUrl, description, visibility } = req.body;
+
+    const hasEditableField = [locationName, rating, imageUrl, description, visibility]
+      .some((value) => value !== undefined);
+
+    if (!hasEditableField) {
+      return res.status(400).json({ error: 'No fields provided to update' });
+    }
+
+    if (rating !== undefined) {
+      const numericRating = Number(rating);
+      if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
+        return res.status(400).json({ error: 'Rating must be an integer between 1 and 5' });
+      }
+    }
+
+    if (visibility !== undefined) {
+      const allowedVisibility = ['public', 'friends', 'private'];
+      if (!allowedVisibility.includes(visibility)) {
+        return res.status(400).json({ error: 'Invalid visibility value' });
+      }
+    }
+
+    const owner = await postsRepo.getPostOwner(postId);
+    if (!owner || owner.is_deleted) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    if (owner.user_id !== userId) {
+      return res.status(403).json({ error: 'You can only edit your own posts' });
+    }
+
+    const updatedPost = await postsRepo.updatePost(postId, {
+      locationName,
+      rating,
+      imageUrl,
+      description,
+      visibility,
+    });
+
+    res.json(updatedPost);
+  } catch (err) {
+    console.error('editPost error:', err);
+    res.status(500).json({ error: 'Failed to edit post' });
+  }
+}
+
+async function deletePost(req, res) {
+  try {
+    const userId = req.user.id;
+    const postId = parseInt(req.params.id, 10);
+
+    const owner = await postsRepo.getPostOwner(postId);
+    if (!owner || owner.is_deleted) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    if (owner.user_id !== userId) {
+      return res.status(403).json({ error: 'You can only delete your own posts' });
+    }
+
+    await postsRepo.softDeletePost(postId);
+    res.json({ success: true, message: 'Post deleted successfully' });
+  } catch (err) {
+    console.error('deletePost error:', err);
+    res.status(500).json({ error: 'Failed to delete post' });
   }
 }
 
@@ -142,12 +234,51 @@ async function getSaved(req, res) {
   }
 }
 
+async function getLiked(req, res) {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const posts = await postsRepo.getLikedPosts(userId, limit, offset);
+    res.json(posts);
+  } catch (err) {
+    console.error("getLiked error:", err);
+    res.status(500).json({ error: "Failed to fetch liked posts" });
+  }
+}
+
+async function reportPost(req, res) {
+  try {
+    const reporterId = req.user.id;
+    const postId = parseInt(req.params.id, 10);
+    const { reason } = req.body;
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ error: 'Report reason is required' });
+    }
+
+    const post = await postsRepo.getPostById(postId, reporterId);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const report = await postsRepo.createReport(postId, reporterId, reason.trim());
+    res.status(201).json(report);
+  } catch (err) {
+    console.error('reportPost error:', err);
+    res.status(500).json({ error: 'Failed to report post' });
+  }
+}
+
 module.exports = {
   getFeed,
   getPost,
   createPost,
+  editPost,
+  deletePost,
   toggleLike,
   addComment,
   toggleSave,
   getSaved,
+  getLiked,
+  reportPost,
 };

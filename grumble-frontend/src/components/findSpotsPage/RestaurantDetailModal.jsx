@@ -2,6 +2,10 @@ import React from 'react';
 import { X, MapPin, Star, Clock, DollarSign, Users, ChevronLeft, FileText } from 'lucide-react';
 
 const RestaurantDetailModal = ({ restaurant, onClose }) => {
+  const outlets = restaurant.outlets?.length > 0
+    ? restaurant.outlets
+    : (restaurant.location ? [restaurant.location] : []);
+
   // Mock friends data - will be replaced with real data later
   const mockFriends = [
     { userId: 1, username: 'Germaine', avatar: null },
@@ -27,7 +31,13 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
         <div className="restaurant-detail-grid">
           {/* Left Side - Image */}
           <div className="restaurant-detail-image-section">
-            <img src={restaurant.image} alt={restaurant.name} className="w-full h-full object-cover" />
+            {restaurant.image ? (
+              <img src={restaurant.image} alt={restaurant.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
+                No image available
+              </div>
+            )}
           </div>
 
           {/* Right Side - Details with Yellow Background */}
@@ -38,9 +48,15 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
               {/* Location */}
               <div className="detail-item">
                 <h3 className="detail-label">Location:</h3>
-                <a href="#" className="detail-link">
-                  View all available outlets
-                </a>
+                {outlets.length > 0 ? (
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+                    {outlets.map((outlet, idx) => (
+                      <li key={`${outlet}-${idx}`}>{outlet}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="detail-value">Outlet information not available</p>
+                )}
               </div>
 
               {/* Opening Hours */}
@@ -59,7 +75,7 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
               <div className="detail-item">
                 <h3 className="detail-label">Ratings:</h3>
                 <div className="flex items-center gap-1">
-                  <span className="detail-value">{restaurant.rating}</span>
+                  <span className="detail-value">{restaurant.rating ?? 'N/A'}</span>
                   <Star size={16} className="text-yellow-500 fill-yellow-500" />
                 </div>
               </div>
@@ -67,19 +83,17 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
               {/* Menu */}
               <div className="detail-item">
                 <h3 className="detail-label">Menu:</h3>
-                <a href="#" className="detail-link flex items-center gap-2">
+                <div className="detail-link flex items-center gap-2 text-gray-500">
                   <FileText size={16} />
-                  {restaurant.name.toLowerCase().replace(/\s+/g, '')}menu.pdf
-                </a>
+                  Menu not available
+                </div>
               </div>
 
               {/* Friends who have visited */}
               <div className="detail-item">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="detail-label mb-0">Friends who have visited before:</h3>
-                  <a href="#" className="text-xs text-[#F78660] hover:underline">
-                    View all →
-                  </a>
+                  <span className="text-xs text-gray-500">View all unavailable</span>
                 </div>
                 <div className="friends-avatars">
                   {friendsToDisplay.slice(0, 4).map((friend, index) => (
