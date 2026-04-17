@@ -43,6 +43,7 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         p.likes_count, p.comments_count, p.saves_count,
         p.created_at,
         u.username,
+        u.equipped_avatar,
         fp.name  AS place_name,
         fp.cuisine,
         fp.category,
@@ -73,9 +74,12 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         p.likes_count, p.comments_count, p.saves_count,
         p.created_at,
         u.username,
+        u.equipped_avatar,
         fp.name  AS place_name,
         fp.cuisine,
         fp.category,
+        fp.lat,
+        fp.lon,
         EXISTS (
           SELECT 1 FROM likes l
           WHERE l.post_id = p.id AND l.user_id = $1
@@ -107,6 +111,7 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         p.likes_count, p.comments_count, p.saves_count,
         p.created_at,
         u.username,
+        u.equipped_avatar,
         fp.name  AS place_name,
         fp.cuisine,
         fp.category,
@@ -145,6 +150,7 @@ async function getPostById(postId, userId) {
       p.likes_count, p.comments_count, p.saves_count,
       p.created_at,
       u.username,
+      u.equipped_avatar,
       fp.name  AS place_name,
       fp.cuisine,
       fp.category,
@@ -302,7 +308,8 @@ async function getCommentsByPostId(postId) {
   const result = await pool.query(
     `SELECT
       c.id, c.post_id, c.user_id, c.content, c.created_at,
-      u.username
+      u.username,
+      u.equipped_avatar
     FROM comments c
     JOIN users u ON u.id = c.user_id
     WHERE c.post_id = $1
@@ -324,7 +331,20 @@ async function createComment(postId, userId, content) {
     `UPDATE posts SET comments_count = comments_count + 1 WHERE id = $1`,
     [postId],
   );
-  return result.rows[0];
+
+  // Get the comment with user info (username and avatar)
+  const commentWithUser = await pool.query(
+    `SELECT
+      c.id, c.post_id, c.user_id, c.content, c.created_at,
+      u.username,
+      u.equipped_avatar
+    FROM comments c
+    JOIN users u ON u.id = c.user_id
+    WHERE c.id = $1`,
+    [result.rows[0].id],
+  );
+
+  return commentWithUser.rows[0];
 }
 
 // saves
@@ -369,6 +389,7 @@ async function getSavedPosts(userId, limit = 20, offset = 0) {
       p.likes_count, p.comments_count, p.saves_count,
       p.created_at,
       u.username,
+      u.equipped_avatar,
       fp.name    AS place_name,
       fp.cuisine,
       fp.category,
@@ -404,6 +425,7 @@ async function getLikedPosts(userId, limit = 20, offset = 0) {
       p.likes_count, p.comments_count, p.saves_count,
       p.created_at,
       u.username,
+      u.equipped_avatar,
       fp.name    AS place_name,
       fp.cuisine,
       fp.category,

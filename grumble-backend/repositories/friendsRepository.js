@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
 
 /**
  * Send a friend request from userId to friendId.
@@ -10,20 +10,20 @@ async function sendFriendRequest(userId, friendId) {
   const reverse = await pool.query(
     `SELECT id, status FROM friendships
      WHERE user_id = $1 AND friend_id = $2`,
-    [friendId, userId]
+    [friendId, userId],
   );
 
   if (reverse.rows.length > 0) {
     const row = reverse.rows[0];
-    if (row.status === 'accepted') {
+    if (row.status === "accepted") {
       return { friendship: row, autoAccepted: false, alreadyFriends: true };
     }
-    if (row.status === 'pending') {
+    if (row.status === "pending") {
       // Auto-accept: the other person already wants to be friends
       const updated = await pool.query(
         `UPDATE friendships SET status = 'accepted', updated_at = NOW()
          WHERE id = $1 RETURNING *`,
-        [row.id]
+        [row.id],
       );
       return { friendship: updated.rows[0], autoAccepted: true };
     }
@@ -33,23 +33,23 @@ async function sendFriendRequest(userId, friendId) {
   const existing = await pool.query(
     `SELECT id, status FROM friendships
      WHERE user_id = $1 AND friend_id = $2`,
-    [userId, friendId]
+    [userId, friendId],
   );
 
   if (existing.rows.length > 0) {
     const row = existing.rows[0];
-    if (row.status === 'accepted') {
+    if (row.status === "accepted") {
       return { friendship: row, autoAccepted: false, alreadyFriends: true };
     }
-    if (row.status === 'pending') {
+    if (row.status === "pending") {
       return { friendship: row, autoAccepted: false, alreadyPending: true };
     }
     // If declined, allow re-sending by updating status back to pending
-    if (row.status === 'declined') {
+    if (row.status === "declined") {
       const updated = await pool.query(
         `UPDATE friendships SET status = 'pending', updated_at = NOW()
          WHERE id = $1 RETURNING *`,
-        [row.id]
+        [row.id],
       );
       return { friendship: updated.rows[0], autoAccepted: false };
     }
@@ -60,7 +60,7 @@ async function sendFriendRequest(userId, friendId) {
     `INSERT INTO friendships (user_id, friend_id, status)
      VALUES ($1, $2, 'pending')
      RETURNING *`,
-    [userId, friendId]
+    [userId, friendId],
   );
   return { friendship: result.rows[0], autoAccepted: false };
 }
@@ -75,7 +75,7 @@ async function acceptFriendRequest(requestId, userId) {
      SET status = 'accepted', updated_at = NOW()
      WHERE id = $1 AND friend_id = $2 AND status = 'pending'
      RETURNING *`,
-    [requestId, userId]
+    [requestId, userId],
   );
   return result.rows[0] || null;
 }
@@ -89,7 +89,7 @@ async function declineFriendRequest(requestId, userId) {
     `DELETE FROM friendships
      WHERE id = $1 AND friend_id = $2 AND status = 'pending'
      RETURNING *`,
-    [requestId, userId]
+    [requestId, userId],
   );
   return result.rows[0] || null;
 }
@@ -104,14 +104,14 @@ async function removeFriend(friendshipId, userId) {
        AND (user_id = $2 OR friend_id = $2)
        AND status = 'accepted'
      RETURNING *`,
-    [friendshipId, userId]
+    [friendshipId, userId],
   );
   return result.rows[0] || null;
 }
 
 /**
  * Get all accepted friends for a user.
- * Joins with users table to get friend's username.
+ * Joins with users table to get friend's username and avatar.
  * Handles both directions (user could be user_id or friend_id).
  */
 async function getFriends(userId) {
@@ -126,14 +126,18 @@ async function getFriends(userId) {
        CASE
          WHEN f.user_id = $1 THEN u_friend.username
          ELSE u_user.username
-       END AS friend_username
+       END AS friend_username,
+       CASE
+         WHEN f.user_id = $1 THEN u_friend.equipped_avatar
+         ELSE u_user.equipped_avatar
+       END AS equipped_avatar
      FROM friendships f
      JOIN users u_user   ON u_user.id   = f.user_id
      JOIN users u_friend ON u_friend.id = f.friend_id
      WHERE (f.user_id = $1 OR f.friend_id = $1)
        AND f.status = 'accepted'
      ORDER BY f.updated_at DESC`,
-    [userId]
+    [userId],
   );
   return result.rows;
 }
@@ -148,13 +152,14 @@ async function getPendingRequests(userId) {
        f.id AS friendship_id,
        f.user_id AS requester_id,
        u.username AS requester_username,
+       u.equipped_avatar,
        f.created_at
      FROM friendships f
      JOIN users u ON u.id = f.user_id
      WHERE f.friend_id = $1
        AND f.status = 'pending'
      ORDER BY f.created_at DESC`,
-    [userId]
+    [userId],
   );
   return result.rows;
 }
@@ -168,13 +173,14 @@ async function getSentRequests(userId) {
        f.id AS friendship_id,
        f.friend_id AS recipient_id,
        u.username AS recipient_username,
+       u.equipped_avatar,
        f.created_at
      FROM friendships f
      JOIN users u ON u.id = f.friend_id
      WHERE f.user_id = $1
        AND f.status = 'pending'
      ORDER BY f.created_at DESC`,
-    [userId]
+    [userId],
   );
   return result.rows;
 }
@@ -184,14 +190,14 @@ async function getSentRequests(userId) {
  */
 async function searchUsers(query, currentUserId) {
   const result = await pool.query(
-    `SELECT id, username
+    `SELECT id, username, equipped_avatar
      FROM users
      WHERE username ILIKE $1
        AND id != $2
        AND (is_deleted IS NULL OR is_deleted = false)
      ORDER BY username ASC
      LIMIT 20`,
-    [`%${query}%`, currentUserId]
+    [`%${query}%`, currentUserId],
   );
   return result.rows;
 }
@@ -210,9 +216,9 @@ async function getFriendIds(userId) {
      FROM friendships
      WHERE (user_id = $1 OR friend_id = $1)
        AND status = 'accepted'`,
-    [userId]
+    [userId],
   );
-  return result.rows.map(r => r.friend_id);
+  return result.rows.map((r) => r.friend_id);
 }
 
 module.exports = {
