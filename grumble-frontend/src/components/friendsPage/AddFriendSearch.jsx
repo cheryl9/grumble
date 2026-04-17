@@ -121,9 +121,7 @@ const AddFriendSearch = ({
           )}
         </div>
 
-        {error && (
-          <div className="friends-search-error">{error}</div>
-        )}
+        {error && <div className="friends-search-error">{error}</div>}
 
         {showDropdown && results.length > 0 && (
           <div className="friends-search-dropdown">
