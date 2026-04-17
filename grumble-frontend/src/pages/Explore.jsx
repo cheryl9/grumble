@@ -37,7 +37,6 @@ const Explore = () => {
   }, [activeTab]);
 
   const handleLike = async (postId) => {
-    // Optimistic update
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
@@ -56,7 +55,6 @@ const Explore = () => {
       await api.post(`/posts/${postId}/like`);
     } catch (err) {
       console.error("Like failed, reverting:", err);
-      // Revert on failure
       setPosts((prev) =>
         prev.map((p) => {
           if (p.id !== postId) return p;
@@ -73,19 +71,83 @@ const Explore = () => {
     }
   };
 
-  // Open post detail modal — fetches full post + comments
+  const handleSave = async (postId) => {
+    // Optimistic update in the feed list
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const nowSaved = !p.saved_by_me;
+        return {
+          ...p,
+          saved_by_me: nowSaved,
+          saves_count: nowSaved
+            ? p.saves_count + 1
+            : Math.max(p.saves_count - 1, 0),
+        };
+      }),
+    );
+
+    // If the post detail modal is open for this post, update it too
+    if (selectedPost?.id === postId) {
+      setSelectedPost((prev) => {
+        if (!prev) return prev;
+        const nowSaved = !prev.saved_by_me;
+        return {
+          ...prev,
+          saved_by_me: nowSaved,
+          saves_count: nowSaved
+            ? prev.saves_count + 1
+            : Math.max(prev.saves_count - 1, 0),
+        };
+      });
+    }
+
+    try {
+      await api.post(`/posts/${postId}/save`);
+    } catch (err) {
+      console.error("Save failed, reverting:", err);
+      // Revert feed list
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id !== postId) return p;
+          const revert = !p.saved_by_me;
+          return {
+            ...p,
+            saved_by_me: revert,
+            saves_count: revert
+              ? p.saves_count + 1
+              : Math.max(p.saves_count - 1, 0),
+          };
+        }),
+      );
+      // Revert modal
+      if (selectedPost?.id === postId) {
+        setSelectedPost((prev) => {
+          if (!prev) return prev;
+          const revert = !prev.saved_by_me;
+          return {
+            ...prev,
+            saved_by_me: revert,
+            saves_count: revert
+              ? prev.saves_count + 1
+              : Math.max(prev.saves_count - 1, 0),
+          };
+        });
+      }
+    }
+  };
+  // ────────────────────────────────────────────────────────────
+
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);
       setSelectedPost(res.data);
     } catch (err) {
       console.error("Failed to fetch post detail:", err);
-      // Fall back to showing whatever data we already have
       setSelectedPost(post);
     }
   };
 
-  // After adding a comment, update the comment count in the list
   const handleCommentAdded = (postId) => {
     setPosts((prev) =>
       prev.map((p) =>
@@ -144,19 +206,16 @@ const Explore = () => {
         </button>
       </div>
 
-      {/* States */}
       {isLoading && (
         <div className="flex justify-center py-12">
           <p className="text-gray-400">Loading posts...</p>
         </div>
       )}
-
       {error && (
         <div className="flex justify-center py-12">
           <p className="text-red-400">{error}</p>
         </div>
       )}
-
       {!isLoading && !error && posts.length === 0 && (
         <div className="flex justify-center py-12">
           <p className="text-gray-400">
@@ -169,7 +228,6 @@ const Explore = () => {
         </div>
       )}
 
-      {/* Post grid */}
       {!isLoading && !error && posts.length > 0 && (
         <div className="posts-grid">
           {posts.map((post) => (
@@ -177,18 +235,19 @@ const Explore = () => {
               key={post.id}
               post={post}
               onLike={() => handleLike(post.id)}
+              onSave={() => handleSave(post.id)} // ← pass it down
               onClick={() => handleOpenPost(post)}
             />
           ))}
         </div>
       )}
 
-      {/* Post detail modal */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onLike={() => handleLike(selectedPost.id)}
+          onSave={() => handleSave(selectedPost.id)} // ← pass it down
           onCommentAdded={() => handleCommentAdded(selectedPost.id)}
         />
       )}

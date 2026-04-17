@@ -14,6 +14,9 @@ import SettingsSection from "../components/profilePage/SettingsSection";
 import StreakDisplay from "../components/profilePage/StreakDisplay";
 import EditProfileModal from "../components/profilePage/EditProfileModal";
 import TelegramConnectionModal from "../components/common/TelegramConnectionModal";
+import AccountInfoModal from "../components/common/AccountInfoModal";
+import PostsModal from "../components/common/PostsModal";
+import AllAchievementsModal from "../components/common/AllAchievementsModal";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -31,6 +34,11 @@ export default function Profile() {
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTelegramModal, setShowTelegramModal] = useState(false);
+  const [showAccountInfo, setShowAccountInfo] = useState(false);
+  const [editModalTab, setEditModalTab] = useState("info");
+  const [showPostsModal, setShowPostsModal] = useState(false);
+  const [postsModalType, setPostsModalType] = useState("posts");
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [toast, setToast] = useState({ msg: "", type: "" });
   const [equippedAvatar, setEquippedAvatar] = useState(null);
 
@@ -54,17 +62,32 @@ export default function Profile() {
       ]);
 
       if (statsRes.status === "fulfilled" && statsRes.value.data.success) {
-        setStats(statsRes.value.data.data);
+        const {
+          friends = 0,
+          posts = 0,
+          liked = 0,
+          saved = 0,
+        } = statsRes.value.data.data || {};
+
+        setStats({
+          friends,
+          posts,
+          liked,
+          saved,
+        });
       }
+
       if (streakRes.status === "fulfilled" && streakRes.value.data.success) {
         setStreak(streakRes.value.data.data);
       }
+
       if (
         achievementsRes.status === "fulfilled" &&
         achievementsRes.value.data.success
       ) {
         const { unlockedKeys = [], equippedAvatar: ea = null } =
           achievementsRes.value.data.data ?? {};
+
         setUnlockedAchievements(unlockedKeys);
         setEquippedAvatar(ea);
       }
@@ -77,10 +100,11 @@ export default function Profile() {
 
   const handleAvatarChange = (newKey) => {
     setEquippedAvatar(newKey);
-    // Also persist to user object so other components see it immediately
+
     const updatedUser = { ...user, equipped_avatar: newKey };
     setUser(updatedUser);
     localStorage.setItem("user", JSON.stringify(updatedUser));
+
     showToast(newKey ? "Avatar updated!" : "Avatar removed");
   };
 
@@ -98,7 +122,6 @@ export default function Profile() {
 
   const handleProfileSaved = (updatedUser) => {
     setUser(updatedUser);
-    // update localStorage
     localStorage.setItem("user", JSON.stringify(updatedUser));
     setShowEditModal(false);
     showToast("Profile updated successfully!");
@@ -108,7 +131,9 @@ export default function Profile() {
     try {
       await authService.connectTelegram(chatId);
       const freshUser = await authService.fetchCurrentUser();
+
       if (freshUser) setUser(freshUser);
+
       showToast("Telegram connected!");
     } catch (error) {
       throw error;
@@ -116,9 +141,17 @@ export default function Profile() {
   };
 
   const handleViewAll = (key) => {
-    // Navigate to the relevant page / section
-    // Extend as those routes are built
-    showToast(`Opening ${key}...`, "info");
+    setPostsModalType(key);
+    setShowPostsModal(true);
+  };
+
+  const handleAccountInfo = () => {
+    setShowAccountInfo(true);
+  };
+
+  const handleChangePassword = () => {
+    setEditModalTab("password");
+    setShowEditModal(true);
   };
 
   const joinDate = user?.created_at
@@ -149,7 +182,7 @@ export default function Profile() {
     padding: "20px 16px",
     display: "flex",
     flexDirection: "column",
-    gap: "0",
+    gap: "10px",
   };
 
   const actionBtnStyle = (variant = "primary") => ({
@@ -171,7 +204,6 @@ export default function Profile() {
   return (
     <div style={pageStyle}>
       <div style={headerBarStyle}>
-        {/* Grumble logo/wordmark */}
         <img
           src={logoImg}
           alt="Grumble logo"
@@ -230,12 +262,14 @@ export default function Profile() {
                   e.currentTarget.src = defaultPng;
                 }}
               />
+
               <div style={{ flex: 1 }}>
                 <div
                   style={{ fontSize: "22px", fontWeight: "800", color: "#111" }}
                 >
                   {user.username}
                 </div>
+
                 <div
                   style={{
                     fontSize: "13px",
@@ -248,13 +282,13 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Action buttons */}
               <div
                 style={{
                   display: "flex",
                   gap: "8px",
                   flexWrap: "wrap",
-                  justifyContent: "flex-end",
+                  justifyContent: "flex-start",
+                  width: "100%",
                 }}
               >
                 <button
@@ -265,6 +299,7 @@ export default function Profile() {
                 >
                   Edit Profile
                 </button>
+
                 <button
                   style={actionBtnStyle("outline")}
                   onClick={handleShareProfile}
@@ -276,14 +311,6 @@ export default function Profile() {
                   }
                 >
                   ↗ Share Profile
-                </button>
-                <button
-                  style={actionBtnStyle("primary")}
-                  onClick={() => showToast("Friend search coming soon!")}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                >
-                  ⊕ Add friends
                 </button>
               </div>
             </div>
@@ -298,17 +325,13 @@ export default function Profile() {
             <AchievementsSection
               unlockedKeys={unlockedAchievements}
               equippedAvatar={equippedAvatar}
-              onViewAll={() => showToast("Viewing all achievements...")}
+              onViewAll={() => setShowAllAchievements(true)}
               onAvatarChange={handleAvatarChange}
             />
 
             <SettingsSection
-              onAccountInfo={() => setShowEditModal(true)}
-              onChangePassword={() => {
-                setShowEditModal(true);
-                // EditProfileModal defaults to 'info', but you can pass a prop
-                // e.g. initialTab="password" if desired
-              }}
+              onAccountInfo={handleAccountInfo}
+              onChangePassword={handleChangePassword}
               onHelpSupport={() => navigate("/help-support")}
             />
 
@@ -331,6 +354,7 @@ export default function Profile() {
               >
                 Telegram Integration
               </div>
+
               {user.telegramChatId ? (
                 <div style={{ fontSize: "13px", color: "#166534" }}>
                   Connected as {user.telegramUsername || "your account"}
@@ -386,8 +410,37 @@ export default function Profile() {
       {showEditModal && (
         <EditProfileModal
           user={user}
-          onClose={() => setShowEditModal(false)}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditModalTab("info");
+          }}
           onSave={handleProfileSaved}
+          initialTab={editModalTab}
+        />
+      )}
+
+      {showAccountInfo && (
+        <AccountInfoModal
+          user={user}
+          onClose={() => setShowAccountInfo(false)}
+        />
+      )}
+
+      {showPostsModal && (
+        <PostsModal
+          type={postsModalType}
+          onClose={() => {
+            setShowPostsModal(false);
+            fetchStats();
+          }}
+        />
+      )}
+
+      {showAllAchievements && (
+        <AllAchievementsModal
+          unlockedKeys={unlockedAchievements}
+          onClose={() => setShowAllAchievements(false)}
+          onAvatarSelect={handleAvatarChange}
         />
       )}
 

@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MapPin, User } from 'lucide-react';
+import React from "react";
+import {
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  MapPin,
+  User,
+} from "lucide-react";
 
-const FoodPostCard = ({ post, onLike, onClick }) => {
-  const [isSaved, setIsSaved] = useState(false);
-
+const FoodPostCard = ({ post, onLike, onSave, onClick }) => {
   const handleLike = (e) => {
     e.stopPropagation();
     onLike?.();
@@ -11,7 +16,7 @@ const FoodPostCard = ({ post, onLike, onClick }) => {
 
   const handleSave = (e) => {
     e.stopPropagation();
-    setIsSaved(!isSaved);
+    onSave?.();
   };
 
   return (
@@ -45,7 +50,11 @@ const FoodPostCard = ({ post, onLike, onClick }) => {
             <button onClick={handleLike} className="post-interaction">
               <Heart
                 size={20}
-                className={post.liked_by_me ? 'fill-red-500 text-red-500' : 'text-gray-700'}
+                className={
+                  post.liked_by_me
+                    ? "fill-red-500 text-red-500"
+                    : "text-gray-700"
+                }
               />
               {/* likes_count instead of likes */}
               <span className="text-sm font-medium">{post.likes_count}</span>
@@ -65,14 +74,18 @@ const FoodPostCard = ({ post, onLike, onClick }) => {
           <button onClick={handleSave} className="icon-btn">
             <Bookmark
               size={20}
-              className={isSaved ? 'fill-gray-700 text-gray-700' : 'text-gray-700'}
+              className={
+                post.saved_by_me
+                  ? "fill-blue-600 text-blue-600"
+                  : "text-gray-700"
+              }
             />
           </button>
         </div>
 
         <div className="post-caption">
           <p className="text-sm line-clamp-2">
-            <span className="font-semibold">{post.username}</span>{' '}
+            <span className="font-semibold">{post.username}</span>{" "}
             {/* description instead of caption */}
             {post.description}
           </p>

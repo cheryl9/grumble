@@ -159,6 +159,20 @@ async function getSaved(req, res) {
   }
 }
 
+async function getLiked(req, res) {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const posts = await postsRepo.getLikedPosts(userId, limit, offset);
+    res.json(posts);
+  } catch (err) {
+    console.error("getLiked error:", err);
+    res.status(500).json({ error: "Failed to fetch liked posts" });
+  }
+}
+
 module.exports = {
   getFeed,
   getPost,
@@ -167,4 +181,5 @@ module.exports = {
   addComment,
   toggleSave,
   getSaved,
+  getLiked,
 };

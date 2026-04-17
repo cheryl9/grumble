@@ -281,6 +281,41 @@ async function getSavedPosts(userId, limit = 20, offset = 0) {
   return transformPosts(result.rows);
 }
 
+/**
+ * Get all posts liked by the current user, newest like first.
+ * Returns same shape as getFeedPosts so the frontend can treat them uniformly.
+ */
+async function getLikedPosts(userId, limit = 20, offset = 0) {
+  const result = await pool.query(
+    `SELECT
+      p.id, p.user_id, p.food_place_id, p.location_name,
+      p.rating, p.image_url, p.description, p.visibility,
+      p.likes_count, p.comments_count, p.saves_count,
+      p.created_at,
+      u.username,
+      fp.name    AS place_name,
+      fp.cuisine,
+      fp.category,
+      fp.lat,
+      fp.lon,
+      true AS liked_by_me,
+      EXISTS (
+        SELECT 1 FROM saves s
+        WHERE s.post_id = p.id AND s.user_id = $1
+      ) AS saved_by_me
+    FROM likes l
+    JOIN posts p ON p.id = l.post_id
+    JOIN users u ON u.id = p.user_id
+    LEFT JOIN food_places fp ON fp.id = p.food_place_id
+    WHERE l.user_id = $1
+      AND p.is_deleted = false
+    ORDER BY l.created_at DESC
+    LIMIT $2 OFFSET $3`,
+    [userId, limit, offset],
+  );
+  return transformPosts(result.rows);
+}
+
 module.exports = {
   getFeedPosts,
   getPostById,
@@ -290,4 +325,5 @@ module.exports = {
   createComment,
   toggleSave,
   getSavedPosts,
+  getLikedPosts,
 };
