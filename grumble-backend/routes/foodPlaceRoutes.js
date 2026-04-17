@@ -4,10 +4,15 @@ const {
   getAllFoodPlacesHandler,
   getFoodPlaceByIdHandler,
   getApiUsage,
+  createFoodPlaceHandler,
+  convertPostcodeHandler,
 } = require("../controllers/foodPlaceController");
+const authMiddleware = require("../middleware/authMiddleware");
 
-router.get("/api-usage", getApiUsage); // Check API limits (must be before /:id route)
 router.get("/", getAllFoodPlacesHandler);
+router.get("/api-usage", getApiUsage);          
+router.get("/convert-postcode", convertPostcodeHandler);  
 router.get("/:id", getFoodPlaceByIdHandler);
+router.post("/", authMiddleware, createFoodPlaceHandler);
 
 module.exports = router;

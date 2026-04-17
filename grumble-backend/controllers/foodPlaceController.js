@@ -1,22 +1,22 @@
 const {
   getAllFoodPlaces,
   getFoodPlaceById,
+  createFoodPlace,
+  convertPostcodeToCoordinates,
 } = require("../repositories/foodPlaceRepository");
 const { getGoogleData } = require("../services/googlePlacesService");
 
 // ========== RATE LIMITING & CACHING ==========
-// Track API calls to prevent exceeding limits
 const apiCallTracker = {
-  google: { count: 0, resetTime: Date.now() + 86400000 }, // Daily limit
+  google: { count: 0, resetTime: Date.now() + 86400000 },
 };
 
 const DAILY_LIMITS = {
-  google: 10, // Limited to prevent excessive API charges
+  google: 10,
 };
 
-// Simple in-memory cache (use Redis in production)
 const cache = new Map();
-const CACHE_TTL = 3600000; // 1 hour in ms
+const CACHE_TTL = 3600000;
 
 function checkAndResetDaily(service) {
   const now = Date.now();
@@ -37,11 +37,8 @@ function canMakeApiCall(service) {
     return false;
   }
 
-  // Warn if approaching limit
   if (remaining < 10) {
-    console.warn(
-      `⚠️  ${service} API approaching limit! ${remaining} calls remaining`,
-    );
+    console.warn(`⚠️  ${service} API approaching limit! ${remaining} calls remaining`);
   }
 
   return true;
@@ -49,9 +46,7 @@ function canMakeApiCall(service) {
 
 function incrementApiCall(service) {
   apiCallTracker[service].count++;
-  console.log(
-    `📊 ${service} API calls: ${apiCallTracker[service].count}/${DAILY_LIMITS[service]}`,
-  );
+  console.log(`📊 ${service} API calls: ${apiCallTracker[service].count}/${DAILY_LIMITS[service]}`);
 }
 
 function getCacheKey(...args) {
@@ -75,18 +70,15 @@ function setCache(key, data) {
 // ========== CONTROLLERS ==========
 async function enrichWithGoogle(place) {
   try {
-    // 1. Check in-memory cache
     const cacheKey = getCacheKey("google", place.name, place.lat, place.lon);
     const cached = getFromCache(cacheKey);
     if (cached) return { ...place, google: cached };
 
-    // 2. Check API limit
     if (!canMakeApiCall("google")) {
       console.log("❌ Google API limit reached, skipping enrichment");
       return { ...place, google: null };
     }
 
-    // 3. Hit Google API
     const lat = place.lat ?? place.latitude;
     const lon = place.lon ?? place.longitude;
     const googleData = await getGoogleData(place.name, lat, lon);
@@ -98,18 +90,14 @@ async function enrichWithGoogle(place) {
 
     return { ...place, google: googleData ?? null };
   } catch (err) {
-    console.error(
-      `Google enrichment failed for place ${place.id}:`,
-      err.message,
-    );
+    console.error(`Google enrichment failed for place ${place.id}:`, err.message);
     return { ...place, google: null };
   }
 }
 
 async function getAllFoodPlacesHandler(req, res) {
   try {
-    const { category, cuisine, minLat, maxLat, minLon, maxLon, limit } =
-      req.query;
+    const { category, cuisine, minLat, maxLat, minLon, maxLon, limit } = req.query;
     const places = await getAllFoodPlaces({
       category,
       cuisine,
@@ -139,18 +127,70 @@ async function getFoodPlaceByIdHandler(req, res) {
   }
 }
 
+async function createFoodPlaceHandler(req, res) {
+  try {
+    const { name, cuisine, category, latitude, longitude, address, opening_hours } = req.body;
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ error: "Food place name is required" });
+    }
+
+    const place = await createFoodPlace({
+      name: name.trim(),
+      cuisine: cuisine || null,
+      category: category || null,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      address: address || null,
+      opening_hours: opening_hours || null,
+    });
+
+    res.status(201).json(place);
+  } catch (error) {
+    console.error("createFoodPlace error:", error);
+    res.status(500).json({ error: "Failed to create food place" });
+  }
+}
+
+async function convertPostcodeHandler(req, res) {
+  try {
+    const { postcode } = req.query;
+
+    if (!postcode || !/^\d{6}$/.test(postcode.trim())) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid postal code (must be 6 digits)",
+      });
+    }
+
+    const result = await convertPostcodeToCoordinates(postcode.trim());
+
+    if (result.success) {
+      res.json({
+        success: true,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        postal_code: result.postal_code,
+        address: result.address,
+      });
+    } else {
+      res.status(404).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error("Postcode handler error:", error);
+    res.status(500).json({ success: false, error: "Server error when converting postcode" });
+  }
+}
+
 async function searchFoodPlaces(req, res) {
   res.status(410).json({
     success: false,
-    message:
-      "Foursquare integration has been removed. Use Google Places search instead.",
+    message: "Foursquare integration has been removed. Use Google Places search instead.",
   });
 }
 
-// Endpoint to check current API usage
 async function getApiUsage(req, res) {
   checkAndResetDaily("google");
-
   res.json({
     google: {
       used: apiCallTracker.google.count,
@@ -166,4 +206,6 @@ module.exports = {
   getFoodPlaceByIdHandler,
   searchFoodPlaces,
   getApiUsage,
+  createFoodPlaceHandler,
+  convertPostcodeHandler,
 };

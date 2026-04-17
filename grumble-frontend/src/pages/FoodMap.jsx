@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import api from '../services/api';
-import logo from '../assets/logo.png';
-import { Users, User, Bookmark } from 'lucide-react';
-import AddFoodSpotModal from '../components/foodMapPage/AddFoodSpotModal';
+import api from "../services/api";
+import logo from "../assets/logo.png";
+import { Users, User, Bookmark } from "lucide-react";
+import AddFoodSpotModal from "../components/foodMapPage/AddFoodSpotModal";
 
 const TABS = [
   { key: "self", label: "Self", icon: <User size={16} /> },
@@ -15,7 +16,7 @@ const TABS = [
 // simplified pin icon — no user avatar data from food-places endpoint
 // when posts backend exists, pass user avatar in pin.avatarUrl and it'll render
 function createPinIcon(pin, isSelected = false) {
-  const color = '#F78660';
+  const color = "#F78660";
   const size = isSelected ? 52 : 42;
   const imgSize = size - 10;
 
@@ -51,7 +52,7 @@ function createPinIcon(pin, isSelected = false) {
 
   return L.divIcon({
     html,
-    className: '',
+    className: "",
     iconSize: [size, size + 8],
     iconAnchor: [size / 2, size + 8],
     popupAnchor: [0, -(size + 8)],
@@ -61,13 +62,13 @@ function createPinIcon(pin, isSelected = false) {
 // Fetch food places (used for the default/all-places view on 'self' tab fallback)
 async function fetchPlacesInBounds(bounds) {
   const { _southWest: sw, _northEast: ne } = bounds;
-  const res = await api.get('/food-places', {
+  const res = await api.get("/food-places", {
     params: {
       minLat: sw.lat,
       maxLat: ne.lat,
       minLon: sw.lng,
       maxLon: ne.lng,
-    }
+    },
   });
   return res.data;
 }
@@ -75,32 +76,34 @@ async function fetchPlacesInBounds(bounds) {
 // Fetch posts and extract pins with lat/lon from their linked food_place
 // tab maps directly to the posts feed tab param
 async function fetchPostPins(tab) {
-  const res = await api.get('/posts', { params: { tab } });
+  const res = await api.get("/posts", { params: { tab } });
   // Only keep posts that have a food place with coordinates
   return res.data
-    .filter(p => p.food_place_id && p.lat != null && p.lon != null)
-    .map(p => ({
-      id:           p.id,
-      lat:          p.lat,
-      lon:          p.lon,
-      name:         p.place_name || p.location_name || 'Unnamed place',
-      cuisine:      p.cuisine,
-      category:     p.category,
-      rating:       p.rating,
-      description:  p.description,
-      username:     p.username,
-      liked_by_me:  p.liked_by_me,
-      likes_count:  p.likes_count,
-      isPost:       true,   // flag so pin card knows it's a post, not a bare place
+    .filter((p) => p.food_place_id && p.lat != null && p.lon != null)
+    .map((p) => ({
+      id: p.id,
+      lat: p.lat,
+      lon: p.lon,
+      name: p.place_name || p.location_name || "Unnamed place",
+      cuisine: p.cuisine,
+      category: p.category,
+      rating: p.rating,
+      description: p.description,
+      username: p.username,
+      liked_by_me: p.liked_by_me,
+      likes_count: p.likes_count,
+      created_at: p.created_at, // Added for date filtering (Friends tab)
+      isPost: true, // flag so pin card knows it's a post, not a bare place
     }));
 }
 
 const FoodMap = () => {
+  const navigate = useNavigate();
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
 
-  const [activeTab, setActiveTab] = useState('self');
+  const [activeTab, setActiveTab] = useState("self");
   const [selectedPin, setSelectedPin] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [spotCoords, setSpotCoords] = useState(null);
@@ -109,50 +112,56 @@ const FoodMap = () => {
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
 
   // Ref so the moveend listener always reads the current tab without needing re-registration
-  const activeTabRef = useRef('self');
+  const activeTabRef = useRef("self");
 
   // Fetch logic depends on active tab:
   // 'self'    → user's own posts (mine tab on posts API)
-  // 'friends' → friends' posts  (friends tab on posts API)
-  // 'saved'   → saved posts     (saved tab on posts API — needs saves table)
-  // all tabs also fall back to food-places bounds fetch if no post pins exist
-  const loadAndRenderMarkers = useCallback(async (tab = 'self') => {
+  // 'friends' → friends' posts from past 3 months (friends tab on posts API)
+  // 'saved'   → saved posts (saved tab on posts API)
+  // NOTE: Each tab shows ONLY the intended data, empty if none exist
+  const loadAndRenderMarkers = useCallback(async (tab = "self") => {
     if (!mapRef.current) return;
     setIsLoadingPlaces(true);
     try {
       let data;
-      if (tab === 'self') {
-        // My posts pinned on the map
-        data = await fetchPostPins('mine');
-        // If user has no posts yet, fall back to showing all nearby places
-        if (data.length === 0) {
-          const bounds = mapRef.current.getBounds();
-          data = await fetchPlacesInBounds(bounds);
-        }
-      } else if (tab === 'friends') {
-        data = await fetchPostPins('friends');
-      } else if (tab === 'saved') {
-        const res = await api.get('/posts/saved');
+      if (tab === "self") {
+        // My posts pinned on the map (no fallback - show empty if no posts)
+        data = await fetchPostPins("mine");
+      } else if (tab === "friends") {
+        // Friends' posts from past 3 months
+        data = await fetchPostPins("friends");
+
+        // Filter to only show posts from past 3 months
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+        data = data.filter((p) => {
+          const postDate = new Date(p.created_at);
+          return postDate >= threeMonthsAgo;
+        });
+      } else if (tab === "saved") {
+        // Saved posts only
+        const res = await api.get("/posts/saved");
         data = res.data
-          .filter(p => p.lat != null && p.lon != null)
-          .map(p => ({
-            id:          p.id,
-            lat:         p.lat,
-            lon:         p.lon,
-            name:        p.place_name || p.location_name || 'Unnamed place',
-            cuisine:     p.cuisine,
-            category:    p.category,
-            rating:      p.rating,
+          .filter((p) => p.lat != null && p.lon != null)
+          .map((p) => ({
+            id: p.id,
+            lat: p.lat,
+            lon: p.lon,
+            name: p.place_name || p.location_name || "Unnamed place",
+            cuisine: p.cuisine,
+            category: p.category,
+            rating: p.rating,
             description: p.description,
-            username:    p.username,
+            username: p.username,
             liked_by_me: p.liked_by_me,
             likes_count: p.likes_count,
-            isPost:      true,
+            isPost: true,
           }));
       }
       setPlaces(data);
     } catch (err) {
-      console.error('Failed to fetch map pins:', err);
+      console.error("Failed to fetch map pins:", err);
     } finally {
       setIsLoadingPlaces(false);
     }
@@ -168,22 +177,25 @@ const FoodMap = () => {
       attributionControl: true,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      subdomains: 'abcd',
-      attribution: '© <a href="https://carto.com/">CARTO</a>',
-    }).addTo(map);
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        maxZoom: 19,
+        subdomains: "abcd",
+        attribution: '© <a href="https://carto.com/">CARTO</a>',
+      },
+    ).addTo(map);
 
-    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.zoom({ position: "topright" }).addTo(map);
     mapRef.current = map;
 
     // Fetch on ready; moveend reads activeTabRef so it always uses the current tab
-    map.whenReady(() => loadAndRenderMarkers('self'));
+    map.whenReady(() => loadAndRenderMarkers("self"));
     const onMoveEnd = () => loadAndRenderMarkers(activeTabRef.current);
-    map.on('moveend', onMoveEnd);
+    map.on("moveend", onMoveEnd);
 
     return () => {
-      map.off('moveend', onMoveEnd);
+      map.off("moveend", onMoveEnd);
       map.remove();
       mapRef.current = null;
     };
@@ -205,11 +217,15 @@ const FoodMap = () => {
         zIndexOffset: isSelected ? 1000 : 0,
       }).addTo(mapRef.current);
 
-      marker.on('click', () => {
+      marker.on("click", () => {
         setSelectedPin((prev) => (prev?.id === place.id ? null : place));
-        mapRef.current.flyTo([place.lat, place.lon], Math.max(mapRef.current.getZoom(), 14), {
-          duration: 0.6,
-        });
+        mapRef.current.flyTo(
+          [place.lat, place.lon],
+          Math.max(mapRef.current.getZoom(), 14),
+          {
+            duration: 0.6,
+          },
+        );
       });
 
       markersRef.current.push(marker);
@@ -224,10 +240,11 @@ const FoodMap = () => {
     loadAndRenderMarkers(tab);
   };
 
-
   return (
-    <div className="food-map-page flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
-
+    <div
+      className="food-map-page flex flex-col overflow-hidden"
+      style={{ height: "100dvh" }}
+    >
       {/* Header */}
       <div className="explore-header">
         <div className="flex items-center gap-3">
@@ -246,10 +263,10 @@ const FoodMap = () => {
                 key={key}
                 onClick={() => handleTabChange(key)}
                 className={`flex items-center justify-center w-12 h-10 rounded-full transition-all duration-200 ${
-                  active ? 'bg-gray-100' : 'hover:bg-gray-50'
+                  active ? "bg-gray-100" : "hover:bg-gray-50"
                 }`}
               >
-                <span className={active ? 'text-gray-700' : 'text-gray-400'}>
+                <span className={active ? "text-gray-700" : "text-gray-400"}>
                   {icon}
                 </span>
               </button>
@@ -271,12 +288,17 @@ const FoodMap = () => {
 
         {/* Pin detail card — CHANGED: uses place fields (name, cuisine, category) instead of mock pin fields */}
         {selectedPin && (
-          <div className="map-pin-card absolute bottom-24 left-1/2 z-[1000] w-80" style={{ transform: 'translateX(-50%)' }}>
+          <div
+            className="map-pin-card absolute bottom-24 left-1/2 z-[1000] w-80"
+            style={{ transform: "translateX(-50%)" }}
+          >
             <div className="h-1.5 rounded-t-2xl bg-[#F78660]" />
             <div className="p-4">
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold flex-shrink-0 bg-[#FCF1DD] text-[#F78660]">
-                  {selectedPin.username ? selectedPin.username[0].toUpperCase() : '🍴'}
+                  {selectedPin.username
+                    ? selectedPin.username[0].toUpperCase()
+                    : "🍴"}
                 </div>
                 <div className="flex-1 min-w-0">
                   {/* Show username if it's a post pin */}
@@ -286,39 +308,64 @@ const FoodMap = () => {
                     </p>
                   )}
                   {/* Show cuisine/category for bare place pins */}
-                  {!selectedPin.username && (selectedPin.cuisine || selectedPin.category) && (
-                    <p className="text-xs text-gray-400 font-semibold mb-0.5">
-                      {selectedPin.cuisine || selectedPin.category}
-                    </p>
-                  )}
+                  {!selectedPin.username &&
+                    (selectedPin.cuisine || selectedPin.category) && (
+                      <p className="text-xs text-gray-400 font-semibold mb-0.5">
+                        {selectedPin.cuisine || selectedPin.category}
+                      </p>
+                    )}
                   <h3 className="font-bold text-gray-900 text-base leading-tight">
-                    {selectedPin.name || 'Unnamed place'}
+                    {selectedPin.name || "Unnamed place"}
                   </h3>
                   {/* Star rating for posts */}
                   {selectedPin.rating && (
                     <div className="flex gap-0.5 mt-0.5">
-                      {[1,2,3,4,5].map((i) => (
-                        <span key={i} className={i <= selectedPin.rating ? 'star-filled' : 'star-empty'}>★</span>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <span
+                          key={i}
+                          className={
+                            i <= selectedPin.rating
+                              ? "star-filled"
+                              : "star-empty"
+                          }
+                        >
+                          ★
+                        </span>
                       ))}
                     </div>
                   )}
                   {selectedPin.address && !selectedPin.isPost && (
-                    <p className="text-xs text-gray-400 mt-0.5">{selectedPin.address}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {selectedPin.address}
+                    </p>
                   )}
                 </div>
                 <button
                   onClick={() => setSelectedPin(null)}
                   className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 text-xs font-bold flex-shrink-0 transition-colors"
-                >✕</button>
+                >
+                  ✕
+                </button>
               </div>
               {/* Show post description or opening hours */}
               {selectedPin.description && (
-                <p className="mt-2.5 text-sm text-gray-500 italic">"{selectedPin.description}"</p>
+                <p className="mt-2.5 text-sm text-gray-500 italic">
+                  "{selectedPin.description}"
+                </p>
               )}
               {!selectedPin.description && selectedPin.opening_hours && (
-                <p className="mt-2.5 text-sm text-gray-500 italic">"{selectedPin.opening_hours}"</p>
+                <p className="mt-2.5 text-sm text-gray-500 italic">
+                  "{selectedPin.opening_hours}"
+                </p>
               )}
-              <button className="btn-primary mt-3 w-full py-2.5 rounded-xl text-sm">
+              <button
+                onClick={() =>
+                  navigate("/explore", {
+                    state: { selectedPostId: selectedPin.id },
+                  })
+                }
+                className="btn-primary mt-3 w-full py-2.5 rounded-xl text-sm"
+              >
                 See post →
               </button>
             </div>
@@ -327,7 +374,10 @@ const FoodMap = () => {
 
         {/* Add food spot button */}
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[1000]">
-          <button onClick={() => setShowAddModal(true)} className="map-cta-btn flex items-center gap-2 px-7 py-3.5 text-[15px]">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="map-cta-btn flex items-center gap-2 px-7 py-3.5 text-[15px]"
+          >
             <span className="text-xl">⊕</span>
             Add food spot
           </button>
@@ -340,7 +390,7 @@ const FoodMap = () => {
           onClose={() => setShowAddModal(false)}
           onSpotAdded={() => {
             setShowAddModal(false);
-            loadAndRenderMarkers('self');
+            loadAndRenderMarkers("self");
           }}
           lat={spotCoords?.lat || 1.3521}
           lon={spotCoords?.lon || 103.8198}

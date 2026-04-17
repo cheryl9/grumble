@@ -22,24 +22,30 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only image files are allowed!'), false);
-    }
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed!"), false);
+  }
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 router.use(authMiddleware);
 
-router.post('/upload', upload.single('image'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No image provided.' });
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    res.json({ imageUrl });
+router.post("/upload", upload.single("image"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No image provided." });
+  const BASE_URL = process.env.BACKEND_URL || "http://localhost:5001";
+  const imageUrl = `${BASE_URL}/uploads/${req.file.filename}`;
+  res.json({ imageUrl });
 });
 
 router.get('/saved', postsController.getSaved);
+router.get('/liked', postsController.getLiked);
 router.get('/', postsController.getFeed);
 router.get('/:id', postsController.getPost);
 router.post('/', postsController.createPost);

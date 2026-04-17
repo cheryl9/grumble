@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
-    "sync:osm": "node scripts/syncOSM.js",
+    "dev": "nodemon server.js",
+    "sync-osm": "node scripts/syncOSM.js",
     "admin:create": "node scripts/createAdmin.js",
     "telegram:helper": "node scripts/telegramBotHelper.js",
     "migrate:001": "psql -U postgres -d grumble -f migrations/001_create_food_places.sql",
@@ -13,7 +13,13 @@
     "migrate:004": "psql -U postgres -d grumble -f migrations/004_create_admin_tables.sql",
     "migrate:005": "psql -U postgres -d grumble -f migrations/005_create_saves.sql",
     "migrate:006": "psql -U postgres -d grumble -f migrations/006_add_food_place_enrichment_fields.sql",
-    "migrate:all": "npm run migrate:001 && npm run migrate:002 && npm run migrate:003 && npm run migrate:004 && npm run migrate:005 && npm run migrate:006"
+    "migrate:007": "psql -U postgres -d grumble -f migrations/007_create_buildings_table.sql",
+    "migrate:008": "psql -U postgres -d grumble -f migrations/008_create_user_preferences.sql",
+    "migrate:009": "psql -U postgres -d grumble -f migrations/009_add_postal_code_to_posts.sql",
+    "migrate:010": "psql -U postgres -d grumble -f migrations/010_seed_faqs.sql",
+    "migrate:011": "psql -U postgres -d grumble -f migrations/011_achievements_and_avatars.sql",
+    "migrate:012": "psql -U postgres -d grumble -f migrations/012_create_support_reports.sql",
+    "migrate:all": "npm run migrate:001 && npm run migrate:002 && npm run migrate:003 && npm run migrate:004 && npm run migrate:005 && npm run migrate:006 && npm run migrate:007 && npm run migrate:008 && npm run migrate:009 && npm run migrate:010 && npm run migrate:011 && npm run migrate:012"
   },
   "dependencies": {
     "axios": "^1.13.5",
@@ -23,6 +29,7 @@
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
-    "pg": "^8.18.0"
+    "pg": "^8.18.0",
+    "socket.io": "^4.8.3"
   }
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, MapPin, User, MessageCircle } from 'lucide-react';
 import api from '../../services/api';
 
-const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
+const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) => {
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState(post.comments || []);
   const [isPostingComment, setIsPostingComment] = useState(false);
@@ -38,7 +38,7 @@ const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-grey bg-opacity-60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div 

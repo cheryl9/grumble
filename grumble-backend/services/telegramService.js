@@ -4,13 +4,13 @@ const axios = require('axios');
 /**
  * Telegram Bot Service
  * Sends OTP and notifications via Telegram Bot API
- * 
+ *
  * Setup:
  * 1. Open Telegram and search for @BotFather
  * 2. Send /newbot and follow instructions
  * 3. Get your bot token (looks like: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz)
  * 4. Add TELEGRAM_BOT_TOKEN to .env
- * 
+ *
  * No SDK needed - uses simple HTTP requests!
  */
 
@@ -21,7 +21,7 @@ const TELEGRAM_API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
  * Check if Telegram bot is configured
  */
 const isTelegramConfigured = () => {
-  return !!BOT_TOKEN && BOT_TOKEN !== 'your_bot_token_here';
+  return !!BOT_TOKEN && BOT_TOKEN !== "your_bot_token_here";
 };
 
 /**
@@ -32,22 +32,35 @@ const isTelegramConfigured = () => {
  */
 const sendMessage = async (chatId, text, options = {}) => {
   if (!isTelegramConfigured()) {
-    console.warn('⚠️ Telegram bot not configured. Set TELEGRAM_BOT_TOKEN in .env');
+    console.warn(
+      "⚠️ Telegram bot not configured. Set TELEGRAM_BOT_TOKEN in .env",
+    );
     return null;
   }
 
   try {
-    const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, {
+    const payload = {
       chat_id: chatId,
       text: text,
-      parse_mode: options.parse_mode || 'Markdown',
-      ...options
-    });
+      ...options,
+    };
+
+    if (!payload.parse_mode) {
+      delete payload.parse_mode;
+    }
+
+    const response = await axios.post(
+      `${TELEGRAM_API_URL}/sendMessage`,
+      payload,
+    );
 
     return response.data;
   } catch (error) {
-    console.error('❌ Telegram API error:', error.response?.data || error.message);
-    throw new Error('Failed to send Telegram message');
+    console.error(
+      "❌ Telegram API error:",
+      error.response?.data || error.message,
+    );
+    throw new Error("Failed to send Telegram message");
   }
 };
 
@@ -57,8 +70,7 @@ const sendMessage = async (chatId, text, options = {}) => {
  * @param {string} otpCode - 6-digit OTP code
  */
 const sendOTP = async (chatId, otpCode) => {
-  const message = 
-`🔐 *Grumble Password Reset*
+  const message = `🔐 *Grumble Password Reset*
 
 Your OTP code is: *${otpCode}*
 
@@ -67,14 +79,14 @@ This code will expire in *10 minutes*.
 If you didn't request this, please ignore this message.`;
 
   try {
-    await sendMessage(chatId, message);
-    
+    await sendMessage(chatId, message, { parse_mode: "Markdown" });
+
     console.log(`✅ OTP sent via Telegram to chat_id: ${chatId}`);
-    
+
     return {
       success: true,
-      method: 'telegram',
-      chatId: chatId
+      method: "telegram",
+      chatId: chatId,
     };
   } catch (error) {
     console.error(`❌ Failed to send OTP to chat_id ${chatId}:`, error.message);
@@ -89,25 +101,23 @@ If you didn't request this, please ignore this message.`;
  */
 const sendChatNotification = async (chatId, notification) => {
   const { senderName, message, chatName } = notification;
-  
-  const text = 
-`💬 *New message in ${chatName}*
 
-*${senderName}:* ${message}
-
-Open Grumble to reply`;
+  const text = `New message in ${chatName}\n\n${senderName}: ${message}\n\nOpen Grumble to reply`;
 
   try {
     await sendMessage(chatId, text);
-    
+
     console.log(`✅ Chat notification sent to chat_id: ${chatId}`);
-    
+
     return {
       success: true,
-      method: 'telegram'
+      method: "telegram",
     };
   } catch (error) {
-    console.error(`❌ Failed to send notification to chat_id ${chatId}:`, error.message);
+    console.error(
+      `❌ Failed to send notification to chat_id ${chatId}:`,
+      error.message,
+    );
     throw error;
   }
 };
@@ -124,7 +134,7 @@ const getBotInfo = async () => {
     const response = await axios.get(`${TELEGRAM_API_URL}/getMe`);
     return response.data.result;
   } catch (error) {
-    console.error('❌ Failed to get bot info:', error.message);
+    console.error("❌ Failed to get bot info:", error.message);
     return null;
   }
 };
@@ -133,17 +143,17 @@ const getBotInfo = async () => {
  * Development fallback: Log to console if Telegram not configured
  */
 const logToConsole = (chatId, otpCode) => {
-  console.log('\n=================================================');
-  console.log('📱 TELEGRAM SERVICE - DEVELOPMENT MODE');
-  console.log('=================================================');
+  console.log("\n=================================================");
+  console.log("📱 TELEGRAM SERVICE - DEVELOPMENT MODE");
+  console.log("=================================================");
   console.log(`Chat ID: ${chatId}`);
   console.log(`OTP Code: ${otpCode}`);
-  console.log('=================================================');
-  console.log('⚠️ To send real Telegram messages:');
-  console.log('1. Create bot with @BotFather in Telegram');
-  console.log('2. Add TELEGRAM_BOT_TOKEN to .env');
-  console.log('3. User sends /start to your bot to get chat_id');
-  console.log('=================================================\n');
+  console.log("=================================================");
+  console.log("⚠️ To send real Telegram messages:");
+  console.log("1. Create bot with @BotFather in Telegram");
+  console.log("2. Add TELEGRAM_BOT_TOKEN to .env");
+  console.log("3. User sends /start to your bot to get chat_id");
+  console.log("=================================================\n");
 };
 
 /**
@@ -157,13 +167,13 @@ const getChatInfo = async (chatId) => {
 
   try {
     const response = await axios.get(`${TELEGRAM_API_URL}/getChat`, {
-      params: { chat_id: chatId }
+      params: { chat_id: chatId },
     });
-    
+
     return response.data.result;
   } catch (error) {
-    console.error('❌ Failed to get chat info:', error.message);
-    throw new Error('Could not retrieve chat information');
+    console.error("❌ Failed to get chat info:", error.message);
+    throw new Error("Could not retrieve chat information");
   }
 };
 
@@ -174,5 +184,5 @@ module.exports = {
   getBotInfo,
   getChatInfo,
   isTelegramConfigured,
-  logToConsole
+  logToConsole,
 };

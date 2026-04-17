@@ -191,7 +191,7 @@ const getPostComments = async (postId) => {
       u.phone_number
     FROM comments c
     JOIN users u ON c.user_id = u.id
-    WHERE c.post_id = $1
+    WHERE c.post_id = $1 AND c.is_deleted = false
     ORDER BY c.created_at DESC
     `,
     [postId]
@@ -221,12 +221,24 @@ const deleteComment = async (id, adminId, reason = '') => {
       throw new Error('Comment not found or already deleted');
     }
 
+    const postId = result.rows[0].post_id;
+
+    // Decrement the comments_count on the post
+    await client.query(
+      `
+      UPDATE posts
+      SET comments_count = GREATEST(comments_count - 1, 0)
+      WHERE id = $1
+      `,
+      [postId]
+    );
+
     await client.query(
       `
       INSERT INTO admin_logs (admin_id, action, target_type, target_id, details)
       VALUES ($1, 'comment_deleted', 'comment', $2, $3)
       `,
-      [adminId, id, JSON.stringify({ reason, postId: result.rows[0].post_id })]
+      [adminId, id, JSON.stringify({ reason, postId })]
     );
 
     await client.query('COMMIT');
