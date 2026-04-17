@@ -207,7 +207,7 @@ async function getPostOwner(postId) {
     `SELECT id, user_id, is_deleted
      FROM posts
      WHERE id = $1`,
-    [postId]
+    [postId],
   );
 
   return result.rows[0] || null;
@@ -216,7 +216,10 @@ async function getPostOwner(postId) {
 /**
  * Update post details (only fields the user can edit).
  */
-async function updatePost(postId, { locationName, rating, imageUrl, description, visibility }) {
+async function updatePost(
+  postId,
+  { locationName, rating, imageUrl, description, visibility },
+) {
   const result = await pool.query(
     `UPDATE posts
      SET
@@ -236,7 +239,7 @@ async function updatePost(postId, { locationName, rating, imageUrl, description,
       imageUrl !== undefined ? imageUrl : null,
       description !== undefined ? description.trim() : null,
       visibility !== undefined ? visibility : null,
-    ]
+    ],
   );
 
   return result.rows[0] || null;
@@ -254,7 +257,7 @@ async function softDeletePost(postId) {
      WHERE id = $1
        AND is_deleted = false
      RETURNING id`,
-    [postId]
+    [postId],
   );
 
   return result.rows[0] || null;
@@ -429,7 +432,7 @@ async function createReport(postId, reporterId, reason) {
     `INSERT INTO reports (reporter_id, reported_post_id, reason)
      VALUES ($1, $2, $3)
      RETURNING id, reporter_id, reported_post_id, reason, status, created_at`,
-    [reporterId, postId, reason]
+    [reporterId, postId, reason],
   );
 
   return result.rows[0];

@@ -6,7 +6,7 @@ const { get } = require("../app");
 const {
   getUserAchievements,
   equipAvatar,
-} = require('../services/achievementService');
+} = require("../services/achievementService");
 
 /**
  * Register a new user
@@ -526,8 +526,10 @@ async function getAchievements(req, res) {
     const data = await getUserAchievements(req.user.id, req.db);
     res.json({ success: true, data });
   } catch (err) {
-    console.error('getAchievements error:', err);
-    res.status(500).json({ success: false, message: 'Failed to fetch achievements' });
+    console.error("getAchievements error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch achievements" });
   }
 }
 
@@ -537,15 +539,13 @@ async function equipAvatarController(req, res) {
     const data = await equipAvatar(req.user.id, achievementKey ?? null, req.db);
     res.json({ success: true, data });
   } catch (err) {
-    if (err.message === 'Achievement not unlocked') {
+    if (err.message === "Achievement not unlocked") {
       return res.status(403).json({ success: false, message: err.message });
     }
-    console.error('equipAvatar error:', err);
-    res.status(500).json({ success: false, message: 'Failed to equip avatar' });
+    console.error("equipAvatar error:", err);
+    res.status(500).json({ success: false, message: "Failed to equip avatar" });
   }
 }
-
-
 
 module.exports = {
   register,
