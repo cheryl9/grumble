@@ -1,18 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import api from "../services/api";
-import { useAuth } from "../context/AuthContext";
-import logo from "../assets/logo.png";
-import ChatList from "../components/chatsPage/ChatList";
-import ChatWindow from "../components/chatsPage/ChatWindow";
-import CreateGroupModal from "../components/chatsPage/CreateGroupModal";
-import GroupChatInfo from "../components/chatsPage/GroupChatInfo";
-import {
-  addMembersToChatRoom,
-  createGroupChatRoom,
-  getOrCreateDirectChatRoom,
-  getChats,
-} from "../services/chatService";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.png';
+import ChatList from '../components/chatsPage/ChatList';
+import ChatWindow from '../components/chatsPage/ChatWindow';
+import CreateGroupModal from '../components/chatsPage/CreateGroupModal';
 
 const formatRelativeTime = (ts) => {
   if (!ts) return "";
@@ -61,8 +54,8 @@ const Chats = () => {
   const [chats, setChats] = useState([]);
   const [friends, setFriends] = useState([]);
 
-  const [activeTab, setActiveTab] = useState("friends");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeChat, setActiveChat] = useState(null);
   const [activeChatView, setActiveChatView] = useState("chat");
   const [roomRefreshKey, setRoomRefreshKey] = useState(0);
@@ -73,7 +66,8 @@ const Chats = () => {
   const [error, setError] = useState(null);
 
   const refreshChats = useCallback(async () => {
-    const rooms = (await getChats()) || [];
+    const res = await api.get('/chats');
+    const rooms = res.data?.data || [];
     setChats(rooms.map(mapRoomToChatListItem));
   }, []);
 
@@ -109,7 +103,8 @@ const Chats = () => {
     const name = title.trim();
     if (!name || !memberIds?.length) return;
 
-    const room = await createGroupChatRoom(name);
+    const roomRes = await api.post('/chats', { type: 'group', name });
+    const room = roomRes.data?.data;
 
     if (!room?.id) throw new Error("Failed to create chat room");
 
@@ -173,27 +168,13 @@ const Chats = () => {
 
   if (activeChatDisplay)
     return (
-      <div className="chats-page flex flex-col" style={{ height: "100dvh" }}>
-        {activeChatView === "info" ? (
-          <GroupChatInfo
-            roomId={activeChatDisplay?.id}
-            onBack={() => setActiveChatView("chat")}
-            onLeftGroup={() => setActiveChat(null)}
-            onRoomUpdated={() => {
-              setRoomRefreshKey((k) => k + 1);
-              refreshChats();
-            }}
-          />
-        ) : (
-          <ChatWindow
-            key={`${activeChatDisplay?.id}-${roomRefreshKey}`}
-            chat={activeChatDisplay}
-            onBack={() => setActiveChat(null)}
-            onViewRestaurant={setViewRestaurant}
-            onChatUpdated={refreshChats}
-            onOpenGroupInfo={() => setActiveChatView("info")}
-          />
-        )}
+      <div className="chats-page flex flex-col" style={{ height: '100dvh' }}>
+        <ChatWindow
+          chat={activeChatDisplay}
+          onBack={() => setActiveChat(null)}
+          onViewRestaurant={setViewRestaurant}
+          onChatUpdated={refreshChats}
+        />
 
         {viewRestaurant && (
           <div
