@@ -3,6 +3,11 @@ import { X, MapPin, Star, Image } from "lucide-react";
 import api from "../../services/api";
 
 const CreatePostModal = ({ onClose, onPostCreated }) => {
+  const [postcode, setPostcode] = useState("");
+  const [postcodeError, setPostcodeError] = useState("");
+  const [postcodeLoading, setPostcodeLoading] = useState(false);
+  const [coordLat, setCoordLat] = useState(null);
+  const [coordLon, setCoordLon] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [locationName, setLocationName] = useState("");
@@ -33,6 +38,39 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
     reader.readAsDataURL(file);
   };
 
+  const handlePostcodeChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setPostcode(value);
+    setPostcodeError("");
+  };
+
+  const convertPostcode = async () => {
+    if (!/^\d{6}$/.test(postcode)) {
+      setPostcodeError("Enter a valid 6-digit postal code");
+      return;
+    }
+
+    setPostcodeLoading(true);
+    try {
+      const res = await api.get(
+        `/food-places/convert-postcode?postcode=${postcode}`,
+      );
+
+      if (res.data.success) {
+        setCoordLat(res.data.latitude);
+        setCoordLon(res.data.longitude);
+        setPostcodeError("");
+      } else {
+        setPostcodeError(res.data.error);
+      }
+    } catch (error) {
+      console.error("Postcode conversion error:", error);
+      setPostcodeError("Failed to convert postcode");
+    } finally {
+      setPostcodeLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!locationName.trim()) {
       setError("Please enter a location name.");
@@ -40,6 +78,10 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
     }
     if (!rating) {
       setError("Please give a rating.");
+      return;
+    }
+    if (!coordLat || !coordLon) {
+      setError("Please convert a postal code to set the location.");
       return;
     }
 
@@ -58,14 +100,23 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
         imageUrl = uploadRes.data.imageUrl;
       }
 
-      // Step 2: Create the post with the uploaded image URL
+      // Step 2: Create the food place with coordinates
+      const foodPlaceRes = await api.post("/food-places", {
+        name: locationName.trim(),
+        latitude: coordLat,
+        longitude: coordLon,
+      });
+      const foodPlaceId = foodPlaceRes.data.id;
+
+      // Step 3: Create the post linked to that food place
       await api.post("/posts", {
+        foodPlaceId,
         locationName: locationName.trim(),
-        description: description.trim(),
         rating,
         imageUrl,
+        description: description.trim(),
         visibility,
-        foodPlaceId: null,
+        postal_code: postcode || null,
       });
 
       onPostCreated?.();
@@ -163,6 +214,61 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
               className="hidden"
               onChange={handleImageChange}
             />
+          </div>
+
+          {/* Postal Code Section */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Singapore Postal Code <span style={{ color: "#FF6B35" }}>*</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g., 018956"
+                maxLength="6"
+                value={postcode}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  setPostcode(value);
+                  setPostcodeError("");
+                }}
+                disabled={postcodeLoading}
+                className="flex-1 border border-gray-300 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-[#FF6B35] disabled:bg-gray-100"
+              />
+              <button
+                type="button"
+                onClick={convertPostcode}
+                disabled={postcodeLoading || postcode.length !== 6}
+                className="px-4 py-2 rounded-lg font-medium text-white transition-all"
+                style={{
+                  background:
+                    postcodeLoading || postcode.length !== 6
+                      ? "#ccc"
+                      : "#FF6B35",
+                  cursor:
+                    postcodeLoading || postcode.length !== 6
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                {postcodeLoading ? "Loading..." : "Convert"}
+              </button>
+            </div>
+
+            {postcodeError && (
+              <p className="text-red-500 text-sm mt-2">{postcodeError}</p>
+            )}
+
+            {coordLat && coordLon && (
+              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-700 font-medium">
+                  ✓ Location found
+                </p>
+                <p className="text-xs text-gray-600">
+                  {coordLat.toFixed(4)}, {coordLon.toFixed(4)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Location */}
