@@ -1,6 +1,6 @@
-const foodSuggestionRepository = require('../repositories/foodSuggestionRepository');
-const foodPlaceRepository = require('../repositories/foodPlaceRepository');
-const { broadcastRoomEvent } = require('../services/realtime');
+const foodSuggestionRepository = require("../repositories/foodSuggestionRepository");
+const foodPlaceRepository = require("../repositories/foodPlaceRepository");
+const { broadcastRoomEvent } = require("../services/realtime");
 
 /**
  * Food Suggestion Controller
@@ -20,7 +20,7 @@ const getFoodPlaceDetails = async (req, res, next) => {
     if (!foodPlace) {
       return res.status(404).json({
         success: false,
-        message: 'Food place not found'
+        message: "Food place not found",
       });
     }
 
@@ -28,13 +28,16 @@ const getFoodPlaceDetails = async (req, res, next) => {
     let distance = null;
     if (user_lat && user_lon) {
       const R = 6371; // Earth's radius in km
-      const dLat = (parseFloat(foodPlace.lat) - parseFloat(user_lat)) * Math.PI / 180;
-      const dLon = (parseFloat(foodPlace.lon) - parseFloat(user_lon)) * Math.PI / 180;
-      const a = 
+      const dLat =
+        ((parseFloat(foodPlace.lat) - parseFloat(user_lat)) * Math.PI) / 180;
+      const dLon =
+        ((parseFloat(foodPlace.lon) - parseFloat(user_lon)) * Math.PI) / 180;
+      const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(parseFloat(user_lat) * Math.PI / 180) * 
-        Math.cos(parseFloat(foodPlace.lat) * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        Math.cos((parseFloat(user_lat) * Math.PI) / 180) *
+          Math.cos((parseFloat(foodPlace.lat) * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       distance = parseFloat((R * c).toFixed(2));
     }
@@ -43,14 +46,14 @@ const getFoodPlaceDetails = async (req, res, next) => {
       success: true,
       data: {
         ...foodPlace,
-        distance
-      }
+        distance,
+      },
     });
   } catch (error) {
-    console.error('Error fetching food place details:', error);
+    console.error("Error fetching food place details:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch food place details'
+      message: "Failed to fetch food place details",
     });
   }
 };
@@ -66,10 +69,10 @@ const reactToSuggestion = async (req, res, next) => {
     const userId = req.user.id;
 
     // Validate reaction
-    if (!reaction || !['like', 'dislike'].includes(reaction)) {
+    if (!reaction || !["like", "dislike"].includes(reaction)) {
       return res.status(400).json({
         success: false,
-        message: 'Reaction must be either "like" or "dislike"'
+        message: 'Reaction must be either "like" or "dislike"',
       });
     }
 
@@ -82,24 +85,28 @@ const reactToSuggestion = async (req, res, next) => {
     const userReaction = await foodSuggestionRepository.addOrUpdateReaction(
       suggestionIdNum,
       userId,
-      reaction
+      reaction,
     );
 
     // Update counts
-    const updatedSuggestion = await foodSuggestionRepository.updateReactionCounts(suggestionIdNum);
+    const updatedSuggestion =
+      await foodSuggestionRepository.updateReactionCounts(suggestionIdNum);
 
     // Get food place details
-    const foodPlace = await foodPlaceRepository.getFoodPlaceById(updatedSuggestion.food_place_id);
+    const foodPlace = await foodPlaceRepository.getFoodPlaceById(
+      updatedSuggestion.food_place_id,
+    );
 
     // Get all reactions for reference
-    const reactions = await foodSuggestionRepository.getReactionsForSuggestion(suggestionIdNum);
+    const reactions =
+      await foodSuggestionRepository.getReactionsForSuggestion(suggestionIdNum);
 
-    broadcastRoomEvent(message.room_id, 'reaction_update', {
+    broadcastRoomEvent(message.room_id, "reaction_update", {
       suggestion: updatedSuggestion,
       food_place: foodPlace,
       actor: { id: userId, username: req.user.username },
       your_reaction: userReaction ? userReaction.reaction : null,
-      reactions_count: reactions.length
+      reactions_count: reactions.length,
     });
 
     res.json({
@@ -108,15 +115,17 @@ const reactToSuggestion = async (req, res, next) => {
         suggestion: updatedSuggestion,
         food_place: foodPlace,
         your_reaction: userReaction ? userReaction.reaction : null,
-        reactions_count: reactions.length
+        reactions_count: reactions.length,
       },
-      message: userReaction ? 'Reaction updated successfully' : 'Reaction removed successfully'
+      message: userReaction
+        ? "Reaction updated successfully"
+        : "Reaction removed successfully",
     });
   } catch (error) {
-    console.error('Error reacting to suggestion:', error);
+    console.error("Error reacting to suggestion:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update reaction'
+      message: "Failed to update reaction",
     });
   }
 };
@@ -138,16 +147,19 @@ const removeReactionFromSuggestion = async (req, res, next) => {
     await foodSuggestionRepository.removeReaction(suggestionIdNum, userId);
 
     // Update counts
-    const updatedSuggestion = await foodSuggestionRepository.updateReactionCounts(suggestionIdNum);
+    const updatedSuggestion =
+      await foodSuggestionRepository.updateReactionCounts(suggestionIdNum);
 
     // Get food place details
-    const foodPlace = await foodPlaceRepository.getFoodPlaceById(updatedSuggestion.food_place_id);
+    const foodPlace = await foodPlaceRepository.getFoodPlaceById(
+      updatedSuggestion.food_place_id,
+    );
 
-    broadcastRoomEvent(message.room_id, 'reaction_update', {
+    broadcastRoomEvent(message.room_id, "reaction_update", {
       suggestion: updatedSuggestion,
       food_place: foodPlace,
       actor: { id: userId, username: req.user.username },
-      your_reaction: null
+      your_reaction: null,
     });
 
     res.json({
@@ -155,15 +167,15 @@ const removeReactionFromSuggestion = async (req, res, next) => {
       data: {
         suggestion: updatedSuggestion,
         food_place: foodPlace,
-        your_reaction: null
+        your_reaction: null,
       },
-      message: 'Reaction removed successfully'
+      message: "Reaction removed successfully",
     });
   } catch (error) {
-    console.error('Error removing reaction:', error);
+    console.error("Error removing reaction:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to remove reaction'
+      message: "Failed to remove reaction",
     });
   }
 };
@@ -171,5 +183,5 @@ const removeReactionFromSuggestion = async (req, res, next) => {
 module.exports = {
   getFoodPlaceDetails,
   reactToSuggestion,
-  removeReactionFromSuggestion
+  removeReactionFromSuggestion,
 };

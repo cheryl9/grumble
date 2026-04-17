@@ -3,7 +3,7 @@ import api from "./api";
 // List all accepted friends
 export const getFriends = async () => {
   const response = await api.get("/friends");
-  return response.data;
+  return response.data?.data ?? response.data;
 };
 
 // List pending incoming friend requests

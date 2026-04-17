@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
 
 /**
  * Friendship Repository
@@ -12,7 +12,7 @@ const areFriends = async (userId, otherUserId) => {
      WHERE status = 'accepted'
        AND ((user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1))
      LIMIT 1`,
-    [userId, otherUserId]
+    [userId, otherUserId],
   );
 
   return result.rows.length > 0;
@@ -28,7 +28,7 @@ const getAcceptedFriends = async (userId) => {
      FROM friendships f
      WHERE f.status = 'accepted'
        AND (f.user_id = $1 OR f.friend_id = $1)`,
-    [userId]
+    [userId],
   );
 
   return result.rows;
@@ -43,7 +43,7 @@ const getAcceptedFriendsWithProfiles = async (userId) => {
      WHERE f.status = 'accepted'
        AND (f.user_id = $1 OR f.friend_id = $1)
      ORDER BY u.username ASC`,
-    [userId]
+    [userId],
   );
 
   return result.rows;
@@ -61,7 +61,7 @@ const searchAcceptedFriends = async (userId, query) => {
        AND u.username ILIKE $2
      ORDER BY u.username ASC
      LIMIT 50`,
-    [userId, q]
+    [userId, q],
   );
 
   return result.rows;
@@ -71,5 +71,5 @@ module.exports = {
   areFriends,
   getAcceptedFriends,
   getAcceptedFriendsWithProfiles,
-  searchAcceptedFriends
+  searchAcceptedFriends,
 };

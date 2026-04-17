@@ -1,13 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import api from '../../services/api';
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
 
 const getColor = (index) => {
-  const palette = ['#F78660', '#FFCC7A', '#2945A8'];
+  const palette = ["#F78660", "#FFCC7A", "#2945A8"];
   return palette[index % palette.length];
 };
 
 const SpinWheel = ({ options = [], sessionId, latestResult }) => {
-  const safeOptions = useMemo(() => (Array.isArray(options) ? options : []), [options]);
+  const safeOptions = useMemo(
+    () => (Array.isArray(options) ? options : []),
+    [options],
+  );
 
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
@@ -58,8 +61,8 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: spinning
-              ? 'transform 3s cubic-bezier(0.17,0.67,0.12,0.99)'
-              : 'none',
+              ? "transform 3s cubic-bezier(0.17,0.67,0.12,0.99)"
+              : "none",
           }}
         >
           {safeOptions.map((opt, i) => {
@@ -91,7 +94,9 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
                   fontWeight="bold"
                   transform={`rotate(${i * angle + angle / 2}, ${mx}, ${my})`}
                 >
-                  {String(opt).length > 6 ? String(opt).slice(0, 6) + '…' : String(opt)}
+                  {String(opt).length > 6
+                    ? String(opt).slice(0, 6) + "…"
+                    : String(opt)}
                 </text>
               </g>
             );
@@ -104,14 +109,16 @@ const SpinWheel = ({ options = [], sessionId, latestResult }) => {
         </div>
       </div>
 
-      {result && <p className="text-sm font-bold text-[#F78660]">🎉 {result}!</p>}
+      {result && (
+        <p className="text-sm font-bold text-[#F78660]">🎉 {result}!</p>
+      )}
 
       <button
         onClick={spin}
         disabled={spinning || count < 2}
         className="btn-primary px-6 py-2 rounded-full text-sm font-bold disabled:opacity-50"
       >
-        {spinning ? 'Spinning...' : 'SPIN THE WHEEL'}
+        {spinning ? "Spinning..." : "SPIN THE WHEEL"}
       </button>
     </div>
   );

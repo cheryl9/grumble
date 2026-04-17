@@ -1,13 +1,13 @@
-const chatMessageRepository = require('../repositories/chatMessageRepository');
-const chatRoomRepository = require('../repositories/chatRoomRepository');
-const foodPlaceRepository = require('../repositories/foodPlaceRepository');
-const telegramService = require('../services/telegramService');
+const chatMessageRepository = require("../repositories/chatMessageRepository");
+const chatRoomRepository = require("../repositories/chatRoomRepository");
+const foodPlaceRepository = require("../repositories/foodPlaceRepository");
+const telegramService = require("../services/telegramService");
 const {
   broadcastRoomEvent,
   sendNotificationAlert,
   isUserConnected,
   isUserActiveInRoom,
-} = require('../services/realtime');
+} = require("../services/realtime");
 
 /**
  * Chat Messages Controller
@@ -29,19 +29,19 @@ const getMessages = async (req, res, next) => {
     if (!isMember) {
       return res.status(403).json({
         success: false,
-        message: 'You are not a member of this chat room'
+        message: "You are not a member of this chat room",
       });
     }
 
     const messages = await chatMessageRepository.getMessagesForRoom(
       roomId,
       parseInt(limit),
-      parseInt(offset)
+      parseInt(offset),
     );
 
     // Enrich messages with complete data (including reactions, poll options, etc.)
     const enrichedMessages = await Promise.all(
-      messages.map(msg => chatMessageRepository.getCompleteMessage(msg.id))
+      messages.map((msg) => chatMessageRepository.getCompleteMessage(msg.id)),
     );
 
     res.json({
@@ -49,13 +49,13 @@ const getMessages = async (req, res, next) => {
       data: enrichedMessages,
       count: enrichedMessages.length,
       limit: parseInt(limit),
-      offset: parseInt(offset)
+      offset: parseInt(offset),
     });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error("Error fetching messages:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch messages'
+      message: "Failed to fetch messages",
     });
   }
 };
@@ -78,15 +78,15 @@ const sendMessage = async (req, res, next) => {
     if (!type || !content) {
       return res.status(400).json({
         success: false,
-        message: 'Message type and content are required'
+        message: "Message type and content are required",
       });
     }
 
-    const validTypes = ['text', 'food_suggestion', 'poll', 'spin_wheel'];
+    const validTypes = ["text", "food_suggestion", "poll", "spin_wheel"];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid message type. Must be one of: ${validTypes.join(', ')}`
+        message: `Invalid message type. Must be one of: ${validTypes.join(", ")}`,
       });
     }
 
@@ -95,7 +95,7 @@ const sendMessage = async (req, res, next) => {
     if (!isMember) {
       return res.status(403).json({
         success: false,
-        message: 'You are not a member of this chat room'
+        message: "You are not a member of this chat room",
       });
     }
 
@@ -105,7 +105,7 @@ const sendMessage = async (req, res, next) => {
       if (!Number.isInteger(parsed)) {
         return res.status(400).json({
           success: false,
-          message: 'reply_to_message_id must be an integer'
+          message: "reply_to_message_id must be an integer",
         });
       }
 
@@ -113,14 +113,14 @@ const sendMessage = async (req, res, next) => {
       if (!target) {
         return res.status(404).json({
           success: false,
-          message: 'Reply target message not found'
+          message: "Reply target message not found",
         });
       }
 
       if (Number(target.room_id) !== Number(roomId)) {
         return res.status(400).json({
           success: false,
-          message: 'Reply target must be in the same room'
+          message: "Reply target must be in the same room",
         });
       }
 
@@ -129,33 +129,35 @@ const sendMessage = async (req, res, next) => {
 
     let message;
 
-    if (type === 'text') {
+    if (type === "text") {
       if (!content.text) {
         return res.status(400).json({
           success: false,
-          message: 'Text content required for text messages'
+          message: "Text content required for text messages",
         });
       }
       message = await chatMessageRepository.createTextMessage(
         roomId,
         userId,
         content,
-        replyToMessageId
+        replyToMessageId,
       );
-    } else if (type === 'food_suggestion') {
+    } else if (type === "food_suggestion") {
       if (!content.food_place_id) {
         return res.status(400).json({
           success: false,
-          message: 'food_place_id required for food suggestions'
+          message: "food_place_id required for food suggestions",
         });
       }
 
       // Verify food place exists
-      const foodPlace = await foodPlaceRepository.getFoodPlaceById(content.food_place_id);
+      const foodPlace = await foodPlaceRepository.getFoodPlaceById(
+        content.food_place_id,
+      );
       if (!foodPlace) {
         return res.status(404).json({
           success: false,
-          message: 'Food place not found'
+          message: "Food place not found",
         });
       }
 
@@ -163,20 +165,24 @@ const sendMessage = async (req, res, next) => {
         roomId,
         userId,
         content.food_place_id,
-        replyToMessageId
+        replyToMessageId,
       );
-    } else if (type === 'poll') {
-      if (!content.question || !content.options || !Array.isArray(content.options)) {
+    } else if (type === "poll") {
+      if (
+        !content.question ||
+        !content.options ||
+        !Array.isArray(content.options)
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'Poll requires question and options array'
+          message: "Poll requires question and options array",
         });
       }
 
       if (content.options.length < 2) {
         return res.status(400).json({
           success: false,
-          message: 'Poll must have at least 2 options'
+          message: "Poll must have at least 2 options",
         });
       }
 
@@ -185,13 +191,17 @@ const sendMessage = async (req, res, next) => {
         userId,
         content.question,
         content.options,
-        replyToMessageId
+        replyToMessageId,
       );
-    } else if (type === 'spin_wheel') {
-      if (!content.options || !Array.isArray(content.options) || content.options.length < 2) {
+    } else if (type === "spin_wheel") {
+      if (
+        !content.options ||
+        !Array.isArray(content.options) ||
+        content.options.length < 2
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'Spin wheel requires at least 2 options'
+          message: "Spin wheel requires at least 2 options",
         });
       }
 
@@ -199,14 +209,16 @@ const sendMessage = async (req, res, next) => {
         roomId,
         userId,
         content.options,
-        replyToMessageId
+        replyToMessageId,
       );
     }
 
     // Fetch complete message with enriched data
-    const completeMessage = await chatMessageRepository.getCompleteMessage(message.id);
+    const completeMessage = await chatMessageRepository.getCompleteMessage(
+      message.id,
+    );
 
-    broadcastRoomEvent(roomId, 'new_message', { message: completeMessage });
+    broadcastRoomEvent(roomId, "new_message", { message: completeMessage });
 
     // Dual-channel notifications:
     // - In-app: connected users who are NOT actively subscribed to this room
@@ -216,24 +228,30 @@ const sendMessage = async (req, res, next) => {
       const room = await chatRoomRepository.getChatRoomById(roomId);
 
       const preview = (() => {
-        if (completeMessage?.type === 'text') return completeMessage.payload?.text || 'New message';
-        if (completeMessage?.type === 'poll') {
+        if (completeMessage?.type === "text")
+          return completeMessage.payload?.text || "New message";
+        if (completeMessage?.type === "poll") {
           return completeMessage.payload?.question
             ? `Poll: ${completeMessage.payload.question}`
-            : 'Poll';
+            : "Poll";
         }
-        if (completeMessage?.type === 'food_suggestion') {
+        if (completeMessage?.type === "food_suggestion") {
           const placeName = completeMessage.payload?.food_place?.name;
-          return placeName ? `Food suggestion: ${placeName}` : 'Food suggestion';
+          return placeName
+            ? `Food suggestion: ${placeName}`
+            : "Food suggestion";
         }
-        if (completeMessage?.type === 'spin_wheel') return 'Spin wheel';
-        return 'New message';
+        if (completeMessage?.type === "spin_wheel") return "Spin wheel";
+        return "New message";
       })();
 
       const chatName =
-        room?.type === 'direct' ? (room?.name || 'Direct chat') : (room?.name || 'Chat');
+        room?.type === "direct"
+          ? room?.name || "Direct chat"
+          : room?.name || "Chat";
 
-      const targets = await chatRoomRepository.getChatRoomNotificationTargets(roomId);
+      const targets =
+        await chatRoomRepository.getChatRoomNotificationTargets(roomId);
       for (const t of targets) {
         if (t.user_id === userId) continue;
 
@@ -242,7 +260,12 @@ const sendMessage = async (req, res, next) => {
             sendNotificationAlert(t.user_id, {
               room_id: numericRoomId,
               room: room
-                ? { id: room.id, type: room.type, name: room.name, avatar_url: room.avatar_url }
+                ? {
+                    id: room.id,
+                    type: room.type,
+                    name: room.name,
+                    avatar_url: room.avatar_url,
+                  }
                 : { id: numericRoomId },
               message: completeMessage,
               preview,
@@ -254,29 +277,29 @@ const sendMessage = async (req, res, next) => {
         if (t.telegram_chat_id) {
           void telegramService
             .sendChatNotification(t.telegram_chat_id, {
-              senderName: completeMessage.sender?.username || 'Someone',
+              senderName: completeMessage.sender?.username || "Someone",
               message: preview,
               chatName,
             })
             .catch((err) => {
-              console.error('Telegram notification failed:', err.message);
+              console.error("Telegram notification failed:", err.message);
             });
         }
       }
     } catch (notifyErr) {
-      console.error('Notification dispatch failed:', notifyErr);
+      console.error("Notification dispatch failed:", notifyErr);
     }
 
     res.status(201).json({
       success: true,
       data: completeMessage,
-      message: 'Message sent successfully'
+      message: "Message sent successfully",
     });
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error("Error sending message:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to send message'
+      message: "Failed to send message",
     });
   }
 };
@@ -294,28 +317,33 @@ const deleteMessage = async (req, res, next) => {
     if (!message) {
       return res.status(404).json({
         success: false,
-        message: 'Message not found'
+        message: "Message not found",
       });
     }
 
     // Membership verification (required for message operations)
-    const isMember = await chatRoomRepository.isMemberOfRoom(message.room_id, userId);
+    const isMember = await chatRoomRepository.isMemberOfRoom(
+      message.room_id,
+      userId,
+    );
     if (!isMember) {
       return res.status(403).json({
         success: false,
-        message: 'You are not a member of this chat room'
+        message: "You are not a member of this chat room",
       });
     }
 
     // Check if user is the sender or an admin of the room
     if (message.sender_id !== userId) {
-      const members = await chatRoomRepository.getChatRoomMembers(message.room_id);
-      const userMember = members.find(m => m.user_id === userId);
+      const members = await chatRoomRepository.getChatRoomMembers(
+        message.room_id,
+      );
+      const userMember = members.find((m) => m.user_id === userId);
 
-      if (!userMember || userMember.role !== 'admin') {
+      if (!userMember || userMember.role !== "admin") {
         return res.status(403).json({
           success: false,
-          message: 'You can only delete your own messages'
+          message: "You can only delete your own messages",
         });
       }
     }
@@ -324,13 +352,13 @@ const deleteMessage = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Message deleted successfully'
+      message: "Message deleted successfully",
     });
   } catch (error) {
-    console.error('Error deleting message:', error);
+    console.error("Error deleting message:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete message'
+      message: "Failed to delete message",
     });
   }
 };
@@ -338,5 +366,5 @@ const deleteMessage = async (req, res, next) => {
 module.exports = {
   getMessages,
   sendMessage,
-  deleteMessage
+  deleteMessage,
 };

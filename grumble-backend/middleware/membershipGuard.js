@@ -11,10 +11,16 @@ const requireRoomMember = (roomIdParam = "roomId") => {
       if (!Number.isInteger(roomId)) {
         return res
           .status(400)
-          .json({ success: false, message: `${roomIdParam} must be an integer` });
+          .json({
+            success: false,
+            message: `${roomIdParam} must be an integer`,
+          });
       }
 
-      const isMember = await chatRoomRepository.isMemberOfRoom(roomId, req.user.id);
+      const isMember = await chatRoomRepository.isMemberOfRoom(
+        roomId,
+        req.user.id,
+      );
       if (!isMember) {
         return res.status(403).json({
           success: false,
@@ -41,10 +47,15 @@ const requirePollRoomMember = async (req, res, next) => {
 
     const poll = await pollRepository.getPollById(pollId);
     if (!poll) {
-      return res.status(404).json({ success: false, message: "Poll not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Poll not found" });
     }
 
-    const isMember = await chatRoomRepository.isMemberOfRoom(poll.room_id, req.user.id);
+    const isMember = await chatRoomRepository.isMemberOfRoom(
+      poll.room_id,
+      req.user.id,
+    );
     if (!isMember) {
       return res.status(403).json({
         success: false,
@@ -75,7 +86,10 @@ const requireSpinSessionRoomMember = async (req, res, next) => {
         .json({ success: false, message: "Spin wheel session not found" });
     }
 
-    const isMember = await chatRoomRepository.isMemberOfRoom(session.room_id, req.user.id);
+    const isMember = await chatRoomRepository.isMemberOfRoom(
+      session.room_id,
+      req.user.id,
+    );
     if (!isMember) {
       return res.status(403).json({
         success: false,
@@ -99,19 +113,27 @@ const requireSuggestionRoomMember = async (req, res, next) => {
         .json({ success: false, message: "suggestionId must be an integer" });
     }
 
-    const suggestion = await foodSuggestionRepository.getFoodSuggestionById(suggestionId);
+    const suggestion =
+      await foodSuggestionRepository.getFoodSuggestionById(suggestionId);
     if (!suggestion) {
       return res
         .status(404)
         .json({ success: false, message: "Food suggestion not found" });
     }
 
-    const message = await chatMessageRepository.getMessageById(suggestion.message_id);
+    const message = await chatMessageRepository.getMessageById(
+      suggestion.message_id,
+    );
     if (!message) {
-      return res.status(404).json({ success: false, message: "Message not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
     }
 
-    const isMember = await chatRoomRepository.isMemberOfRoom(message.room_id, req.user.id);
+    const isMember = await chatRoomRepository.isMemberOfRoom(
+      message.room_id,
+      req.user.id,
+    );
     if (!isMember) {
       return res.status(403).json({
         success: false,

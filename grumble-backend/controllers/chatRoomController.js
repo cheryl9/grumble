@@ -1,7 +1,5 @@
-const { get } = require("../app");
 const chatRoomRepository = require("../repositories/chatRoomRepository");
-const foodPlaceRepository = require("../repositories/foodPlaceRepository");
-const friendshipRepository = require("../repositories/friendshipRepository");
+const friendsRepository = require("../repositories/friendsRepository");
 
 //Need friendship repository to validate members when creating rooms
 
@@ -41,42 +39,49 @@ const createChatRoom = async (req, res) => {
     const { type, name } = req.body;
     const userId = req.user.id;
 
-    if (!type || !['direct', 'group'].includes(type)) {
+    if (!type || !["direct", "group"].includes(type)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid chat type. Must be "direct" or "group"'
+        message: 'Invalid chat type. Must be "direct" or "group"',
       });
     }
 
-    if (type === 'group' && !name?.trim()) {
+    if (type === "group" && !name?.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Group chats require a name'
+        message: "Group chats require a name",
       });
     }
 
     // Direct chats use getOrCreateDirectRoom later at member step
     // so we only create the shell for group chats here
-    if (type === 'direct') {
+    if (type === "direct") {
       return res.status(400).json({
         success: false,
-        message: 'For direct chats, use POST /api/chats/direct with a member_id'
+        message:
+          "For direct chats, use POST /api/chats/direct with a member_id",
       });
     }
 
-    const room = await chatRoomRepository.createChatRoom(type, userId, name.trim());
+    const room = await chatRoomRepository.createChatRoom(
+      type,
+      userId,
+      name.trim(),
+    );
 
     // Add creator as admin immediately
-    await chatRoomRepository.addMemberToRoom(room.id, userId, 'admin');
+    await chatRoomRepository.addMemberToRoom(room.id, userId, "admin");
 
     res.status(201).json({
       success: true,
       data: room,
-      message: 'Chat room created. Add members to continue.'
+      message: "Chat room created. Add members to continue.",
     });
   } catch (error) {
-    console.error('Error creating chat room:', error);
-    res.status(500).json({ success: false, message: 'Failed to create chat room' });
+    console.error("Error creating chat room:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create chat room" });
   }
 };
 
@@ -93,29 +98,34 @@ const createDirectChat = async (req, res) => {
     if (!member_id) {
       return res.status(400).json({
         success: false,
-        message: 'member_id is required'
+        message: "member_id is required",
       });
     }
 
     // Validate friendship
-    const areFriends = await friendshipRepository.areFriends(userId, member_id);
+    const areFriends = await friendsRepository.areFriends(userId, member_id);
     if (!areFriends) {
       return res.status(403).json({
         success: false,
-        message: 'You can only start a direct chat with a friend'
+        message: "You can only start a direct chat with a friend",
       });
     }
 
-    const room = await chatRoomRepository.getOrCreateDirectRoom(userId, member_id);
+    const room = await chatRoomRepository.getOrCreateDirectRoom(
+      userId,
+      member_id,
+    );
     const members = await chatRoomRepository.getChatRoomMembers(room.id);
 
     res.status(200).json({
       success: true,
-      data: { ...room, members }
+      data: { ...room, members },
     });
   } catch (error) {
-    console.error('Error creating direct chat:', error);
-    res.status(500).json({ success: false, message: 'Failed to create direct chat' });
+    console.error("Error creating direct chat:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create direct chat" });
   }
 };
 
@@ -133,42 +143,49 @@ const addMembers = async (req, res) => {
     if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'user_ids must be a non-empty array'
+        message: "user_ids must be a non-empty array",
       });
     }
 
     // Check room exists
     const room = await chatRoomRepository.getChatRoomById(roomId);
     if (!room) {
-      return res.status(404).json({ success: false, message: 'Chat room not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Chat room not found" });
     }
 
     // Only group chats can have members added this way
-    if (room.type === 'direct') {
+    if (room.type === "direct") {
       return res.status(400).json({
         success: false,
-        message: 'Cannot add members to a direct chat'
+        message: "Cannot add members to a direct chat",
       });
     }
 
     // Check requester is admin
-    const requesterRole = await chatRoomRepository.getMemberRole(roomId, userId);
-    if (requesterRole !== 'admin') {
+    const requesterRole = await chatRoomRepository.getMemberRole(
+      roomId,
+      userId,
+    );
+    if (requesterRole !== "admin") {
       return res.status(403).json({
         success: false,
-        message: 'Only admins can add members'
+        message: "Only admins can add members",
       });
     }
 
     // Validate all user_ids are accepted friends
-    const friendships = await friendshipRepository.getAcceptedFriends(userId);
-    const friendIds = friendships.map(f => f.friend_id);
-    const nonFriends = user_ids.filter(id => !friendIds.includes(id));
+    const friendIds = await friendsRepository.getFriendIds(userId);
+    const friendIdSet = new Set(friendIds.map((id) => Number(id)));
+    const nonFriends = user_ids
+      .map((id) => Number(id))
+      .filter((id) => !friendIdSet.has(id));
 
     if (nonFriends.length > 0) {
       return res.status(403).json({
         success: false,
-        message: `These users are not your friends: ${nonFriends.join(', ')}`
+        message: `These users are not your friends: ${nonFriends.join(", ")}`,
       });
     }
 
@@ -177,7 +194,11 @@ const addMembers = async (req, res) => {
     const skipped = []; // already in room
 
     for (const memberId of user_ids) {
-      const result = await chatRoomRepository.addMemberToRoom(roomId, memberId, 'member');
+      const result = await chatRoomRepository.addMemberToRoom(
+        roomId,
+        memberId,
+        "member",
+      );
       if (result) {
         added.push(memberId);
       } else {
@@ -191,11 +212,11 @@ const addMembers = async (req, res) => {
       success: true,
       data: updatedMembers,
       meta: { added: added.length, skipped: skipped.length },
-      message: `Added ${added.length} member(s)${skipped.length > 0 ? `, ${skipped.length} already in room` : ''}`
+      message: `Added ${added.length} member(s)${skipped.length > 0 ? `, ${skipped.length} already in room` : ""}`,
     });
   } catch (error) {
-    console.error('Error adding members:', error);
-    res.status(500).json({ success: false, message: 'Failed to add members' });
+    console.error("Error adding members:", error);
+    res.status(500).json({ success: false, message: "Failed to add members" });
   }
 };
 
@@ -402,7 +423,6 @@ const leaveRoom = async (req, res, next) => {
     });
   }
 };
-
 
 module.exports = {
   getChatRooms,

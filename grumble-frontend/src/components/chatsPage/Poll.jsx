@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import api from '../../services/api';
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
 
 const Poll = ({ poll }) => {
   const pollId = poll?.id;
@@ -11,11 +11,16 @@ const Poll = ({ poll }) => {
 
   useEffect(() => {
     setVoted(null);
-    setOptions((poll?.options || []).map((opt) => ({ ...opt, votes: opt.votes ?? 0 })));
+    setOptions(
+      (poll?.options || []).map((opt) => ({ ...opt, votes: opt.votes ?? 0 })),
+    );
     setError(null);
   }, [pollId]);
 
-  const total = useMemo(() => options.reduce((s, o) => s + (o.votes || 0), 0), [options]);
+  const total = useMemo(
+    () => options.reduce((s, o) => s + (o.votes || 0), 0),
+    [options],
+  );
 
   const castVote = async (optionId) => {
     if (!pollId || !optionId || loading) return;
@@ -24,13 +29,17 @@ const Poll = ({ poll }) => {
       setLoading(true);
       setError(null);
 
-      const res = await api.post(`/polls/${pollId}/vote`, { option_id: optionId });
+      const res = await api.post(`/polls/${pollId}/vote`, {
+        option_id: optionId,
+      });
       const updated = res.data?.data;
 
       if (updated?.options) setOptions(updated.options);
       setVoted(res.data?.user_vote?.option_id ?? optionId);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to vote');
+      setError(
+        err?.response?.data?.message || err?.message || "Failed to vote",
+      );
     } finally {
       setLoading(false);
     }
@@ -49,7 +58,9 @@ const Poll = ({ poll }) => {
       if (updated?.options) setOptions(updated.options);
       setVoted(null);
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to remove vote');
+      setError(
+        err?.response?.data?.message || err?.message || "Failed to remove vote",
+      );
     } finally {
       setLoading(false);
     }
@@ -65,7 +76,8 @@ const Poll = ({ poll }) => {
 
       <div className="space-y-2">
         {options.map((opt) => {
-          const pct = total > 0 ? Math.round(((opt.votes || 0) / total) * 100) : 0;
+          const pct =
+            total > 0 ? Math.round(((opt.votes || 0) / total) * 100) : 0;
           const isSelected = voted === opt.id;
 
           return (
@@ -78,12 +90,16 @@ const Poll = ({ poll }) => {
               <div className="flex items-center justify-between mb-0.5">
                 <span
                   className={`text-xs font-semibold ${
-                    isSelected ? 'text-[#F78660]' : 'text-gray-700'
+                    isSelected ? "text-[#F78660]" : "text-gray-700"
                   }`}
                 >
                   {opt.text}
                 </span>
-                {voted && <span className="text-xs text-gray-400">{opt.votes || 0}</span>}
+                {voted && (
+                  <span className="text-xs text-gray-400">
+                    {opt.votes || 0}
+                  </span>
+                )}
               </div>
               {voted && (
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">

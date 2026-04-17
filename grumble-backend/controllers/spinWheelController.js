@@ -28,12 +28,10 @@ const spin = async (req, res) => {
     );
 
     if (!spinResult.ok && spinResult.reason === "invalid_result") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Result must be one of the session options",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Result must be one of the session options",
+      });
     }
 
     if (!spinResult.ok && spinResult.reason === "session_not_found") {

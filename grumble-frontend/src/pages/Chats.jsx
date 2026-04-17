@@ -1,18 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import logo from '../assets/logo.png';
-import ChatList from '../components/chatsPage/ChatList';
-import ChatWindow from '../components/chatsPage/ChatWindow';
-import CreateGroupModal from '../components/chatsPage/CreateGroupModal';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDistanceToNow } from "date-fns";
+import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import logo from "../assets/logo.png";
+import ChatList from "../components/chatsPage/ChatList";
+import ChatWindow from "../components/chatsPage/ChatWindow";
+import CreateGroupModal from "../components/chatsPage/CreateGroupModal";
 
 const formatRelativeTime = (ts) => {
-  if (!ts) return '';
+  if (!ts) return "";
   try {
     return formatDistanceToNow(new Date(ts), { addSuffix: true });
   } catch {
-    return '';
+    return "";
   }
 };
 
@@ -20,18 +20,19 @@ const buildLastMessagePreview = (room) => {
   const type = room?.last_message_type;
   const content = room?.last_message;
 
-  if (!type) return '';
+  if (!type) return "";
 
-  if (type === 'text') return content?.text || 'New message';
-  if (type === 'poll') return content?.question ? `Poll: ${content.question}` : 'Poll';
-  if (type === 'food_suggestion') return 'Food suggestion';
-  if (type === 'spin_wheel') return 'Spin wheel';
+  if (type === "text") return content?.text || "New message";
+  if (type === "poll")
+    return content?.question ? `Poll: ${content.question}` : "Poll";
+  if (type === "food_suggestion") return "Food suggestion";
+  if (type === "spin_wheel") return "Spin wheel";
 
-  return 'New message';
+  return "New message";
 };
 
 const mapRoomToChatListItem = (room) => {
-  const name = room?.name || (room?.type === 'direct' ? 'Direct chat' : 'Chat');
+  const name = room?.name || (room?.type === "direct" ? "Direct chat" : "Chat");
   return {
     id: room.id,
     type: room.type,
@@ -50,8 +51,8 @@ const Chats = () => {
   const [chats, setChats] = useState([]);
   const [friends, setFriends] = useState([]);
 
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeChat, setActiveChat] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [viewRestaurant, setViewRestaurant] = useState(null);
@@ -60,13 +61,13 @@ const Chats = () => {
   const [error, setError] = useState(null);
 
   const refreshChats = useCallback(async () => {
-    const res = await api.get('/chats');
+    const res = await api.get("/chats");
     const rooms = res.data?.data || [];
     setChats(rooms.map(mapRoomToChatListItem));
   }, []);
 
   const refreshFriends = useCallback(async () => {
-    const res = await api.get('/friends');
+    const res = await api.get("/friends");
     setFriends(res.data?.data || []);
   }, []);
 
@@ -80,7 +81,11 @@ const Chats = () => {
         setError(null);
         await Promise.all([refreshChats(), refreshFriends()]);
       } catch (err) {
-        setError(err?.response?.data?.message || err?.message || 'Failed to load chats');
+        setError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load chats",
+        );
       } finally {
         setLoading(false);
       }
@@ -93,10 +98,10 @@ const Chats = () => {
     const name = title.trim();
     if (!name || !memberIds?.length) return;
 
-    const roomRes = await api.post('/chats', { type: 'group', name });
+    const roomRes = await api.post("/chats", { type: "group", name });
     const room = roomRes.data?.data;
 
-    if (!room?.id) throw new Error('Failed to create chat room');
+    if (!room?.id) throw new Error("Failed to create chat room");
 
     await api.post(`/chats/${room.id}/members`, { user_ids: memberIds });
 
@@ -107,7 +112,7 @@ const Chats = () => {
 
   if (activeChatDisplay)
     return (
-      <div className="chats-page flex flex-col" style={{ height: '100dvh' }}>
+      <div className="chats-page flex flex-col" style={{ height: "100dvh" }}>
         <ChatWindow
           chat={activeChatDisplay}
           onBack={() => setActiveChat(null)}
@@ -138,9 +143,13 @@ const Chats = () => {
                 )}
               </div>
               <div className="p-5">
-                <h2 className="text-xl font-bold text-gray-900">{viewRestaurant.name}</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {viewRestaurant.name}
+                </h2>
                 {viewRestaurant.address && (
-                  <p className="text-sm text-gray-400 mt-0.5">{viewRestaurant.address}</p>
+                  <p className="text-sm text-gray-400 mt-0.5">
+                    {viewRestaurant.address}
+                  </p>
                 )}
                 <button
                   className="btn-primary w-full py-3 rounded-xl mt-4"

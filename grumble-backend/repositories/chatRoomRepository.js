@@ -1,4 +1,3 @@
-const { get } = require("../app");
 const pool = require("../config/db");
 
 /**
@@ -72,7 +71,7 @@ const getChatRoomMembers = async (roomId) => {
      JOIN users u ON crm.user_id = u.id
      WHERE crm.room_id = $1
      ORDER BY crm.joined_at ASC`,
-    [roomId]
+    [roomId],
   );
   return result.rows;
 };
@@ -164,25 +163,25 @@ const updateChatRoom = async (roomId, updates) => {
 const getOrCreateDirectRoom = async (userId1, userId2) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    await client.query('LOCK TABLE chat_rooms IN SHARE ROW EXCLUSIVE MODE');
+    await client.query("BEGIN");
+    await client.query("LOCK TABLE chat_rooms IN SHARE ROW EXCLUSIVE MODE");
 
     const existingResult = await client.query(
       `SELECT cr.* FROM chat_rooms cr
        INNER JOIN chat_room_members crm1 ON cr.id = crm1.room_id AND crm1.user_id = $1
        INNER JOIN chat_room_members crm2 ON cr.id = crm2.room_id AND crm2.user_id = $2
        WHERE cr.type = 'direct'`,
-      [userId1, userId2]
+      [userId1, userId2],
     );
 
     if (existingResult.rows.length > 0) {
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return existingResult.rows[0];
     }
 
     const newRoomResult = await client.query(
-      'INSERT INTO chat_rooms (type, created_by) VALUES ($1, $2) RETURNING *',
-      ['direct', userId1]
+      "INSERT INTO chat_rooms (type, created_by) VALUES ($1, $2) RETURNING *",
+      ["direct", userId1],
     );
     const newRoom = newRoomResult.rows[0];
 
@@ -190,20 +189,20 @@ const getOrCreateDirectRoom = async (userId1, userId2) => {
       `INSERT INTO chat_room_members (room_id, user_id, role)
        VALUES ($1, $2, 'member')
        ON CONFLICT (room_id, user_id) DO NOTHING`,
-      [newRoom.id, userId1]
+      [newRoom.id, userId1],
     );
 
     await client.query(
       `INSERT INTO chat_room_members (room_id, user_id, role)
        VALUES ($1, $2, 'member')
        ON CONFLICT (room_id, user_id) DO NOTHING`,
-      [newRoom.id, userId2]
+      [newRoom.id, userId2],
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
     return newRoom;
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw err;
   } finally {
     client.release();
@@ -212,8 +211,8 @@ const getOrCreateDirectRoom = async (userId1, userId2) => {
 
 const getMemberRole = async (roomId, userId) => {
   const result = await pool.query(
-    'SELECT role FROM chat_room_members WHERE room_id = $1 AND user_id = $2',
-    [roomId, userId]
+    "SELECT role FROM chat_room_members WHERE room_id = $1 AND user_id = $2",
+    [roomId, userId],
   );
   return result.rows[0]?.role ?? null;
 };

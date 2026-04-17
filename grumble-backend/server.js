@@ -6,7 +6,6 @@ const http = require("http");
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 
-const app = require("./app");
 const pool = require("./config/db");
 const chatRoomRepository = require("./repositories/chatRoomRepository");
 const {
@@ -155,12 +154,8 @@ setSocketServer(io);
     await syncFoodPlaces();
     console.log("✅ OSM sync complete. Starting server...\n");
   } catch (err) {
-    console.error(
-      "⚠️  OSM sync failed, but starting server anyway:",
-      err.message,
-      "\n",
-    );
+    console.error("⚠️  OSM sync failed, but starting server anyway:", err.message, "\n");
   }
 
-  app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+  server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
 })();

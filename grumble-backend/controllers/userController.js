@@ -1,4 +1,4 @@
-const userRepository = require('../repositories/userRepository');
+const userRepository = require("../repositories/userRepository");
 
 /**
  * GET /api/users/:userId/profile
@@ -10,16 +10,20 @@ const getProfile = async (req, res) => {
 
     const profile = await userRepository.getUserProfileById(userId);
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     res.json({ success: true, data: profile });
   } catch (error) {
-    console.error('Error fetching user profile:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch user profile' });
+    console.error("Error fetching user profile:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch user profile" });
   }
 };
 
 module.exports = {
-  getProfile
+  getProfile,
 };

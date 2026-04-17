@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
 
 /**
  * Food Suggestions Repository
@@ -13,7 +13,7 @@ const getFoodSuggestionById = async (suggestionId) => {
     `SELECT fs.id, fs.message_id, fs.food_place_id, fs.likes, fs.dislikes, fs.created_at
      FROM food_suggestions fs
      WHERE fs.id = $1`,
-    [suggestionId]
+    [suggestionId],
   );
   return result.rows[0];
 };
@@ -26,7 +26,7 @@ const getUserReaction = async (suggestionId, userId) => {
     `SELECT id, suggestion_id, user_id, reaction, created_at
      FROM food_suggestion_reactions
      WHERE suggestion_id = $1 AND user_id = $2`,
-    [suggestionId, userId]
+    [suggestionId, userId],
   );
   return result.rows[0];
 };
@@ -38,7 +38,7 @@ const getUserReaction = async (suggestionId, userId) => {
 const addOrUpdateReaction = async (suggestionId, userId, reaction) => {
   // First, get existing reaction if any
   const existingReaction = await getUserReaction(suggestionId, userId);
-  
+
   if (existingReaction) {
     // If same reaction, remove it (toggle behavior)
     if (existingReaction.reaction === reaction) {
@@ -51,7 +51,7 @@ const addOrUpdateReaction = async (suggestionId, userId, reaction) => {
        SET reaction = $1, created_at = NOW()
        WHERE suggestion_id = $2 AND user_id = $3
        RETURNING id, suggestion_id, user_id, reaction, created_at`,
-      [reaction, suggestionId, userId]
+      [reaction, suggestionId, userId],
     );
     return result.rows[0];
   } else {
@@ -60,7 +60,7 @@ const addOrUpdateReaction = async (suggestionId, userId, reaction) => {
       `INSERT INTO food_suggestion_reactions (suggestion_id, user_id, reaction)
        VALUES ($1, $2, $3)
        RETURNING id, suggestion_id, user_id, reaction, created_at`,
-      [suggestionId, userId, reaction]
+      [suggestionId, userId, reaction],
     );
     return result.rows[0];
   }
@@ -74,7 +74,7 @@ const removeReaction = async (suggestionId, userId) => {
     `DELETE FROM food_suggestion_reactions
      WHERE suggestion_id = $1 AND user_id = $2
      RETURNING id, suggestion_id, user_id, reaction, created_at`,
-    [suggestionId, userId]
+    [suggestionId, userId],
   );
   return result.rows[0];
 };
@@ -90,7 +90,7 @@ const updateReactionCounts = async (suggestionId) => {
        COALESCE(SUM(CASE WHEN reaction = 'dislike' THEN 1 ELSE 0 END), 0) as dislikes
      FROM food_suggestion_reactions
      WHERE suggestion_id = $1`,
-    [suggestionId]
+    [suggestionId],
   );
 
   const { likes, dislikes } = countsResult.rows[0];
@@ -101,7 +101,7 @@ const updateReactionCounts = async (suggestionId) => {
      SET likes = $1, dislikes = $2
      WHERE id = $3
      RETURNING id, message_id, food_place_id, likes, dislikes, created_at`,
-    [likes, dislikes, suggestionId]
+    [likes, dislikes, suggestionId],
   );
 
   return result.rows[0];
@@ -117,7 +117,7 @@ const getReactionsForSuggestion = async (suggestionId) => {
      JOIN users u ON fsr.user_id = u.id
      WHERE fsr.suggestion_id = $1
      ORDER BY fsr.created_at DESC`,
-    [suggestionId]
+    [suggestionId],
   );
   return result.rows;
 };
@@ -130,7 +130,7 @@ const getFoodSuggestionsForMessage = async (messageId) => {
     `SELECT fs.id, fs.message_id, fs.food_place_id, fs.likes, fs.dislikes, fs.created_at
      FROM food_suggestions fs
      WHERE fs.message_id = $1`,
-    [messageId]
+    [messageId],
   );
   return result.rows;
 };
@@ -142,5 +142,5 @@ module.exports = {
   removeReaction,
   updateReactionCounts,
   getReactionsForSuggestion,
-  getFoodSuggestionsForMessage
+  getFoodSuggestionsForMessage,
 };

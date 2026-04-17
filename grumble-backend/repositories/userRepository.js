@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
 
 /**
  * User Repository
@@ -10,12 +10,12 @@ const getUserProfileById = async (userId) => {
     `SELECT id, username, avatar_url
      FROM users
      WHERE id = $1`,
-    [userId]
+    [userId],
   );
 
   return result.rows[0] || null;
 };
 
 module.exports = {
-  getUserProfileById
+  getUserProfileById,
 };

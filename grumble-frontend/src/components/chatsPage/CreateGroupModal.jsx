@@ -1,15 +1,17 @@
-import React, { useMemo, useState } from 'react';
-import { Check } from 'lucide-react';
-import Avatar from './Avatar';
+import React, { useMemo, useState } from "react";
+import { Check } from "lucide-react";
+import Avatar from "./Avatar";
 
 const CreateGroupModal = ({ onClose, onCreate, friends = [] }) => {
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
   const [selected, setSelected] = useState([]);
 
   const friendList = useMemo(() => friends || [], [friends]);
 
   const toggle = (id) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    setSelected((s) =>
+      s.includes(id) ? s.filter((x) => x !== id) : [...s, id],
+    );
 
   const handleCreate = () => {
     if (!title.trim() || !selected.length) return;
@@ -27,7 +29,9 @@ const CreateGroupModal = ({ onClose, onCreate, friends = [] }) => {
       >
         <div className="w-8 h-0.5 bg-gray-300 rounded-full mx-auto mb-4" />
         <h2 className="text-xl font-bold text-gray-900 mb-1">New Group Chat</h2>
-        <p className="text-sm text-gray-400 mb-4">Add friends and give it a name</p>
+        <p className="text-sm text-gray-400 mb-4">
+          Add friends and give it a name
+        </p>
 
         <input
           type="text"
@@ -42,7 +46,9 @@ const CreateGroupModal = ({ onClose, onCreate, friends = [] }) => {
         </p>
         <div className="space-y-1 max-h-48 overflow-y-auto mb-4">
           {friendList.length === 0 && (
-            <div className="text-sm text-gray-400 py-6 text-center">No friends found</div>
+            <div className="text-sm text-gray-400 py-6 text-center">
+              No friends found
+            </div>
           )}
 
           {friendList.map((f) => (
@@ -50,14 +56,16 @@ const CreateGroupModal = ({ onClose, onCreate, friends = [] }) => {
               key={f.id}
               onClick={() => toggle(f.id)}
               className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all ${
-                selected.includes(f.id) ? 'bg-[#FCF1DD]' : 'hover:bg-gray-50'
+                selected.includes(f.id) ? "bg-[#FCF1DD]" : "hover:bg-gray-50"
               }`}
             >
               <Avatar name={f.username} size="sm" />
               <span className="text-sm font-semibold text-gray-800 flex-1 text-left">
                 {f.username}
               </span>
-              {selected.includes(f.id) && <Check size={16} className="text-[#F78660]" />}
+              {selected.includes(f.id) && (
+                <Check size={16} className="text-[#F78660]" />
+              )}
             </button>
           ))}
         </div>

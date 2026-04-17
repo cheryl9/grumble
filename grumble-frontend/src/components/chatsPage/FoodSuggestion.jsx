@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
-import api from '../../services/api';
+import React, { useEffect, useMemo, useState } from "react";
+import { ThumbsUp, ThumbsDown } from "lucide-react";
+import api from "../../services/api";
 
 const FoodSuggestion = ({ message, onViewRestaurant }) => {
   const suggestion = message?.payload;
@@ -41,8 +41,8 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
       const data = res.data?.data;
       const updated = data?.suggestion;
 
-      if (typeof updated?.likes === 'number') setLikes(updated.likes);
-      if (typeof updated?.dislikes === 'number') setDislikes(updated.dislikes);
+      if (typeof updated?.likes === "number") setLikes(updated.likes);
+      if (typeof updated?.dislikes === "number") setDislikes(updated.dislikes);
       setReaction(data?.your_reaction ?? null);
     } catch {
       // Keep UI state as-is on failure.
@@ -54,7 +54,10 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
   if (!suggestion || !place) return null;
 
   return (
-    <div className="chat-food-suggestion" onClick={() => viewPayload && onViewRestaurant(viewPayload)}>
+    <div
+      className="chat-food-suggestion"
+      onClick={() => viewPayload && onViewRestaurant(viewPayload)}
+    >
       <div className="food-suggestion-image">
         {place.photo_url ? (
           <img
@@ -71,30 +74,32 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
 
       <div className="p-3">
         <p className="text-xs text-gray-400 font-semibold mb-0.5">
-          {message?.sender?.username || 'Someone'} suggested:
+          {message?.sender?.username || "Someone"} suggested:
         </p>
         <p className="font-bold text-gray-900 text-base">{place.name}</p>
-        {place.address && <p className="text-xs text-gray-400">{place.address}</p>}
+        {place.address && (
+          <p className="text-xs text-gray-400">{place.address}</p>
+        )}
 
         <div className="flex gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
           <button
-            onClick={() => react('like')}
+            onClick={() => react("like")}
             disabled={loading}
             className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-all disabled:opacity-60 ${
-              reaction === 'like'
-                ? 'bg-[#F78660] text-white'
-                : 'bg-gray-100 text-gray-500 hover:bg-[#FCF1DD]'
+              reaction === "like"
+                ? "bg-[#F78660] text-white"
+                : "bg-gray-100 text-gray-500 hover:bg-[#FCF1DD]"
             }`}
           >
             <ThumbsUp size={12} /> {likes}
           </button>
           <button
-            onClick={() => react('dislike')}
+            onClick={() => react("dislike")}
             disabled={loading}
             className={`flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full transition-all disabled:opacity-60 ${
-              reaction === 'dislike'
-                ? 'bg-[#2945A8] text-white'
-                : 'bg-gray-100 text-gray-500 hover:bg-blue-50'
+              reaction === "dislike"
+                ? "bg-[#2945A8] text-white"
+                : "bg-gray-100 text-gray-500 hover:bg-blue-50"
             }`}
           >
             <ThumbsDown size={12} /> {dislikes}

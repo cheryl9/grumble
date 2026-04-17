@@ -1,4 +1,4 @@
-const pool = require('../config/db');
+const pool = require("../config/db");
 
 /**
  * Chat Messages Repository
@@ -17,7 +17,7 @@ const getMessagesForRoom = async (roomId, limit = 50, offset = 0) => {
      WHERE cm.room_id = $1 AND cm.is_deleted = FALSE
      ORDER BY cm.created_at DESC
      LIMIT $2 OFFSET $3`,
-    [roomId, limit, offset]
+    [roomId, limit, offset],
   );
   return result.rows;
 };
@@ -32,7 +32,7 @@ const getMessageById = async (messageId) => {
      FROM chat_messages cm
      JOIN users u ON cm.sender_id = u.id
      WHERE cm.id = $1`,
-    [messageId]
+    [messageId],
   );
   return result.rows[0];
 };
@@ -50,7 +50,7 @@ const createTextMessage = async (
     `INSERT INTO chat_messages (room_id, sender_id, message_type, content, reply_to_message_id)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING id, room_id, sender_id, message_type, content, reply_to_message_id, created_at`,
-    [roomId, senderId, 'text', JSON.stringify(content), replyToMessageId]
+    [roomId, senderId, "text", JSON.stringify(content), replyToMessageId],
   );
   return result.rows[0];
 };
@@ -66,7 +66,7 @@ const createFoodSuggestionMessage = async (
 ) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const messageResult = await client.query(
       `INSERT INTO chat_messages (room_id, sender_id, message_type, content, reply_to_message_id)
@@ -75,7 +75,7 @@ const createFoodSuggestionMessage = async (
       [
         roomId,
         senderId,
-        'food_suggestion',
+        "food_suggestion",
         JSON.stringify({ food_place_id: foodPlaceId }),
         replyToMessageId,
       ],
@@ -89,14 +89,14 @@ const createFoodSuggestionMessage = async (
       [message.id, foodPlaceId],
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     return {
       ...message,
       suggestion: suggestionResult.rows[0],
     };
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw err;
   } finally {
     client.release();
@@ -115,7 +115,7 @@ const createPollMessage = async (
 ) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const messageResult = await client.query(
       `INSERT INTO chat_messages (room_id, sender_id, message_type, content, reply_to_message_id)
@@ -124,7 +124,7 @@ const createPollMessage = async (
       [
         roomId,
         senderId,
-        'poll',
+        "poll",
         JSON.stringify({ question, options }),
         replyToMessageId,
       ],
@@ -150,7 +150,7 @@ const createPollMessage = async (
       pollOptions.push(optionResult.rows[0]);
     }
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     return {
       ...message,
@@ -160,7 +160,7 @@ const createPollMessage = async (
       },
     };
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw err;
   } finally {
     client.release();
@@ -178,7 +178,7 @@ const createSpinWheelMessage = async (
 ) => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     const messageResult = await client.query(
       `INSERT INTO chat_messages (room_id, sender_id, message_type, content, reply_to_message_id)
@@ -187,7 +187,7 @@ const createSpinWheelMessage = async (
       [
         roomId,
         senderId,
-        'spin_wheel',
+        "spin_wheel",
         JSON.stringify({ options }),
         replyToMessageId,
       ],
@@ -201,14 +201,14 @@ const createSpinWheelMessage = async (
       [message.id, JSON.stringify(options)],
     );
 
-    await client.query('COMMIT');
+    await client.query("COMMIT");
 
     return {
       ...message,
       spin_wheel: sessionResult.rows[0],
     };
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query("ROLLBACK");
     throw err;
   } finally {
     client.release();
@@ -220,8 +220,8 @@ const createSpinWheelMessage = async (
  */
 const deleteMessage = async (messageId) => {
   const result = await pool.query(
-    'UPDATE chat_messages SET is_deleted = TRUE WHERE id = $1 RETURNING *',
-    [messageId]
+    "UPDATE chat_messages SET is_deleted = TRUE WHERE id = $1 RETURNING *",
+    [messageId],
   );
   return result.rows[0];
 };
@@ -252,7 +252,10 @@ const buildMessageSnippet = (row) => {
   }
 
   if (row.message_type === "poll") {
-    return { ...base, text: row.content?.question ? `Poll: ${row.content.question}` : "Poll" };
+    return {
+      ...base,
+      text: row.content?.question ? `Poll: ${row.content.question}` : "Poll",
+    };
   }
 
   if (row.message_type === "food_suggestion") {
@@ -281,9 +284,9 @@ const getCompleteMessage = async (messageId) => {
 
   let payload = null;
 
-  if (message.message_type === 'text') {
+  if (message.message_type === "text") {
     payload = message.content;
-  } else if (message.message_type === 'food_suggestion') {
+  } else if (message.message_type === "food_suggestion") {
     const suggestionResult = await pool.query(
       `SELECT fs.id,
               fs.message_id,
@@ -296,7 +299,7 @@ const getCompleteMessage = async (messageId) => {
        FROM food_suggestions fs
        JOIN food_places fp ON fp.id = fs.food_place_id
        WHERE fs.message_id = $1`,
-      [messageId]
+      [messageId],
     );
 
     if (suggestionResult.rows.length > 0) {
@@ -315,7 +318,7 @@ const getCompleteMessage = async (messageId) => {
         },
       };
     }
-  } else if (message.message_type === 'poll') {
+  } else if (message.message_type === "poll") {
     const pollResult = await pool.query(
       `SELECT p.id,
               p.message_id,
@@ -339,12 +342,12 @@ const getCompleteMessage = async (messageId) => {
        ) v ON v.option_id = po.id
        WHERE p.message_id = $1
        GROUP BY p.id, p.message_id, p.question, p.created_at`,
-      [messageId]
+      [messageId],
     );
     if (pollResult.rows.length > 0) {
       payload = pollResult.rows[0];
     }
-  } else if (message.message_type === 'spin_wheel') {
+  } else if (message.message_type === "spin_wheel") {
     const sessionResult = await pool.query(
       `SELECT s.id,
               s.message_id,
@@ -364,7 +367,7 @@ const getCompleteMessage = async (messageId) => {
        ) ls ON true
        LEFT JOIN users u ON u.id = ls.spun_by
        WHERE s.message_id = $1`,
-      [messageId]
+      [messageId],
     );
     if (sessionResult.rows.length > 0) {
       payload = sessionResult.rows[0];
@@ -377,13 +380,13 @@ const getCompleteMessage = async (messageId) => {
     sender: {
       id: message.sender_id,
       username: message.username,
-      phone_number: message.phone_number
+      phone_number: message.phone_number,
     },
     reply_to_message_id: message.reply_to_message_id,
     reply_to,
     payload,
     created_at: message.created_at,
-    is_deleted: message.is_deleted
+    is_deleted: message.is_deleted,
   };
 };
 
@@ -395,5 +398,5 @@ module.exports = {
   createPollMessage,
   createSpinWheelMessage,
   deleteMessage,
-  getCompleteMessage
+  getCompleteMessage,
 };

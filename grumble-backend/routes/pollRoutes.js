@@ -8,7 +8,11 @@ router.use(authMiddleware);
 
 router.get("/:pollId", requirePollRoomMember, pollController.getPoll);
 router.post("/:pollId/vote", requirePollRoomMember, pollController.vote);
-router.delete("/:pollId/vote", requirePollRoomMember, pollController.removeVote);
+router.delete(
+  "/:pollId/vote",
+  requirePollRoomMember,
+  pollController.removeVote,
+);
 router.get("/:pollId/votes", requirePollRoomMember, pollController.getVotes);
 
 module.exports = router;

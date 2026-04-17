@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, ArrowLeft } from 'lucide-react';
-import api from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
-import Avatar from './Avatar';
-import ChatMessage from './ChatMessage';
+import React, { useEffect, useMemo, useState } from "react";
+import { Plus, ArrowLeft } from "lucide-react";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import Avatar from "./Avatar";
+import ChatMessage from "./ChatMessage";
 
 const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
   const { user } = useAuth();
@@ -17,17 +17,17 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [showActions, setShowActions] = useState(false);
 
   const [showPollModal, setShowPollModal] = useState(false);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [showFoodModal, setShowFoodModal] = useState(false);
 
-  const [pollQ, setPollQ] = useState('');
-  const [pollOpts, setPollOpts] = useState(['', '']);
-  const [wheelOpts, setWheelOpts] = useState(['', '']);
-  const [foodPlaceId, setFoodPlaceId] = useState('');
+  const [pollQ, setPollQ] = useState("");
+  const [pollOpts, setPollOpts] = useState(["", ""]);
+  const [wheelOpts, setWheelOpts] = useState(["", ""]);
+  const [foodPlaceId, setFoodPlaceId] = useState("");
 
   useEffect(() => {
     if (!roomId) return;
@@ -41,7 +41,9 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
 
         const [roomRes, msgRes] = await Promise.all([
           api.get(`/chats/${roomId}`),
-          api.get(`/chats/${roomId}/messages`, { params: { limit: 50, offset: 0 } }),
+          api.get(`/chats/${roomId}/messages`, {
+            params: { limit: 50, offset: 0 },
+          }),
         ]);
 
         if (cancelled) return;
@@ -54,7 +56,9 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
         setMessages(fetched);
       } catch (err) {
         if (cancelled) return;
-        setError(err?.response?.data?.message || err?.message || 'Failed to load chat');
+        setError(
+          err?.response?.data?.message || err?.message || "Failed to load chat",
+        );
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -68,18 +72,23 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
   }, [roomId]);
 
   const displayName = useMemo(() => {
-    const fallback = chat?.name || 'Chat';
+    const fallback = chat?.name || "Chat";
     if (!room) return fallback;
 
-    if (room.type === 'direct' && user?.id) {
-      const other = (members || []).find((m) => Number(m.user_id) !== Number(user.id));
+    if (room.type === "direct" && user?.id) {
+      const other = (members || []).find(
+        (m) => Number(m.user_id) !== Number(user.id),
+      );
       return other?.username || fallback;
     }
 
     return room.name || fallback;
   }, [room, members, user?.id, chat?.name]);
 
-  const memberNames = useMemo(() => (members || []).map((m) => m.username), [members]);
+  const memberNames = useMemo(
+    () => (members || []).map((m) => m.username),
+    [members],
+  );
 
   const appendMessage = (newMessage) => {
     if (!newMessage) return;
@@ -95,16 +104,20 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
       setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
-        type: 'text',
+        type: "text",
         content: { text },
       });
 
       appendMessage(res.data?.data);
-      setInput('');
+      setInput("");
       setShowActions(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to send message');
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to send message",
+      );
     } finally {
       setSending(false);
     }
@@ -120,17 +133,19 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
       setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
-        type: 'poll',
+        type: "poll",
         content: { question, options },
       });
 
       appendMessage(res.data?.data);
-      setPollQ('');
-      setPollOpts(['', '']);
+      setPollQ("");
+      setPollOpts(["", ""]);
       setShowPollModal(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to send poll');
+      setError(
+        err?.response?.data?.message || err?.message || "Failed to send poll",
+      );
     } finally {
       setSending(false);
     }
@@ -145,16 +160,18 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
       setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
-        type: 'spin_wheel',
+        type: "spin_wheel",
         content: { options },
       });
 
       appendMessage(res.data?.data);
-      setWheelOpts(['', '']);
+      setWheelOpts(["", ""]);
       setShowWheelModal(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to send wheel');
+      setError(
+        err?.response?.data?.message || err?.message || "Failed to send wheel",
+      );
     } finally {
       setSending(false);
     }
@@ -169,16 +186,20 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
       setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
-        type: 'food_suggestion',
+        type: "food_suggestion",
         content: { food_place_id: parsed },
       });
 
       appendMessage(res.data?.data);
-      setFoodPlaceId('');
+      setFoodPlaceId("");
       setShowFoodModal(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to suggest food');
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to suggest food",
+      );
     } finally {
       setSending(false);
     }
@@ -193,9 +214,13 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
         <Avatar name={displayName} size="sm" />
 
         <div className="min-w-0">
-          <p className="font-bold text-gray-900 text-sm leading-tight truncate">{displayName}</p>
+          <p className="font-bold text-gray-900 text-sm leading-tight truncate">
+            {displayName}
+          </p>
           {memberNames.length > 0 && (
-            <p className="text-xs text-gray-400 truncate">{memberNames.join(', ')}</p>
+            <p className="text-xs text-gray-400 truncate">
+              {memberNames.join(", ")}
+            </p>
           )}
         </div>
       </div>
@@ -231,7 +256,7 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
             placeholder="Type a message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendTextMessage()}
+            onKeyDown={(e) => e.key === "Enter" && sendTextMessage()}
             className="flex-1 px-4 py-2 rounded-full border border-gray-200 text-sm focus:outline-none focus:border-[#F78660] bg-gray-50"
             disabled={sending}
           />
@@ -287,7 +312,9 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-8 h-0.5 bg-gray-300 rounded-full mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Create a Poll</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Create a Poll
+            </h2>
             <input
               type="text"
               placeholder="Ask a question..."
@@ -312,7 +339,7 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
               ))}
             </div>
             <button
-              onClick={() => setPollOpts([...pollOpts, ''])}
+              onClick={() => setPollOpts([...pollOpts, ""])}
               className="btn-secondary w-full py-2 rounded-xl text-sm mb-3"
               disabled={sending}
             >
@@ -339,7 +366,9 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-8 h-0.5 bg-gray-300 rounded-full mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Spin the Wheel</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Spin the Wheel
+            </h2>
             <div className="space-y-2 mb-3">
               {wheelOpts.map((opt, i) => (
                 <input
@@ -357,7 +386,7 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
               ))}
             </div>
             <button
-              onClick={() => setWheelOpts([...wheelOpts, ''])}
+              onClick={() => setWheelOpts([...wheelOpts, ""])}
               className="btn-secondary w-full py-2 rounded-xl text-sm mb-3"
               disabled={sending}
             >
@@ -384,7 +413,9 @@ const ChatWindow = ({ chat, onBack, onViewRestaurant, onChatUpdated }) => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-8 h-0.5 bg-gray-300 rounded-full mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Suggest Food</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              Suggest Food
+            </h2>
             <p className="text-sm text-gray-400 mb-4">Enter a food place ID</p>
             <input
               type="number"
