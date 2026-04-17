@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import logo from '../../assets/logo.png';
 import { CUISINE_CATEGORIES, ROUTES } from '../../utils/constants';  
+import api from '../../services/api';
 
 export default function OnboardingSurvey() {
   const navigate = useNavigate();
@@ -37,11 +38,7 @@ export default function OnboardingSurvey() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Add API call to save user preferences
-      console.log('Selected cuisines:', selectedCuisines);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Navigate to main app
+      await api.post('/auth/cuisines', { cuisines: selectedCuisines });
       navigate(ROUTES.EXPLORE);
     } catch (_error) {
       setError('Failed to save preferences. Please try again.');

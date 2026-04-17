@@ -1,4 +1,7 @@
 const postsRepo = require("../repositories/postsRepository");
+const authRepo = require("../repositories/authRepository");
+const achievementService = require("../services/achievementService");
+const pool = require("../config/db");
 
 async function getFeed(req, res) {
   try {
@@ -61,6 +64,22 @@ async function createPost(req, res) {
       visibility,
       postal_code,
     });
+
+    try {
+      await authRepo.calculateAndUpdateStreak(userId);
+    } catch (streakErr) {
+      console.error("Error updating streak:", streakErr);
+    }
+
+    try {
+      const newlyUnlocked = await achievementService.checkAndUnlockAchievements(
+        userId,
+        pool,
+      );
+      console.log(`Achievements unlocked for user ${userId}:`, newlyUnlocked);
+    } catch (achievementErr) {
+      console.error("Error checking achievements:", achievementErr);
+    }
 
     res.status(201).json(post);
   } catch (err) {
@@ -215,6 +234,20 @@ async function getSaved(req, res) {
   }
 }
 
+async function getLiked(req, res) {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const posts = await postsRepo.getLikedPosts(userId, limit, offset);
+    res.json(posts);
+  } catch (err) {
+    console.error("getLiked error:", err);
+    res.status(500).json({ error: "Failed to fetch liked posts" });
+  }
+}
+
 async function reportPost(req, res) {
   try {
     const reporterId = req.user.id;
@@ -246,5 +279,6 @@ module.exports = {
   addComment,
   toggleSave,
   getSaved,
+  getLiked,
   reportPost,
 };

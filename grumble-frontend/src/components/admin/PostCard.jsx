@@ -1,5 +1,12 @@
-import { Eye, Trash2 } from 'lucide-react';
-import { format } from 'date-fns';
+import {
+  Eye,
+  Trash2,
+  Star,
+  Heart,
+  MessageCircle,
+  AlertCircle,
+} from "lucide-react";
+import { format } from "date-fns";
 
 export default function PostCard({ post, onView, onDelete }) {
   return (
@@ -19,7 +26,9 @@ export default function PostCard({ post, onView, onDelete }) {
       <div className="p-4">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">{post.location_name}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
+              {post.location_name}
+            </h3>
             <p className="text-xs text-gray-500">by @{post.username}</p>
           </div>
           <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
@@ -27,17 +36,29 @@ export default function PostCard({ post, onView, onDelete }) {
           </span>
         </div>
 
-        <p className="text-sm text-gray-600 line-clamp-2 mb-3">{post.description || 'No description'}</p>
+        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+          {post.description || "No description"}
+        </p>
 
         <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
-          <span>⭐ {post.rating || 'N/A'}</span>
-          <span>❤️ {post.likes_count || 0}</span>
-          <span>💬 {post.comments_count || 0}</span>
-          <span>⚠️ {post.report_count || 0}</span>
+          <span className="flex items-center gap-1">
+            <Star size={14} /> {post.rating || "N/A"}
+          </span>
+          <span className="flex items-center gap-1">
+            <Heart size={14} /> {post.likes_count || 0}
+          </span>
+          <span className="flex items-center gap-1">
+            <MessageCircle size={14} /> {post.comments_count || 0}
+          </span>
+          <span className="flex items-center gap-1">
+            <AlertCircle size={14} /> {post.report_count || 0}
+          </span>
         </div>
 
         <p className="text-xs text-gray-400 mb-3">
-          {post.created_at ? format(new Date(post.created_at), 'MMM d, yyyy HH:mm') : 'Unknown'}
+          {post.created_at
+            ? format(new Date(post.created_at), "MMM d, yyyy HH:mm")
+            : "Unknown"}
         </p>
 
         <div className="flex gap-2">

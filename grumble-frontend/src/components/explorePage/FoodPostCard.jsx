@@ -79,7 +79,11 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
             <button onClick={handleLike} className="post-interaction">
               <Heart
                 size={20}
-                className={post.liked_by_me ? 'fill-red-500 text-red-500' : 'text-gray-700'}
+                className={
+                  post.liked_by_me
+                    ? "fill-red-500 text-red-500"
+                    : "text-gray-700"
+                }
               />
               {/* likes_count instead of likes */}
               <span className="text-sm font-medium">{post.likes_count}</span>
@@ -118,6 +122,7 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
             <span className="font-semibold">{post.username}</span>{' '}
             {/* description instead of caption */}
             {post.description || 'No caption provided.'}
+          </p>
           </p>
           <p className="text-xs text-gray-500 mt-2">
             {new Date(post.created_at).toLocaleDateString()}

@@ -54,7 +54,6 @@ const Explore = () => {
   }, [location.state?.selectedPostId, posts]);
 
   const handleLike = async (postId) => {
-    // Optimistic update
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
@@ -73,7 +72,6 @@ const Explore = () => {
       await api.post(`/posts/${postId}/like`);
     } catch (err) {
       console.error("Like failed, reverting:", err);
-      // Revert on failure
       setPosts((prev) =>
         prev.map((p) => {
           if (p.id !== postId) return p;
@@ -144,20 +142,24 @@ const Explore = () => {
       );
     }
   };
+          };
+        });
+      }
+    }
+  };
+  // ────────────────────────────────────────────────────────────
 
-  // Open post detail modal — fetches full post + comments
+>>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);
       setSelectedPost(res.data);
     } catch (err) {
       console.error("Failed to fetch post detail:", err);
-      // Fall back to showing whatever data we already have
       setSelectedPost(post);
     }
   };
 
-  // After adding a comment, update the comment count in the list
   const handleCommentAdded = (postId) => {
     setPosts((prev) =>
       prev.map((p) =>
@@ -278,19 +280,16 @@ const Explore = () => {
         </button>
       </div>
 
-      {/* States */}
       {isLoading && (
         <div className="flex justify-center py-12">
           <p className="text-gray-400">Loading posts...</p>
         </div>
       )}
-
       {error && (
         <div className="flex justify-center py-12">
           <p className="text-red-400">{error}</p>
         </div>
       )}
-
       {!isLoading && !error && posts.length === 0 && (
         <div className="flex justify-center py-12">
           <p className="text-gray-400">
@@ -303,7 +302,6 @@ const Explore = () => {
         </div>
       )}
 
-      {/* Post grid */}
       {!isLoading && !error && posts.length > 0 && (
         <div className="posts-grid">
           {posts.map((post) => (
@@ -322,12 +320,12 @@ const Explore = () => {
         </div>
       )}
 
-      {/* Post detail modal */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onLike={() => handleLike(selectedPost.id)}
+          onSave={() => handleSave(selectedPost.id)} // ← pass it down
           onCommentAdded={() => handleCommentAdded(selectedPost.id)}
           onCommentDeleted={() => handleCommentDeleted(selectedPost.id)}
         />

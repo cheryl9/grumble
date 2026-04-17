@@ -1,5 +1,26 @@
 const pool = require("../config/db");
 
+// Helper function to construct full image URL
+function getFullImageUrl(imageUrl) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http")) return imageUrl; // Already a full URL
+  return `http://localhost:5001${imageUrl}`; // Prepend backend URL
+}
+
+// Helper function to transform a post row to include full image URLs
+function transformPost(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    image_url: getFullImageUrl(row.image_url),
+  };
+}
+
+// Helper function to transform multiple posts
+function transformPosts(rows) {
+  return rows.map(transformPost);
+}
+
 // feed
 
 /**
@@ -112,7 +133,7 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
   }
 
   const result = await pool.query(query, params);
-  return result.rows;
+  return transformPosts(result.rows);
 }
 
 // single post with comments
@@ -142,7 +163,7 @@ async function getPostById(postId, userId) {
       AND p.is_deleted = false`,
     [postId, userId],
   );
-  return result.rows[0] || null;
+  return transformPost(result.rows[0] || null);
 }
 
 // create post
@@ -155,7 +176,10 @@ async function createPost({
   imageUrl,
   description,
   visibility,
+<<<<<<< HEAD
   postal_code,
+=======
+>>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
 }) {
   const result = await pool.query(
     `INSERT INTO posts
@@ -170,13 +194,17 @@ async function createPost({
       imageUrl || null,
       description || null,
       visibility || "public",
+<<<<<<< HEAD
       postal_code || null,
+=======
+>>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
     ],
   );
-  return result.rows[0];
+  return transformPost(result.rows[0]);
 }
 
 // likes
+<<<<<<< HEAD
 
 /**
  * Get post owner info for permission checks.
@@ -238,6 +266,8 @@ async function softDeletePost(postId) {
 
   return result.rows[0] || null;
 }
+=======
+>>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
 
 /**
  * Toggle like on a post.
@@ -365,7 +395,42 @@ async function getSavedPosts(userId, limit = 20, offset = 0) {
     LIMIT $2 OFFSET $3`,
     [userId, limit, offset],
   );
-  return result.rows;
+  return transformPosts(result.rows);
+}
+
+/**
+ * Get all posts liked by the current user, newest like first.
+ * Returns same shape as getFeedPosts so the frontend can treat them uniformly.
+ */
+async function getLikedPosts(userId, limit = 20, offset = 0) {
+  const result = await pool.query(
+    `SELECT
+      p.id, p.user_id, p.food_place_id, p.location_name,
+      p.rating, p.image_url, p.description, p.visibility,
+      p.likes_count, p.comments_count, p.saves_count,
+      p.created_at,
+      u.username,
+      fp.name    AS place_name,
+      fp.cuisine,
+      fp.category,
+      fp.lat,
+      fp.lon,
+      true AS liked_by_me,
+      EXISTS (
+        SELECT 1 FROM saves s
+        WHERE s.post_id = p.id AND s.user_id = $1
+      ) AS saved_by_me
+    FROM likes l
+    JOIN posts p ON p.id = l.post_id
+    JOIN users u ON u.id = p.user_id
+    LEFT JOIN food_places fp ON fp.id = p.food_place_id
+    WHERE l.user_id = $1
+      AND p.is_deleted = false
+    ORDER BY l.created_at DESC
+    LIMIT $2 OFFSET $3`,
+    [userId, limit, offset],
+  );
+  return transformPosts(result.rows);
 }
 
 async function createReport(postId, reporterId, reason) {
@@ -391,5 +456,9 @@ module.exports = {
   createComment,
   toggleSave,
   getSavedPosts,
+<<<<<<< HEAD
   createReport,
+=======
+  getLikedPosts,
+>>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
 };
