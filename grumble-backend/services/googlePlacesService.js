@@ -20,13 +20,13 @@ async function findGooglePlaceId(name, lat, lon) {
   return candidates[0].place_id;
 }
 
-// Fetch rating + reviews + price_level + address + photos using the place_id
+// Fetch rating + reviews + price_level + address + photos + opening hours using the place_id
 async function getPlaceDetails(googlePlaceId) {
   const response = await axios.get(`${BASE_URL}/details/json`, {
     params: {
       place_id: googlePlaceId,
       fields:
-        "rating,user_ratings_total,reviews,price_level,formatted_address,photos",
+        "rating,user_ratings_total,reviews,price_level,formatted_address,photos,opening_hours",
       key: GOOGLE_API_KEY,
     },
   });
@@ -40,6 +40,7 @@ async function getPlaceDetails(googlePlaceId) {
     reviewCount: result.user_ratings_total ?? 0,
     priceLevel: result.price_level ?? null,
     address: result.formatted_address ?? null,
+    openingHours: result.opening_hours?.weekday_text?.join(", ") ?? null,
     image: result.photos?.[0]?.photo_reference
       ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${result.photos[0].photo_reference}&key=${GOOGLE_API_KEY}`
       : null,

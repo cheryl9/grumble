@@ -11,7 +11,7 @@ const apiCallTracker = {
 };
 
 const DAILY_LIMITS = {
-  google: 100, // Google Places free tier limit
+  google: 10, // Limited to prevent excessive API charges
 };
 
 // Simple in-memory cache (use Redis in production)
@@ -98,16 +98,25 @@ async function enrichWithGoogle(place) {
 
     return { ...place, google: googleData ?? null };
   } catch (err) {
-    console.error(`Google enrichment failed for place ${place.id}:`, err.message);
+    console.error(
+      `Google enrichment failed for place ${place.id}:`,
+      err.message,
+    );
     return { ...place, google: null };
   }
 }
 
 async function getAllFoodPlacesHandler(req, res) {
   try {
-    const { category, cuisine, minLat, maxLat, minLon, maxLon, limit } = req.query;
+    const { category, cuisine, minLat, maxLat, minLon, maxLon, limit } =
+      req.query;
     const places = await getAllFoodPlaces({
-      category, cuisine, minLat, maxLat, minLon, maxLon,
+      category,
+      cuisine,
+      minLat,
+      maxLat,
+      minLon,
+      maxLon,
       limit: limit ? parseInt(limit) : 10,
     });
     const enriched = await Promise.all(places.map(enrichWithGoogle));
