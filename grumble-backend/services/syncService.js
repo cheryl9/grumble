@@ -1,9 +1,9 @@
-require('dotenv').config();
-const { Pool } = require('pg');
-const { fetchFoodPlaces } = require('./osmService');
+require("dotenv").config();
+const { Pool } = require("pg");
+const { fetchFoodPlaces } = require("./osmService");
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
 });
 
 async function storeFoodPlaces(places) {
@@ -26,29 +26,40 @@ async function storeFoodPlaces(places) {
            geom = EXCLUDED.geom`,
       [
         place.id,
-        tags.name || 'Unknown',
+        tags.name || "Unknown",
         tags.cuisine || null,
         tags.amenity || null,
         lat,
         lon,
-        tags['addr:full'] || tags['addr:street'] || null,
+        tags["addr:full"] || tags["addr:street"] || null,
         tags.opening_hours || null,
         lon,
-        lat
-      ]
+        lat,
+      ],
     );
   }
 }
 
 async function syncFoodPlaces() {
   try {
-    console.log('Fetching food places from OSM...');
+    console.log("🔄 Fetching food places from Overpass API...");
     const places = await fetchFoodPlaces();
-    console.log(`Found ${places.length} places. Storing in database...`);
+    console.log(`✅ Retrieved ${places.length} places. Storing in database...`);
     await storeFoodPlaces(places);
-    console.log('Sync complete!');
+    console.log("✅ Sync complete! All food places stored in database.");
   } catch (error) {
-    console.error('Sync failed:', error);
+    console.error("❌ Sync failed:", error.message);
+    if (error.response?.status === 504) {
+      console.error("   The Overpass API server is temporarily unavailable.");
+      console.error("   Please try again in a few minutes.");
+    } else if (error.response?.status === 429) {
+      console.error(
+        "   Rate limited by Overpass API. Please wait before retrying.",
+      );
+    } else {
+      console.error("   Full error:", error);
+    }
+    throw error;
   } finally {
     await pool.end();
   }

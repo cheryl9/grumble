@@ -17,7 +17,7 @@ const ChatList = ({
     const matchTabs =
       activeTab === "all" ||
       (activeTab === "groups" && c.type === "group") ||
-      (activeTab === "friends" && c.type === "friends");
+      (activeTab === "friends" && c.type === "friend");
     const matchSearch = c.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
