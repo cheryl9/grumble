@@ -415,7 +415,7 @@ const getUserStats = async (req, res, next) => {
  */
 const updateProfile = async (req, res, next) => {
   try {
-    const { username, phone_Number } = req.body;
+    const { username, phone_number } = req.body;
 
     if (!username || !phone_number) {
       return res.status(400).json({

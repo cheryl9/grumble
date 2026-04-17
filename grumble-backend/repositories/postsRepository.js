@@ -176,10 +176,7 @@ async function createPost({
   imageUrl,
   description,
   visibility,
-<<<<<<< HEAD
   postal_code,
-=======
->>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
 }) {
   const result = await pool.query(
     `INSERT INTO posts
@@ -194,17 +191,13 @@ async function createPost({
       imageUrl || null,
       description || null,
       visibility || "public",
-<<<<<<< HEAD
       postal_code || null,
-=======
->>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
     ],
   );
   return transformPost(result.rows[0]);
 }
 
 // likes
-<<<<<<< HEAD
 
 /**
  * Get post owner info for permission checks.
@@ -266,8 +259,6 @@ async function softDeletePost(postId) {
 
   return result.rows[0] || null;
 }
-=======
->>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
 
 /**
  * Toggle like on a post.
@@ -456,9 +447,6 @@ module.exports = {
   createComment,
   toggleSave,
   getSavedPosts,
-<<<<<<< HEAD
-  createReport,
-=======
   getLikedPosts,
->>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
+  createReport,
 };

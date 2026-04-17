@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const postRoutes = require('./routes/postRoutes');
 const friendRoutes = require('./routes/friendRoutes');
+const supportRoutes = require('./routes/supportRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const faqController = require('./controllers/admin/faqController');
 
@@ -25,6 +26,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/food-places', foodPlaceRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes); 
 
 app.use(errorHandler);
