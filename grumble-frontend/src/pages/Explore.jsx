@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../services/api";
 import FoodPostCard from "../components/explorePage/FoodPostCard";
 import PostDetailModal from "../components/explorePage/PostDetailModal";
@@ -14,6 +15,7 @@ const TABS = [
 ];
 
 const Explore = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,8 +43,17 @@ const Explore = () => {
     fetchFeed();
   }, [activeTab]);
 
+  // Auto-open post detail modal if post ID was passed from Food Map
+  useEffect(() => {
+    if (location.state?.selectedPostId && posts.length > 0) {
+      const post = posts.find((p) => p.id === location.state.selectedPostId);
+      if (post) {
+        setSelectedPost(post);
+      }
+    }
+  }, [location.state?.selectedPostId, posts]);
+
   const handleLike = async (postId) => {
-    // Optimistic update
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
@@ -61,7 +72,6 @@ const Explore = () => {
       await api.post(`/posts/${postId}/like`);
     } catch (err) {
       console.error("Like failed, reverting:", err);
-      // Revert on failure
       setPosts((prev) =>
         prev.map((p) => {
           if (p.id !== postId) return p;
@@ -132,20 +142,17 @@ const Explore = () => {
       );
     }
   };
-
-  // Open post detail modal — fetches full post + comments
+          
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);
       setSelectedPost(res.data);
     } catch (err) {
       console.error("Failed to fetch post detail:", err);
-      // Fall back to showing whatever data we already have
       setSelectedPost(post);
     }
   };
 
-  // After adding a comment, update the comment count in the list
   const handleCommentAdded = (postId) => {
     setPosts((prev) =>
       prev.map((p) =>
@@ -154,8 +161,19 @@ const Explore = () => {
     );
   };
 
+  // After deleting a comment, decrement the comment count in the list
+  const handleCommentDeleted = (postId) => {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, comments_count: Math.max(p.comments_count - 1, 0) } : p,
+      ),
+    );
+  };
+
   const handleDeletePost = async (postId) => {
-    const confirmed = window.confirm("Delete this post? This action cannot be undone.");
+    const confirmed = window.confirm(
+      "Delete this post? This action cannot be undone.",
+    );
     if (!confirmed) return;
 
     try {
@@ -163,7 +181,8 @@ const Explore = () => {
       setPosts((prev) => prev.filter((p) => p.id !== postId));
       if (selectedPost?.id === postId) setSelectedPost(null);
     } catch (err) {
-      const backendMessage = err?.response?.data?.error || err?.response?.data?.message;
+      const backendMessage =
+        err?.response?.data?.error || err?.response?.data?.message;
       alert(backendMessage || "Failed to delete post.");
     }
   };
@@ -208,7 +227,8 @@ const Explore = () => {
 
       setEditingPost(null);
     } catch (err) {
-      const backendMessage = err?.response?.data?.error || err?.response?.data?.message;
+      const backendMessage =
+        err?.response?.data?.error || err?.response?.data?.message;
       alert(backendMessage || "Failed to edit post.");
     } finally {
       setIsEditing(false);
@@ -223,7 +243,9 @@ const Explore = () => {
           <img src={logo} alt="Grumble" className="w-12 h-12" />
           <div>
             <h1 className="text-4xl font-bold">Explore</h1>
-            <p className="explore-subtitle">Discover what the community is eating today</p>
+            <p className="explore-subtitle">
+              Discover what the community is eating today
+            </p>
           </div>
         </div>
       </div>
@@ -251,19 +273,16 @@ const Explore = () => {
         </button>
       </div>
 
-      {/* States */}
       {isLoading && (
         <div className="flex justify-center py-12">
           <p className="text-gray-400">Loading posts...</p>
         </div>
       )}
-
       {error && (
         <div className="flex justify-center py-12">
           <p className="text-red-400">{error}</p>
         </div>
       )}
-
       {!isLoading && !error && posts.length === 0 && (
         <div className="flex justify-center py-12">
           <p className="text-gray-400">
@@ -276,7 +295,6 @@ const Explore = () => {
         </div>
       )}
 
-      {/* Post grid */}
       {!isLoading && !error && posts.length > 0 && (
         <div className="posts-grid">
           {posts.map((post) => (
@@ -295,13 +313,14 @@ const Explore = () => {
         </div>
       )}
 
-      {/* Post detail modal */}
       {selectedPost && (
         <PostDetailModal
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onLike={() => handleLike(selectedPost.id)}
+          onSave={() => handleSave(selectedPost.id)} // ← pass it down
           onCommentAdded={() => handleCommentAdded(selectedPost.id)}
+          onCommentDeleted={() => handleCommentDeleted(selectedPost.id)}
         />
       )}
 

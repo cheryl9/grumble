@@ -1,28 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
-import api from '../services/api';
-import RestaurantCard from '../components/findSpotsPage/RestaurantCard';
-import { SINGAPORE_REGIONS, CUISINE_CATEGORIES, PRICE_RANGES, OCCASIONS } from '../utils/constants';
-import logo from '../assets/logo.png';
+import React, { useState, useEffect } from "react";
+import { Search, ChevronDown } from "lucide-react";
+import api from "../services/api";
+import RestaurantCard from "../components/findSpotsPage/RestaurantCard";
+import {
+  SINGAPORE_REGIONS,
+  CUISINE_CATEGORIES,
+  PRICE_RANGES,
+  OCCASIONS,
+} from "../utils/constants";
+import logo from "../assets/logo.png";
 
 const FindSpots = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
-    location: '',
-    cuisine: '',
-    price: '',
-    occasion: ''
+    location: "",
+    cuisine: "",
+    price: "",
+    occasion: "",
   });
   const [showDropdown, setShowDropdown] = useState({
     location: false,
     cuisine: false,
     price: false,
-    occasion: false
+    occasion: false,
   });
 
   const [allRestaurants, setAllRestaurants] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [displayedCount, setDisplayedCount] = useState(9);
 
   useEffect(() => {
     const fetchPlaces = async () => {
@@ -31,30 +37,33 @@ const FindSpots = () => {
       try {
         const params = {};
         if (filters.cuisine) params.cuisine = filters.cuisine.toLowerCase();
-        const res = await api.get('/food-places', { params });
+        const res = await api.get("/food-places", { params });
 
         const normalized = (res.data || []).map((p) => ({
           id: p.id,
-          name: p.name || 'Unknown place',
-          cuisine: p.cuisine || 'Unknown',
-          category: p.category || '',
-          location: p.address || 'Address unavailable',
-          openingHours: p.opening_hours || 'Not available',
+          name: p.name || "Unknown place",
+          cuisine: p.cuisine || "Unknown",
+          category: p.category || "",
+          location: p.address || "Address unavailable",
+          openingHours: p.opening_hours || "Not available",
           image: p.image_url || null,
-          priceRange: '-',
+          priceRange: "-",
           rating: p.rating != null ? Number(p.rating) : null,
           reviewCount: p.review_count != null ? Number(p.review_count) : null,
           website: p.website || null,
           lat: p.lat,
-          lon: p.lon
+          lon: p.lon,
         }));
 
         const curated = normalized
           .filter((r) => {
-            const hasKnownName = r.name && r.name.toLowerCase() !== 'unknown' && r.name.toLowerCase() !== 'unknown place';
+            const hasKnownName =
+              r.name &&
+              r.name.toLowerCase() !== "unknown" &&
+              r.name.toLowerCase() !== "unknown place";
             const hasAnyUsefulMeta =
-              r.location !== 'Address unavailable' ||
-              r.openingHours !== 'Not available' ||
+              r.location !== "Address unavailable" ||
+              r.openingHours !== "Not available" ||
               r.website ||
               r.image ||
               r.rating != null;
@@ -64,7 +73,7 @@ const FindSpots = () => {
             const score = (x) =>
               (x.image ? 1 : 0) +
               (x.rating != null ? 1 : 0) +
-              (x.location !== 'Address unavailable' ? 1 : 0) +
+              (x.location !== "Address unavailable" ? 1 : 0) +
               (x.website ? 1 : 0);
 
             return score(b) - score(a);
@@ -72,58 +81,75 @@ const FindSpots = () => {
 
         setAllRestaurants(curated);
       } catch (err) {
-        console.error('Failed to fetch food places:', err);
-        setError('Could not load restaurants. Please try again.');
+        console.error("Failed to fetch food places:", err);
+        setError("Could not load restaurants. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
     fetchPlaces();
-  }, [filters.cuisine]); 
+  }, [filters.cuisine]);
 
   const handleResetFilters = () => {
     setFilters({
-      location: '',
-      cuisine: '',
-      price: '',
-      occasion: ''
+      location: "",
+      cuisine: "",
+      price: "",
+      occasion: "",
     });
-    setSearchQuery('');
+    setSearchQuery("");
+    setDisplayedCount(9);
+  };
+
+  const handleLoadMore = () => {
+    setDisplayedCount((prev) => prev + 9);
   };
 
   const toggleDropdown = (filterName) => {
-    setShowDropdown(prev => ({
+    setShowDropdown((prev) => ({
       ...prev,
-      [filterName]: !prev[filterName]
+      [filterName]: !prev[filterName],
     }));
   };
 
   const handleFilterChange = (filterName, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [filterName]: value
+      [filterName]: value,
     }));
-    setShowDropdown(prev => ({
+    setShowDropdown((prev) => ({
       ...prev,
-      [filterName]: false
+      [filterName]: false,
     }));
   };
 
-  
-  const filteredRestaurants = allRestaurants.filter(restaurant => {
-    const matchesSearch = restaurant.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesLocation = !filters.location || restaurant.location === filters.location;
-    const matchesCuisine = !filters.cuisine || restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
-    const matchesPrice = !filters.price || restaurant.priceRange === filters.price;
+  const filteredRestaurants = allRestaurants.filter((restaurant) => {
+    const matchesSearch = restaurant.name
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesLocation =
+      !filters.location || restaurant.location === filters.location;
+    const matchesCuisine =
+      !filters.cuisine ||
+      restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
+    const matchesPrice =
+      !filters.price || restaurant.priceRange === filters.price;
     return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
   });
 
-  const trendingRestaurants = allRestaurants
+  // Apply same filters to trending restaurants
+  const trendingRestaurants = filteredRestaurants
     .filter((r) => r.rating != null)
     .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-    .slice(0, 8);
+    .slice(0, 9);
 
-  const fallbackTrending = trendingRestaurants.length > 0 ? trendingRestaurants : allRestaurants.slice(0, 8);
+  const fallbackTrending =
+    trendingRestaurants.length > 0
+      ? trendingRestaurants
+      : filteredRestaurants.slice(0, 9);
+
+  // Paginated results
+  const paginatedResults = filteredRestaurants.slice(0, displayedCount);
 
   return (
     <div className="find-spots-page">
@@ -150,8 +176,11 @@ const FindSpots = () => {
 
         {/* Location Filter */}
         <div className="filter-dropdown">
-          <button onClick={() => toggleDropdown('location')} className="filter-btn">
-            <span>{filters.location || 'Location'}</span>
+          <button
+            onClick={() => toggleDropdown("location")}
+            className="filter-btn"
+          >
+            <span>{filters.location || "Location"}</span>
             <ChevronDown size={16} />
           </button>
           {showDropdown.location && (
@@ -159,10 +188,10 @@ const FindSpots = () => {
               {Object.entries(SINGAPORE_REGIONS).map(([region, areas]) => (
                 <div key={region}>
                   <div className="dropdown-region">{region}</div>
-                  {areas.map(area => (
+                  {areas.map((area) => (
                     <button
                       key={area}
-                      onClick={() => handleFilterChange('location', area)}
+                      onClick={() => handleFilterChange("location", area)}
                       className="dropdown-item"
                     >
                       {area}
@@ -176,16 +205,19 @@ const FindSpots = () => {
 
         {/* Cuisine Filter */}
         <div className="filter-dropdown">
-          <button onClick={() => toggleDropdown('cuisine')} className="filter-btn">
-            <span>{filters.cuisine || 'Cuisine'}</span>
+          <button
+            onClick={() => toggleDropdown("cuisine")}
+            className="filter-btn"
+          >
+            <span>{filters.cuisine || "Cuisine"}</span>
             <ChevronDown size={16} />
           </button>
           {showDropdown.cuisine && (
             <div className="dropdown-menu">
-              {CUISINE_CATEGORIES.map(cuisine => (
+              {CUISINE_CATEGORIES.map((cuisine) => (
                 <button
                   key={cuisine}
-                  onClick={() => handleFilterChange('cuisine', cuisine)}
+                  onClick={() => handleFilterChange("cuisine", cuisine)}
                   className="dropdown-item"
                 >
                   {cuisine}
@@ -197,16 +229,19 @@ const FindSpots = () => {
 
         {/* Price Filter */}
         <div className="filter-dropdown">
-          <button onClick={() => toggleDropdown('price')} className="filter-btn">
-            <span>{filters.price || 'Price'}</span>
+          <button
+            onClick={() => toggleDropdown("price")}
+            className="filter-btn"
+          >
+            <span>{filters.price || "Price"}</span>
             <ChevronDown size={16} />
           </button>
           {showDropdown.price && (
             <div className="dropdown-menu">
-              {PRICE_RANGES.map(range => (
+              {PRICE_RANGES.map((range) => (
                 <button
                   key={range.value}
-                  onClick={() => handleFilterChange('price', range.label)}
+                  onClick={() => handleFilterChange("price", range.label)}
                   className="dropdown-item"
                 >
                   {range.label}
@@ -218,16 +253,19 @@ const FindSpots = () => {
 
         {/* Occasion Filter */}
         <div className="filter-dropdown">
-          <button onClick={() => toggleDropdown('occasion')} className="filter-btn">
-            <span>{filters.occasion || 'Occasion'}</span>
+          <button
+            onClick={() => toggleDropdown("occasion")}
+            className="filter-btn"
+          >
+            <span>{filters.occasion || "Occasion"}</span>
             <ChevronDown size={16} />
           </button>
           {showDropdown.occasion && (
             <div className="dropdown-menu">
-              {OCCASIONS.map(occasion => (
+              {OCCASIONS.map((occasion) => (
                 <button
                   key={occasion}
-                  onClick={() => handleFilterChange('occasion', occasion)}
+                  onClick={() => handleFilterChange("occasion", occasion)}
                   className="dropdown-item"
                 >
                   {occasion}
@@ -261,12 +299,11 @@ const FindSpots = () => {
           <h2 className="text-2xl font-bold mb-6">Trending Now</h2>
           {fallbackTrending.length > 0 ? (
             <div className="restaurant-grid">
-              {fallbackTrending.map(restaurant => (
+              {fallbackTrending.map((restaurant) => (
                 <RestaurantCard key={restaurant.id} restaurant={restaurant} />
               ))}
             </div>
           ) : (
-
             <p className="text-gray-400">No trending spots yet.</p>
           )}
         </div>
@@ -276,15 +313,27 @@ const FindSpots = () => {
       {!isLoading && !error && (
         <div className="results-section">
           <h2 className="text-2xl font-bold mb-6">
-            {searchQuery || Object.values(filters).some(f => f)
+            {searchQuery || Object.values(filters).some((f) => f)
               ? `Results (${filteredRestaurants.length})`
               : `All Spots (${filteredRestaurants.length})`}
           </h2>
           <div className="restaurant-grid">
-            {filteredRestaurants.map(restaurant => (
+            {paginatedResults.map((restaurant) => (
               <RestaurantCard key={restaurant.id} restaurant={restaurant} />
             ))}
           </div>
+
+          {/* Load More Button */}
+          {displayedCount < filteredRestaurants.length && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={handleLoadMore}
+                className="px-8 py-3 bg-orange-400 hover:bg-orange-500 text-white rounded-lg font-semibold transition-colors"
+              >
+                Load More
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

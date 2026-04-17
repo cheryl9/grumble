@@ -63,7 +63,8 @@ export default function PostManagement() {
     try {
       const reason = window.prompt('Reason for deleting this comment (optional):', '') || '';
       await adminPostService.deleteComment(comment.id, reason);
-      setSelectedPost((prev) => (prev ? { ...prev } : prev));
+      // Refresh the posts list to update comment counts on cards
+      fetchPosts();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete comment');
     }
