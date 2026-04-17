@@ -6,7 +6,6 @@ import {
   SINGAPORE_REGIONS,
   CUISINE_CATEGORIES,
   PRICE_RANGES,
-  OCCASIONS,
 } from "../utils/constants";
 import logo from "../assets/logo.png";
 
@@ -16,13 +15,11 @@ const FindSpots = () => {
     location: "",
     cuisine: "",
     price: "",
-    occasion: "",
   });
   const [showDropdown, setShowDropdown] = useState({
     location: false,
     cuisine: false,
     price: false,
-    occasion: false,
   });
 
   const [allRestaurants, setAllRestaurants] = useState([]);
@@ -44,15 +41,20 @@ const FindSpots = () => {
           name: p.name || "Unknown place",
           cuisine: p.cuisine || "Unknown",
           category: p.category || "",
-          location: p.address || "Address unavailable",
-          openingHours: p.opening_hours || "Not available",
-          image: p.image_url || null,
-          priceRange: "-",
-          rating: p.rating != null ? Number(p.rating) : null,
-          reviewCount: p.review_count != null ? Number(p.review_count) : null,
+          location: p.google?.address || p.address || "Address unavailable",
+          openingHours:
+            p.google?.openingHours || p.opening_hours || "Not available",
+          image: p.google?.image || p.image_url || null,
+          priceRange: p.google?.priceLevel
+            ? "$".repeat(p.google.priceLevel)
+            : "-",
+          rating: p.google?.rating != null ? Number(p.google.rating) : null,
+          reviewCount:
+            p.google?.reviewCount != null ? Number(p.google.reviewCount) : null,
           website: p.website || null,
           lat: p.lat,
           lon: p.lon,
+          googleData: p.google || null,
         }));
 
         const curated = normalized
@@ -95,7 +97,6 @@ const FindSpots = () => {
       location: "",
       cuisine: "",
       price: "",
-      occasion: "",
     });
     setSearchQuery("");
     setDisplayedCount(9);
@@ -127,14 +128,12 @@ const FindSpots = () => {
     const matchesSearch = restaurant.name
       ?.toLowerCase()
       .includes(searchQuery.toLowerCase());
-    const matchesLocation =
-      !filters.location || restaurant.location === filters.location;
     const matchesCuisine =
       !filters.cuisine ||
       restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
     const matchesPrice =
-      !filters.price || restaurant.priceRange === filters.price;
-    return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
+      !filters.price || restaurant.priceRange.startsWith(filters.price);
+    return matchesSearch && matchesCuisine && matchesPrice;
   });
 
   // Apply same filters to trending restaurants
@@ -241,34 +240,10 @@ const FindSpots = () => {
               {PRICE_RANGES.map((range) => (
                 <button
                   key={range.value}
-                  onClick={() => handleFilterChange("price", range.label)}
+                  onClick={() => handleFilterChange("price", range.value)}
                   className="dropdown-item"
                 >
                   {range.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Occasion Filter */}
-        <div className="filter-dropdown">
-          <button
-            onClick={() => toggleDropdown("occasion")}
-            className="filter-btn"
-          >
-            <span>{filters.occasion || "Occasion"}</span>
-            <ChevronDown size={16} />
-          </button>
-          {showDropdown.occasion && (
-            <div className="dropdown-menu">
-              {OCCASIONS.map((occasion) => (
-                <button
-                  key={occasion}
-                  onClick={() => handleFilterChange("occasion", occasion)}
-                  className="dropdown-item"
-                >
-                  {occasion}
                 </button>
               ))}
             </div>
