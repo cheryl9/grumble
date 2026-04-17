@@ -30,7 +30,11 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         EXISTS (
           SELECT 1 FROM likes l
           WHERE l.post_id = p.id AND l.user_id = $1
-        ) AS liked_by_me
+        ) AS liked_by_me,
+        EXISTS (
+          SELECT 1 FROM saves s
+          WHERE s.post_id = p.id AND s.user_id = $1
+        ) AS saved_by_me
       FROM posts p
       JOIN users u ON u.id = p.user_id
       LEFT JOIN food_places fp ON fp.id = p.food_place_id
@@ -51,8 +55,6 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         fp.name  AS place_name,
         fp.cuisine,
         fp.category,
-        fp.lat,
-        fp.lon,
         EXISTS (
           SELECT 1 FROM likes l
           WHERE l.post_id = p.id AND l.user_id = $1
@@ -92,11 +94,16 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         EXISTS (
           SELECT 1 FROM likes l
           WHERE l.post_id = p.id AND l.user_id = $1
-        ) AS liked_by_me
+        ) AS liked_by_me,
+        EXISTS (
+          SELECT 1 FROM saves s
+          WHERE s.post_id = p.id AND s.user_id = $1
+        ) AS saved_by_me
       FROM posts p
       JOIN users u ON u.id = p.user_id
       LEFT JOIN food_places fp ON fp.id = p.food_place_id
       WHERE p.visibility = 'public'
+        AND p.user_id <> $1
         AND p.is_deleted = false
       ORDER BY p.created_at DESC
       LIMIT $2 OFFSET $3
@@ -123,7 +130,11 @@ async function getPostById(postId, userId) {
       EXISTS (
         SELECT 1 FROM likes l
         WHERE l.post_id = p.id AND l.user_id = $2
-      ) AS liked_by_me
+      ) AS liked_by_me,
+      EXISTS (
+        SELECT 1 FROM saves s
+        WHERE s.post_id = p.id AND s.user_id = $2
+      ) AS saved_by_me
     FROM posts p
     JOIN users u ON u.id = p.user_id
     LEFT JOIN food_places fp ON fp.id = p.food_place_id
@@ -166,6 +177,67 @@ async function createPost({
 }
 
 // likes
+
+/**
+ * Get post owner info for permission checks.
+ */
+async function getPostOwner(postId) {
+  const result = await pool.query(
+    `SELECT id, user_id, is_deleted
+     FROM posts
+     WHERE id = $1`,
+    [postId]
+  );
+
+  return result.rows[0] || null;
+}
+
+/**
+ * Update post details (only fields the user can edit).
+ */
+async function updatePost(postId, { locationName, rating, imageUrl, description, visibility }) {
+  const result = await pool.query(
+    `UPDATE posts
+     SET
+       location_name = COALESCE($2, location_name),
+       rating = COALESCE($3, rating),
+       image_url = COALESCE($4, image_url),
+       description = COALESCE($5, description),
+       visibility = COALESCE($6, visibility),
+       updated_at = NOW()
+     WHERE id = $1
+       AND is_deleted = false
+     RETURNING *`,
+    [
+      postId,
+      locationName !== undefined ? locationName.trim() : null,
+      rating !== undefined ? Number(rating) : null,
+      imageUrl !== undefined ? imageUrl : null,
+      description !== undefined ? description.trim() : null,
+      visibility !== undefined ? visibility : null,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+/**
+ * Soft delete a post (mark as deleted without removing).
+ */
+async function softDeletePost(postId) {
+  const result = await pool.query(
+    `UPDATE posts
+     SET is_deleted = true,
+         deleted_at = NOW(),
+         updated_at = NOW()
+     WHERE id = $1
+       AND is_deleted = false
+     RETURNING id`,
+    [postId]
+  );
+
+  return result.rows[0] || null;
+}
 
 /**
  * Toggle like on a post.
@@ -247,7 +319,7 @@ async function toggleSave(postId, userId) {
       `UPDATE posts SET saves_count = GREATEST(saves_count - 1, 0) WHERE id = $1`,
       [postId],
     );
-    return { saved: false };
+    return { saved: false, saved_by_me: false };
   } else {
     await pool.query(`INSERT INTO saves (post_id, user_id) VALUES ($1, $2)`, [
       postId,
@@ -257,7 +329,7 @@ async function toggleSave(postId, userId) {
       `UPDATE posts SET saves_count = saves_count + 1 WHERE id = $1`,
       [postId],
     );
-    return { saved: true };
+    return { saved: true, saved_by_me: true };
   }
 }
 
@@ -296,13 +368,28 @@ async function getSavedPosts(userId, limit = 20, offset = 0) {
   return result.rows;
 }
 
+async function createReport(postId, reporterId, reason) {
+  const result = await pool.query(
+    `INSERT INTO reports (reporter_id, reported_post_id, reason)
+     VALUES ($1, $2, $3)
+     RETURNING id, reporter_id, reported_post_id, reason, status, created_at`,
+    [reporterId, postId, reason]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   getFeedPosts,
   getPostById,
   createPost,
+  getPostOwner,
+  updatePost,
+  softDeletePost,
   toggleLike,
   getCommentsByPostId,
   createComment,
   toggleSave,
   getSavedPosts,
+  createReport,
 };

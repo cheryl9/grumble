@@ -1,6 +1,7 @@
-require('dotenv').config();
+require('../config/loadEnv');
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
+const fs = require('fs');
 const readline = require('readline');
 
 /**
@@ -10,13 +11,29 @@ const readline = require('readline');
  * Usage: node scripts/createAdmin.js
  */
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+const pipedAnswers = isInteractive
+  ? []
+  : fs.readFileSync(0, 'utf8').split(/\r?\n/);
+let answerIndex = 0;
+
+const rl = isInteractive
+  ? readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    })
+  : null;
 
 // Helper to ask questions
-const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+const question = (query) => {
+  if (!isInteractive) {
+    const answer = pipedAnswers[answerIndex] ?? '';
+    answerIndex += 1;
+    return Promise.resolve(answer);
+  }
+
+  return new Promise((resolve) => rl.question(query, resolve));
+};
 
 // Validate email format
 const isValidEmail = (email) => {
@@ -167,7 +184,9 @@ async function createAdmin() {
     }
     process.exit(1);
   } finally {
-    rl.close();
+    if (rl && !rl.closed) {
+      rl.close();
+    }
     await pool.end();
   }
 }

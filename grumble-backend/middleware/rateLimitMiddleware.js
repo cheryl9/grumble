@@ -14,6 +14,7 @@ function createRateLimiter(maxAttempts = 5, windowMs = 15 * 60 * 1000) {
   return (req, res, next) => {
     const key = `${req.ip}-${req.body.username || 'unknown'}`;
     const now = Date.now();
+    let resetTime;
 
     // Clean old entries
     if (attempts[key] && now - attempts[key].firstAttempt > windowMs) {
@@ -29,7 +30,7 @@ function createRateLimiter(maxAttempts = 5, windowMs = 15 * 60 * 1000) {
 
     // Check if exceeded
     if (attempts[key].count > maxAttempts) {
-      const resetTime = new Date(attempts[key].firstAttempt + windowMs).toISOString();
+      resetTime = new Date(attempts[key].firstAttempt + windowMs).toISOString();
       return res.status(429).json({
         success: false,
         message: `Too many login attempts. Please try again after ${Math.ceil((attempts[key].firstAttempt + windowMs - now) / 1000)} seconds.`,
@@ -39,6 +40,7 @@ function createRateLimiter(maxAttempts = 5, windowMs = 15 * 60 * 1000) {
 
     // Warn if approaching limit
     if (attempts[key].count >= maxAttempts - 1) {
+      resetTime = new Date(attempts[key].firstAttempt + windowMs).toISOString();
       res.set('X-RateLimit-Remaining', maxAttempts - attempts[key].count);
       res.set('X-RateLimit-Reset', resetTime);
     }

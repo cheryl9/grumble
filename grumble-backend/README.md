@@ -92,6 +92,21 @@ psql -U postgres -d grumble -f migrations/002_create_users.sql
 
 # 3. Add Telegram integration fields to users table
 psql -U postgres -d grumble -f migrations/003_add_telegram_fields.sql
+
+# 4. Create admin tables
+psql -U postgres -d grumble -f migrations/004_create_admin_tables.sql
+
+# 5. Create saves table
+psql -U postgres -d grumble -f migrations/005_create_saves.sql
+
+# 6. Add food place enrichment fields
+psql -U postgres -d grumble -f migrations/006_add_food_place_enrichment_fields.sql
+```
+
+Or run all migrations via npm script:
+
+```bash
+npm run migrate:all
 ```
 
 ---
@@ -142,6 +157,12 @@ node scripts/syncOSM.js
 node server.js
 ```
 
+or
+
+```bash
+npm run start
+```
+
 Server will run on http://localhost:5001
 
 ---
@@ -157,6 +178,19 @@ node scripts/telegramBotHelper.js
 This bot will auto-reply with the Chat ID when users send `/start` to your bot.
 
 See [TELEGRAM_SETUP.md](./TELEGRAM_SETUP.md) for full details.
+
+---
+
+## Useful npm Scripts
+
+```bash
+npm run dev              # Run server in watch mode
+npm run start            # Start server normally
+npm run migrate:all      # Run all migrations in order
+npm run sync:osm         # Sync OSM food places into DB
+npm run admin:create     # Create an admin user
+npm run telegram:helper  # Run Telegram helper bot
+```
 
 ---
 

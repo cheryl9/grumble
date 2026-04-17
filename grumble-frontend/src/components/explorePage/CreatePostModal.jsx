@@ -123,7 +123,8 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
       onClose();
     } catch (err) {
       console.error("Failed to create post:", err);
-      setError("Failed to create post. Please try again.");
+      const backendMessage = err?.response?.data?.error || err?.response?.data?.message;
+      setError(backendMessage || "Failed to create post. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
