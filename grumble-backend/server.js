@@ -1,6 +1,5 @@
 require("dotenv").config();
 const app = require("./app");
-//const { syncFoodPlaces } = require("./services/syncService");
 
 const http = require("http");
 const jwt = require("jsonwebtoken");
@@ -36,7 +35,6 @@ const io = new Server(server, {
   },
 });
 
-// Authenticate socket connections using the same JWT secret as the REST API.
 io.use(async (socket, next) => {
   try {
     const authHeader = socket.handshake.headers?.authorization;
@@ -47,29 +45,19 @@ io.use(async (socket, next) => {
 
     const token = socket.handshake.auth?.token || tokenFromHeader;
 
-    if (!token) {
-      return next(new Error("unauthorized"));
-    }
+    if (!token) return next(new Error("unauthorized"));
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "grumble-secret-key",
-    );
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "grumble-secret-key");
 
     const userCheck = await pool.query(
       "SELECT id, username, account_status, is_deleted, frozen_reason FROM users WHERE id = $1",
-      [decoded.id],
+      [decoded.id]
     );
 
     const user = userCheck.rows[0];
 
-    if (!user || user.is_deleted) {
-      return next(new Error("unauthorized"));
-    }
-
-    if (user.account_status === "frozen") {
-      return next(new Error("frozen"));
-    }
+    if (!user || user.is_deleted) return next(new Error("unauthorized"));
+    if (user.account_status === "frozen") return next(new Error("frozen"));
 
     socket.user = { id: user.id, username: user.username };
     return next();
@@ -81,7 +69,6 @@ io.use(async (socket, next) => {
 io.on("connection", (socket) => {
   socket.data.subscribedRoomIds = new Set();
 
-  // Join a per-user channel for direct in-app notifications.
   socket.join(userChannel(socket.user.id));
   registerUserSocket(socket.user.id, socket.id);
 
@@ -89,18 +76,13 @@ io.on("connection", (socket) => {
     try {
       const roomId = Number(data?.room_id);
       if (!Number.isInteger(roomId)) {
-        if (typeof ack === "function")
-          ack({ ok: false, message: "room_id must be an integer" });
+        if (typeof ack === "function") ack({ ok: false, message: "room_id must be an integer" });
         return;
       }
 
-      const isMember = await chatRoomRepository.isMemberOfRoom(
-        roomId,
-        socket.user.id,
-      );
+      const isMember = await chatRoomRepository.isMemberOfRoom(roomId, socket.user.id);
       if (!isMember) {
-        if (typeof ack === "function")
-          ack({ ok: false, message: "not a room member" });
+        if (typeof ack === "function") ack({ ok: false, message: "not a room member" });
         return;
       }
 
@@ -112,16 +94,14 @@ io.on("connection", (socket) => {
 
       if (typeof ack === "function") ack({ ok: true, room_id: roomId });
     } catch (err) {
-      if (typeof ack === "function")
-        ack({ ok: false, message: "subscribe failed" });
+      if (typeof ack === "function") ack({ ok: false, message: "subscribe failed" });
     }
   });
 
   socket.on("unsubscribe", async (data, ack) => {
     const roomId = Number(data?.room_id);
     if (!Number.isInteger(roomId)) {
-      if (typeof ack === "function")
-        ack({ ok: false, message: "room_id must be an integer" });
+      if (typeof ack === "function") ack({ ok: false, message: "room_id must be an integer" });
       return;
     }
 
@@ -137,11 +117,9 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     unregisterUserSocket(socket.user.id, socket.id);
-
     for (const roomId of socket.data.subscribedRoomIds) {
       unmarkUserActiveInRoom(roomId, socket.user.id);
     }
-
     socket.data.subscribedRoomIds.clear();
   });
 });
