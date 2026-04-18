@@ -7,6 +7,103 @@ const {
 } = require("../repositories/foodPlaceRepository");
 const { getGoogleData } = require("../services/googlePlacesService");
 
+// Map postal code prefix to region (matches postalCodeMapper.js logic)
+const POSTAL_CODE_TO_REGION = {
+  "01": "Central",
+  "02": "Central",
+  "03": "Central",
+  "04": "Central",
+  "05": "Central",
+  "06": "Central",
+  "07": "Central",
+  "08": "Central",
+  "09": "Central",
+  10: "Central",
+  11: "Central",
+  12: "Central",
+  13: "Central",
+  14: "Central",
+  15: "Central",
+  16: "Central",
+  70: "West", // Tengah/Lim Chu Kang
+  71: "West",
+  72: "Central",
+  73: "Central",
+  74: "Central",
+  75: "Central",
+  76: "Central",
+  77: "Central",
+  78: "Central",
+  79: "North-East", // Seletar
+  18: "Central", // Bugis, Rochor, Golden Mile
+  19: "Central",
+  20: "Central",
+  21: "Central",
+  22: "Central", // Orchard/River Valley
+  23: "Central",
+  24: "Central", // Tanglin, Bukit Timah, Newton, Thomson
+  25: "Central",
+  26: "Central",
+  27: "Central",
+  28: "Central",
+  29: "Central",
+  30: "North-East", // Serangoon/Hougang
+  31: "Central", // Balestier, Toa Payoh
+  32: "Central",
+  33: "Central",
+  // East (34-48, 49-52, 80, 81)
+  34: "East",
+  35: "East",
+  36: "East",
+  37: "East",
+  38: "East",
+  39: "East",
+  40: "East",
+  41: "East",
+  42: "East",
+  43: "East",
+  44: "East",
+  45: "East",
+  46: "East",
+  47: "East",
+  48: "East",
+  49: "East", // Changi, Loyang, Tampines, Pasir Ris
+  50: "East",
+  51: "East",
+  52: "East",
+  80: "East", // Paya Lebar/Macpherson
+  81: "East", // Changi Airport
+  82: "North-East", // Punggol/Sengkang
+  // West (17, 53-69)
+  17: "West",
+  53: "West",
+  54: "West",
+  55: "West",
+  56: "West",
+  57: "West",
+  58: "West",
+  59: "West",
+  60: "West",
+  61: "West",
+  62: "West",
+  63: "West",
+  64: "West",
+  65: "West",
+  66: "West",
+  67: "West",
+  68: "West",
+  69: "West",
+};
+
+// Extract postal code prefix from address and get region
+function getRegionFromAddress(address) {
+  if (!address) return null;
+  const match = address.match(/\b(\d{6})\b/);
+  if (!match) return null;
+  const prefix = match[1].substring(0, 2);
+  return POSTAL_CODE_TO_REGION[prefix] || null;
+}
+
 // ========== RATE LIMITING & CACHING ==========
 const apiCallTracker = {
   google: { count: 0, resetTime: Date.now() + 86400000 },
@@ -39,7 +136,9 @@ function canMakeApiCall(service) {
   }
 
   if (remaining < 10) {
-    console.warn(`⚠️  ${service} API approaching limit! ${remaining} calls remaining`);
+    console.warn(
+      `⚠️  ${service} API approaching limit! ${remaining} calls remaining`,
+    );
   }
 
   return true;
@@ -47,7 +146,9 @@ function canMakeApiCall(service) {
 
 function incrementApiCall(service) {
   apiCallTracker[service].count++;
-  console.log(`📊 ${service} API calls: ${apiCallTracker[service].count}/${DAILY_LIMITS[service]}`);
+  console.log(
+    `📊 ${service} API calls: ${apiCallTracker[service].count}/${DAILY_LIMITS[service]}`,
+  );
 }
 
 function getCacheKey(...args) {
@@ -91,7 +192,10 @@ async function enrichWithGoogle(place) {
 
     return { ...place, google: googleData ?? null };
   } catch (err) {
-    console.error(`Google enrichment failed for place ${place.id}:`, err.message);
+    console.error(
+      `Google enrichment failed for place ${place.id}:`,
+      err.message,
+    );
     return { ...place, google: null };
   }
 }
@@ -117,7 +221,17 @@ async function getAllFoodPlacesHandler(req, res) {
       return;
     }
 
-    const enriched = await Promise.all(places.map(enrichWithGoogle));
+    const enriched = await Promise.all(
+      places.map(async (place) => {
+        const withGoogle = await enrichWithGoogle(place);
+        // Extract region from Google address
+        const region = getRegionFromAddress(
+          withGoogle.google?.address || place.address,
+        );
+        return { ...withGoogle, region };
+      }),
+    );
+
     res.json(enriched);
   } catch (error) {
     console.error("Detailed error:", error.message);
@@ -139,7 +253,15 @@ async function getFoodPlaceByIdHandler(req, res) {
 
 async function createFoodPlaceHandler(req, res) {
   try {
-    const { name, cuisine, category, latitude, longitude, address, opening_hours } = req.body;
+    const {
+      name,
+      cuisine,
+      category,
+      latitude,
+      longitude,
+      address,
+      opening_hours,
+    } = req.body;
 
     if (!name || name.trim() === "") {
       return res.status(400).json({ error: "Food place name is required" });
@@ -188,14 +310,17 @@ async function convertPostcodeHandler(req, res) {
     }
   } catch (error) {
     console.error("Postcode handler error:", error);
-    res.status(500).json({ success: false, error: "Server error when converting postcode" });
+    res
+      .status(500)
+      .json({ success: false, error: "Server error when converting postcode" });
   }
 }
 
 async function searchFoodPlaces(req, res) {
   res.status(410).json({
     success: false,
-    message: "Foursquare integration has been removed. Use Google Places search instead.",
+    message:
+      "Foursquare integration has been removed. Use Google Places search instead.",
   });
 }
 
