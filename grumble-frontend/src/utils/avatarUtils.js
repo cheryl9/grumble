@@ -3,9 +3,21 @@
 import logoImg from "../assets/logo.png";
 import defaultPng from "../assets/avatars/default.png";
 
+const avatarModules = import.meta.glob("../assets/avatars/*.png", {
+  eager: true,
+  import: "default",
+});
+
+const avatarSrcMap = Object.fromEntries(
+  Object.entries(avatarModules).map(([path, src]) => [
+    path.split("/").pop().replace(/\.png$/, ""),
+    src,
+  ]),
+);
+
 export function getAvatarSrc(equippedAvatar) {
   if (!equippedAvatar) return defaultPng;
-  return `/src/assets/avatars/${equippedAvatar}.png`;
+  return avatarSrcMap[equippedAvatar] || defaultPng;
 }
 
 // map pins

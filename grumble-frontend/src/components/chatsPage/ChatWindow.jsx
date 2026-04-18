@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import Avatar from "./Avatar";
 import ChatMessage from "./ChatMessage";
 import { getChatRoom } from "../../services/chatService";
+import { subscribeToRoom, unsubscribeFromRoom } from "../../services/realtimeSocket";
 
 const ChatWindow = ({
   chat,
@@ -73,6 +74,30 @@ const ChatWindow = ({
 
     load();
 
+    const socket = subscribeToRoom(roomId);
+    if (socket) {
+      const handleRoomEvent = (event) => {
+        if (Number(event?.room_id) !== Number(roomId)) return;
+
+        if (event?.event === "new_message" && event?.payload?.message) {
+          const nextMessage = event.payload.message;
+          setMessages((prev) => {
+            const alreadyExists = prev.some((msg) => msg.id === nextMessage.id);
+            return alreadyExists ? prev : [...prev, nextMessage];
+          });
+          onChatUpdated?.();
+        }
+      };
+
+      socket.on("room_event", handleRoomEvent);
+
+      return () => {
+        cancelled = true;
+        socket.off("room_event", handleRoomEvent);
+        unsubscribeFromRoom(roomId);
+      };
+    }
+
     return () => {
       cancelled = true;
     };
@@ -99,7 +124,10 @@ const ChatWindow = ({
 
   const appendMessage = (newMessage) => {
     if (!newMessage) return;
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => {
+      const exists = prev.some((msg) => msg.id === newMessage.id);
+      return exists ? prev : [...prev, newMessage];
+    });
   };
 
   const sendTextMessage = async () => {

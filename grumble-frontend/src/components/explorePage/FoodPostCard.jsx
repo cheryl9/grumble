@@ -146,7 +146,6 @@ const FoodPostCard = ({
             />
           </button>
         </div>
-
         <div className="post-caption pt-1">
           <p className="text-sm line-clamp-2 text-gray-700">
             <span className="font-semibold">{post.username}</span>{" "}

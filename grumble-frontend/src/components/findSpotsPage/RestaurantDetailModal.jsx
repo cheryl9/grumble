@@ -1,33 +1,64 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
-  X,
-  MapPin,
-  Star,
-  Clock,
-  DollarSign,
-  Users,
   ChevronLeft,
+  FileText,
+  Star,
 } from "lucide-react";
+import UserAvatar from "../common/UserAvatar";
+import { getFriendsVisitedByRestaurantId } from "../../services/friendsVisitedService";
 
-const RestaurantDetailModal = ({ restaurant, onClose }) => {
-  // Mock friends data - will be replaced with real data later
-  const mockFriends = [
-    { userId: 1, username: "Germaine", avatar: null },
-    { userId: 2, username: "Alice", avatar: null },
-    { userId: 3, username: "Wong Song", avatar: null },
-    { userId: 4, username: "Casey", avatar: null },
-  ];
+const RestaurantDetailModal = ({
+  restaurant,
+  onClose,
+  initialFriendsVisited = [],
+  initialLoaded = false,
+}) => {
+  const outlets =
+    restaurant.outlets?.length > 0
+      ? restaurant.outlets
+      : restaurant.location
+        ? [restaurant.location]
+        : [];
 
-  // Use real friends data if available, otherwise use mock
-  const friendsToDisplay =
-    restaurant.friendsVisited?.length > 0
-      ? restaurant.friendsVisited
-      : mockFriends;
+  const [friendsVisited, setFriendsVisited] = useState(initialFriendsVisited);
+  const [isLoading, setIsLoading] = useState(!initialLoaded);
 
-  // Parse opening hours from Google data
-  const openingHoursText = restaurant.openingHours
-    ? restaurant.openingHours
-    : "Not available";
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchFriendsWhoVisited = async () => {
+      if (!restaurant?.id) {
+        if (isActive) setIsLoading(false);
+        return;
+      }
+
+      if (initialLoaded) {
+        if (isActive) setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const friends = await getFriendsVisitedByRestaurantId(restaurant.id);
+        if (!isActive) return;
+        setFriendsVisited(friends);
+      } catch (error) {
+        if (!isActive) return;
+        console.error("Failed to fetch friends who visited:", error);
+        setFriendsVisited([]);
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    };
+
+    fetchFriendsWhoVisited();
+
+    return () => {
+      isActive = false;
+    };
+  }, [restaurant?.id, initialLoaded]);
+
+  const openingHoursText = restaurant.openingHours || "Not available";
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -35,14 +66,11 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
         className="restaurant-detail-container"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Back Button */}
         <button onClick={onClose} className="back-button">
           <ChevronLeft size={24} />
         </button>
 
-        {/* Two Column Layout */}
         <div className="restaurant-detail-grid">
-          {/* Left Side - Image */}
           <div className="restaurant-detail-image-section">
             {restaurant.image ? (
               <img
@@ -57,20 +85,23 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
             )}
           </div>
 
-          {/* Right Side - Details with Yellow Background */}
           <div className="restaurant-detail-info-section">
             <h2 className="text-2xl font-bold mb-6">{restaurant.name}</h2>
 
             <div className="space-y-5">
-              {/* Location */}
               <div className="detail-item">
                 <h3 className="detail-label">Location:</h3>
-                <p className="detail-value text-sm text-gray-700">
-                  {restaurant.location || "Location not available"}
-                </p>
+                {outlets.length > 0 ? (
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+                    {outlets.map((outlet, idx) => (
+                      <li key={`${outlet}-${idx}`}>{outlet}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="detail-value">Outlet information not available</p>
+                )}
               </div>
 
-              {/* Opening Hours */}
               <div className="detail-item">
                 <h3 className="detail-label">Opening Hours:</h3>
                 <p className="detail-value text-sm text-gray-700">
@@ -78,15 +109,13 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
                 </p>
               </div>
 
-              {/* Price Range */}
               <div className="detail-item">
                 <h3 className="detail-label">Price Range:</h3>
                 <p className="detail-value text-sm text-gray-700">
-                  {restaurant.priceRange}
+                  {restaurant.priceRange || "-"}
                 </p>
               </div>
 
-              {/* Ratings */}
               <div className="detail-item">
                 <h3 className="detail-label">Ratings:</h3>
                 <div className="flex items-center gap-1">
@@ -97,42 +126,44 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
                 </div>
               </div>
 
-              {/* Friends who have visited */}
+              <div className="detail-item">
+                <h3 className="detail-label">Menu:</h3>
+                <div className="detail-link flex items-center gap-2 text-gray-500">
+                  <FileText size={16} />
+                  Menu not available
+                </div>
+              </div>
+
               <div className="detail-item">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="detail-label mb-0">
-                    Friends who have visited before:
-                  </h3>
-                  <span className="text-xs text-gray-500">
-                    View all unavailable
-                  </span>
+                  <h3 className="detail-label mb-0">Friends who have visited:</h3>
+                  {friendsVisited.length > 4 && (
+                    <span className="text-xs text-[#2945A8] cursor-pointer">
+                      View all ({friendsVisited.length})
+                    </span>
+                  )}
                 </div>
-                <div className="friends-avatars">
-                  {friendsToDisplay.slice(0, 4).map((friend, index) => (
-                    <button
-                      key={friend.userId}
-                      className="friend-avatar"
-                      onClick={() => {
-                        // TODO: Navigate to friend's post
-                        console.log(`View posts by ${friend.username}`);
-                      }}
-                      title={`@${friend.username}`}
-                    >
-                      {friend.avatar ? (
-                        <img
-                          src={friend.avatar}
-                          alt={friend.username}
-                          className="w-full h-full object-cover"
+
+                {isLoading ? (
+                  <p className="text-sm text-gray-500">Loading friends data...</p>
+                ) : friendsVisited.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No friends have posted from this location yet
+                  </p>
+                ) : (
+                  <div className="friends-visited-modal-grid">
+                    {friendsVisited.slice(0, 4).map((friend) => (
+                      <div key={friend.id} className="friends-visited-modal-item" title={`@${friend.username}`}>
+                        <UserAvatar
+                          avatarUrl={friend.avatar_url}
+                          equippedAvatar={friend.equipped_avatar}
+                          size={40}
                         />
-                      ) : (
-                        <div className="avatar-placeholder">
-                          <Users size={18} className="text-white" />
-                        </div>
-                      )}
-                      <span className="friend-name">@{friend.username}</span>
-                    </button>
-                  ))}
-                </div>
+                        <span className="friends-visited-handle">@{friend.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
