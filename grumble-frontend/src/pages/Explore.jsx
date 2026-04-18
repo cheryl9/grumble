@@ -142,7 +142,7 @@ const Explore = () => {
       );
     }
   };
-          
+
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);
@@ -165,7 +165,9 @@ const Explore = () => {
   const handleCommentDeleted = (postId) => {
     setPosts((prev) =>
       prev.map((p) =>
-        p.id === postId ? { ...p, comments_count: Math.max(p.comments_count - 1, 0) } : p,
+        p.id === postId
+          ? { ...p, comments_count: Math.max(p.comments_count - 1, 0) }
+          : p,
       ),
     );
   };

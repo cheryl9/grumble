@@ -111,7 +111,7 @@ async function removeFriend(friendshipId, userId) {
 
 /**
  * Get all accepted friends for a user.
- * Joins with users table to get friend's username.
+ * Joins with users table to get friend's username and avatar.
  * Handles both directions (user could be user_id or friend_id).
  */
 async function getFriends(userId) {
@@ -168,6 +168,7 @@ async function getPendingRequests(userId) {
        f.id AS friendship_id,
        f.user_id AS requester_id,
        u.username AS requester_username,
+       u.equipped_avatar,
        f.created_at
      FROM friendships f
      JOIN users u ON u.id = f.user_id
@@ -188,6 +189,7 @@ async function getSentRequests(userId) {
        f.id AS friendship_id,
        f.friend_id AS recipient_id,
        u.username AS recipient_username,
+       u.equipped_avatar,
        f.created_at
      FROM friendships f
      JOIN users u ON u.id = f.friend_id
@@ -204,7 +206,7 @@ async function getSentRequests(userId) {
  */
 async function searchUsers(query, currentUserId) {
   const result = await pool.query(
-    `SELECT id, username
+    `SELECT id, username, equipped_avatar
      FROM users
      WHERE username ILIKE $1
        AND id != $2

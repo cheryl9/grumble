@@ -1,7 +1,26 @@
-import React, { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MapPin, User, Flag, Pencil, Trash2 } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Heart,
+  MessageCircle,
+  Send,
+  Bookmark,
+  MapPin,
+  Flag,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import UserAvatar from "../common/UserAvatar";
 
-const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canManage = false, onClick }) => {
+const FoodPostCard = ({
+  post,
+  onLike,
+  onSave,
+  onReport,
+  onEdit,
+  onDelete,
+  canManage = false,
+  onClick,
+}) => {
   const [copied, setCopied] = useState(false);
 
   const handleLike = (e) => {
@@ -23,7 +42,7 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('Failed to copy link:', error);
+      console.error("Failed to copy link:", error);
     }
   };
 
@@ -46,15 +65,15 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
     <div className="post-card post-card-pro" onClick={onClick}>
       <div className="p-4 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-[#FCF1DD] rounded-full flex items-center justify-center border border-[#F4DAB8]">
-            <User size={16} className="text-gray-600" />
-          </div>
+          <UserAvatar equippedAvatar={post.equipped_avatar} size={36} />
           <span className="font-medium text-sm">{post.username}</span>
         </div>
         <div className="flex items-center gap-1 text-gray-600">
           <MapPin size={16} className="text-red-500" />
           {/* location_name instead of location */}
-          <span className="text-xs font-medium line-clamp-1">{post.location_name || 'Location unavailable'}</span>
+          <span className="text-xs font-medium line-clamp-1">
+            {post.location_name || "Location unavailable"}
+          </span>
         </div>
       </div>
 
@@ -95,7 +114,10 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
               <span className="text-sm font-medium">{post.comments_count}</span>
             </button>
 
-            <button onClick={handleShare} className="icon-btn relative post-action-icon">
+            <button
+              onClick={handleShare}
+              className="icon-btn relative post-action-icon"
+            >
               <Send size={20} className="text-gray-700" />
               {copied && (
                 <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
@@ -104,7 +126,11 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
               )}
             </button>
 
-            <button onClick={handleReport} className="icon-btn post-action-icon" title="Report post">
+            <button
+              onClick={handleReport}
+              className="icon-btn post-action-icon"
+              title="Report post"
+            >
               <Flag size={20} className="text-gray-700" />
             </button>
           </div>
@@ -112,16 +138,20 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
           <button onClick={handleSave} className="icon-btn post-action-icon">
             <Bookmark
               size={20}
-              className={post.saved_by_me ? 'fill-gray-700 text-gray-700' : 'text-gray-700'}
+              className={
+                post.saved_by_me
+                  ? "fill-gray-700 text-gray-700"
+                  : "text-gray-700"
+              }
             />
           </button>
         </div>
 
         <div className="post-caption pt-1">
           <p className="text-sm line-clamp-2 text-gray-700">
-            <span className="font-semibold">{post.username}</span>{' '}
+            <span className="font-semibold">{post.username}</span>{" "}
             {/* description instead of caption */}
-            {post.description || 'No caption provided.'}
+            {post.description || "No caption provided."}
           </p>
           <p className="text-xs text-gray-500 mt-2">
             {new Date(post.created_at).toLocaleDateString()}
@@ -129,11 +159,17 @@ const FoodPostCard = ({ post, onLike, onSave, onReport, onEdit, onDelete, canMan
 
           {canManage && (
             <div className="flex items-center gap-4 mt-3">
-              <button onClick={handleEdit} className="text-xs text-[#2945A8] flex items-center gap-1 hover:underline">
+              <button
+                onClick={handleEdit}
+                className="text-xs text-[#2945A8] flex items-center gap-1 hover:underline"
+              >
                 <Pencil size={14} />
                 Edit
               </button>
-              <button onClick={handleDelete} className="text-xs text-red-500 flex items-center gap-1 hover:underline">
+              <button
+                onClick={handleDelete}
+                className="text-xs text-red-500 flex items-center gap-1 hover:underline"
+              >
                 <Trash2 size={14} />
                 Delete
               </button>
