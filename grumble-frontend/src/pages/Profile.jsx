@@ -164,6 +164,28 @@ export default function Profile() {
     }
   };
 
+  const handleDisconnectTelegram = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to disconnect your Telegram account? You won't receive OTP codes via Telegram anymore.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await authService.disconnectTelegram();
+      const freshUser = await authService.fetchCurrentUser();
+
+      if (freshUser) setUser(freshUser);
+
+      showToast("Telegram disconnected!");
+    } catch (error) {
+      showToast("Failed to disconnect Telegram", "error");
+      console.error("Disconnect error:", error);
+    }
+  };
+
   const handleViewAll = (key) => {
     setPostsModalType(key);
     setShowPostsModal(true);
@@ -380,8 +402,38 @@ export default function Profile() {
               </div>
 
               {user.telegramChatId ? (
-                <div style={{ fontSize: "13px", color: "#166534" }}>
-                  Connected as {user.telegramUsername || "your account"}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  <div style={{ fontSize: "13px", color: "#166534" }}>
+                    ✓ Connected as {user.telegramUsername || "your account"}
+                  </div>
+                  <button
+                    onClick={handleDisconnectTelegram}
+                    style={{
+                      backgroundColor: "#ef4444",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      fontSize: "13px",
+                      width: "fit-content",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#dc2626")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#ef4444")
+                    }
+                  >
+                    Disconnect
+                  </button>
                 </div>
               ) : (
                 <button
@@ -474,7 +526,7 @@ export default function Profile() {
         isOpen={showTelegramModal}
         onClose={() => setShowTelegramModal(false)}
         onConnect={handleConnectTelegram}
-        botUsername="@grumble1122_bot"
+        botUsername="@GrumblyGrumbot"
       />
     </div>
   );
