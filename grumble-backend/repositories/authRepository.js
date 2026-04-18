@@ -1,8 +1,8 @@
-const { get } = require('../app');
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
+const { get } = require("../app");
+const pool = require("../config/db");
+const bcrypt = require("bcrypt");
 
-// user lookups 
+// user lookups
 
 const findUserById = async (userId) => {
   const result = await pool.query(
@@ -10,24 +10,23 @@ const findUserById = async (userId) => {
             frozen_at, frozen_reason, telegram_chat_id, telegram_username,
             telegram_first_name, telegram_connected_at, created_at
      FROM users WHERE id = $1`,
-    [userId]
+    [userId],
   );
   return result.rows[0];
 };
 
 const findUserByPhoneNumber = async (phoneNumber) => {
   const result = await pool.query(
-    'SELECT * FROM users WHERE phone_number = $1',
-    [phoneNumber]
+    "SELECT * FROM users WHERE phone_number = $1",
+    [phoneNumber],
   );
   return result.rows[0];
 };
 
 const findUserByUsername = async (username) => {
-  const result = await pool.query(
-    'SELECT * FROM users WHERE username = $1',
-    [username]
-  );
+  const result = await pool.query("SELECT * FROM users WHERE username = $1", [
+    username,
+  ]);
   return result.rows[0];
 };
 
@@ -39,7 +38,7 @@ const createUser = async (phoneNumber, username, password) => {
     `INSERT INTO users (phone_number, username, password_hash)
      VALUES ($1, $2, $3)
      RETURNING id, phone_number, username, created_at`,
-    [phoneNumber, username, passwordHash]
+    [phoneNumber, username, passwordHash],
   );
   return result.rows[0];
 };
@@ -49,12 +48,12 @@ const verifyPassword = async (username, password) => {
   if (!user) return null;
 
   if (user.is_deleted) {
-    return { error: 'deleted', message: 'This account has been deleted' };
+    return { error: "deleted", message: "This account has been deleted" };
   }
-  if (user.account_status === 'frozen') {
+  if (user.account_status === "frozen") {
     return {
-      error: 'frozen',
-      message: 'This account has been frozen',
+      error: "frozen",
+      message: "This account has been frozen",
       reason: user.frozen_reason,
       frozenAt: user.frozen_at,
     };
@@ -75,18 +74,22 @@ const updatePassword = async (phoneNumber, newPassword) => {
     `UPDATE users SET password_hash = $1, updated_at = NOW()
      WHERE phone_number = $2
      RETURNING id, phone_number, username`,
-    [passwordHash, phoneNumber]
+    [passwordHash, phoneNumber],
   );
   return result.rows[0];
 };
 
-const savePasswordResetOTP = async (phoneNumber, otpCode, expiresInMinutes = 10) => {
+const savePasswordResetOTP = async (
+  phoneNumber,
+  otpCode,
+  expiresInMinutes = 10,
+) => {
   const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
   const result = await pool.query(
     `INSERT INTO password_reset_otps (phone_number, otp_code, expires_at)
      VALUES ($1, $2, $3)
      RETURNING id, phone_number, expires_at`,
-    [phoneNumber, otpCode, expiresAt]
+    [phoneNumber, otpCode, expiresAt],
   );
   return result.rows[0];
 };
@@ -100,21 +103,21 @@ const verifyPasswordResetOTP = async (phoneNumber, otpCode) => {
        AND expires_at > NOW()
      ORDER BY created_at DESC
      LIMIT 1`,
-    [phoneNumber, otpCode]
+    [phoneNumber, otpCode],
   );
   return result.rows[0];
 };
 
 const markOTPAsUsed = async (otpId) => {
   await pool.query(
-    'UPDATE password_reset_otps SET is_used = TRUE WHERE id = $1',
-    [otpId]
+    "UPDATE password_reset_otps SET is_used = TRUE WHERE id = $1",
+    [otpId],
   );
 };
 
 const cleanupExpiredOTPs = async () => {
   const result = await pool.query(
-    'DELETE FROM password_reset_otps WHERE expires_at < NOW()'
+    "DELETE FROM password_reset_otps WHERE expires_at < NOW()",
   );
   return result.rowCount;
 };
@@ -123,8 +126,8 @@ const cleanupExpiredOTPs = async () => {
 
 const isUsernameTaken = async (username, excludeUserId) => {
   const result = await pool.query(
-    'SELECT id FROM users WHERE username = $1 AND id != $2',
-    [username, excludeUserId]
+    "SELECT id FROM users WHERE username = $1 AND id != $2",
+    [username, excludeUserId],
   );
   return result.rows.length > 0;
 };
@@ -133,8 +136,8 @@ const updateUser = async (userId, { username, phone_number }) => {
   const result = await pool.query(
     `UPDATE users SET username = $1, phone_number = $2, updated_at = NOW()
      WHERE id = $3
-     RETURNING id, username, phone_number`,
-    [username, phone_number, userId]
+     RETURNING id, username, phone_number, telegram_chat_id, telegram_username, telegram_first_name, telegram_connected_at, avatar_url, equipped_avatar, created_at, updated_at`,
+    [username, phone_number, userId],
   );
   return result.rows[0];
 };
@@ -143,27 +146,30 @@ const updateUser = async (userId, { username, phone_number }) => {
 const updatePasswordById = async (userId, newPassword) => {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await pool.query(
-    'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
-    [passwordHash, userId]
+    "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2",
+    [passwordHash, userId],
   );
 };
 
 // Fetch password_hash for current-password verification
 const getPasswordHashById = async (userId) => {
   const result = await pool.query(
-    'SELECT password_hash FROM users WHERE id = $1',
-    [userId]
+    "SELECT password_hash FROM users WHERE id = $1",
+    [userId],
   );
   return result.rows[0]?.password_hash;
 };
 
-// stats 
+// stats
 
 const getUserStats = async (userId) => {
   const [postsResult, likedResult, savedResult] = await Promise.all([
-    pool.query('SELECT COUNT(*) FROM posts WHERE user_id = $1 AND is_deleted = FALSE', [userId]),
-    pool.query('SELECT COUNT(*) FROM likes WHERE user_id = $1', [userId]),
-    pool.query('SELECT COUNT(*) FROM saves WHERE user_id = $1', [userId]),
+    pool.query(
+      "SELECT COUNT(*) FROM posts WHERE user_id = $1 AND is_deleted = FALSE",
+      [userId],
+    ),
+    pool.query("SELECT COUNT(*) FROM likes WHERE user_id = $1", [userId]),
+    pool.query("SELECT COUNT(*) FROM saves WHERE user_id = $1", [userId]),
   ]);
 
   const streak = await getStreakByUserId(userId);
@@ -172,9 +178,9 @@ const getUserStats = async (userId) => {
     posts: parseInt(postsResult.rows[0].count),
     liked: parseInt(likedResult.rows[0].count),
     saved: parseInt(savedResult.rows[0].count),
-    currentStreak:  streak?.current_streak  || 0,
-    longestStreak:  streak?.longest_streak  || 0,
-    lastPostDate:   streak?.last_post_date  || null,
+    currentStreak: streak?.current_streak || 0,
+    longestStreak: streak?.longest_streak || 0,
+    lastPostDate: streak?.last_post_date || null,
   };
 };
 
@@ -186,7 +192,7 @@ const savePreferences = async (userId, cuisines) => {
      VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET cuisines = $2
      RETURNING *`,
-    [userId, JSON.stringify(cuisines)]
+    [userId, JSON.stringify(cuisines)],
   );
   return result.rows[0];
 };
@@ -201,7 +207,7 @@ const updateTelegramConnection = async (userId, telegramData) => {
          telegram_first_name = $3, telegram_connected_at = NOW()
      WHERE id = $4
      RETURNING id, username, telegram_chat_id, telegram_username, telegram_connected_at`,
-    [chatId, username, firstName, userId]
+    [chatId, username, firstName, userId],
   );
   return result.rows[0];
 };
@@ -213,15 +219,15 @@ const disconnectTelegram = async (userId) => {
          telegram_first_name = NULL, telegram_connected_at = NULL
      WHERE id = $1
      RETURNING id, username`,
-    [userId]
+    [userId],
   );
   return result.rows[0];
 };
 
 const findUserByTelegramChatId = async (chatId) => {
   const result = await pool.query(
-    'SELECT * FROM users WHERE telegram_chat_id = $1',
-    [chatId]
+    "SELECT * FROM users WHERE telegram_chat_id = $1",
+    [chatId],
   );
   return result.rows[0];
 };
@@ -230,13 +236,18 @@ const findUserByTelegramChatId = async (chatId) => {
 
 const getStreakByUserId = async (userId) => {
   const result = await pool.query(
-    'SELECT * FROM user_streaks WHERE user_id = $1',
-    [userId]
+    "SELECT * FROM user_streaks WHERE user_id = $1",
+    [userId],
   );
   return result.rows[0] || null;
 };
 
-const upsertStreak = async (userId, currentStreak, longestStreak, lastPostDate) => {
+const upsertStreak = async (
+  userId,
+  currentStreak,
+  longestStreak,
+  lastPostDate,
+) => {
   const result = await pool.query(
     `INSERT INTO user_streaks (user_id, current_streak, longest_streak, last_post_date, updated_at)
      VALUES ($1, $2, $3, $4, NOW())
@@ -246,7 +257,7 @@ const upsertStreak = async (userId, currentStreak, longestStreak, lastPostDate) 
            last_post_date = $4,
            updated_at     = NOW()
      RETURNING *`,
-    [userId, currentStreak, longestStreak, lastPostDate]
+    [userId, currentStreak, longestStreak, lastPostDate],
   );
   return result.rows[0];
 };
@@ -258,8 +269,8 @@ const calculateAndUpdateStreak = async (userId) => {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  const todayStr     = today.toISOString().split('T')[0];
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  const todayStr = today.toISOString().split("T")[0];
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
 
   const streak = await getStreakByUserId(userId);
 
@@ -269,7 +280,7 @@ const calculateAndUpdateStreak = async (userId) => {
   }
 
   const lastPost = streak.last_post_date
-    ? new Date(streak.last_post_date).toISOString().split('T')[0]
+    ? new Date(streak.last_post_date).toISOString().split("T")[0]
     : null;
 
   // Already posted today — do nothing, return current streak as-is

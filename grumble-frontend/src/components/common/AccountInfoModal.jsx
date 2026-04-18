@@ -82,33 +82,6 @@ export default function AccountInfoModal({ user, onClose }) {
             </div>
           </div>
 
-          {/* Email */}
-          <div>
-            <label
-              style={{
-                fontSize: "13px",
-                fontWeight: "600",
-                color: "#666",
-                display: "block",
-                marginBottom: "6px",
-              }}
-            >
-              Email
-            </label>
-            <div
-              style={{
-                backgroundColor: "#f5f5f5",
-                border: "1px solid #e0e0e0",
-                borderRadius: "8px",
-                padding: "10px 12px",
-                fontSize: "14px",
-                color: "#111",
-              }}
-            >
-              {user?.email || "N/A"}
-            </div>
-          </div>
-
           {/* Phone Number */}
           <div>
             <label

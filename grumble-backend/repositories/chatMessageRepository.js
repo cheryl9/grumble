@@ -295,7 +295,7 @@ const getCompleteMessage = async (messageId) => {
               fs.dislikes,
               fp.name AS food_place_name,
               fp.address AS food_place_address,
-              fp.photo_url AS food_place_photo_url
+              fp.image_url AS food_place_photo_url
        FROM food_suggestions fs
        JOIN food_places fp ON fp.id = fs.food_place_id
        WHERE fs.message_id = $1`,
