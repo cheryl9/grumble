@@ -45,7 +45,7 @@ const ChatList = ({
           <Search
             size={16}
             className="search-icon"
-            style={{ transform: "translateY(-50%)" }}
+            style={{ transform: "translateY(-50%)", color: "white" }}
           />
           <input
             type="text"
@@ -84,7 +84,7 @@ const ChatList = ({
             onClick={() => onSelectChat(chat)}
             className="chat-list-item"
           >
-            <Avatar name={chat.name} size="md" />
+            <Avatar name={chat.name} size="md" src={chat.avatar_url} />
             <div className="flex-1 min-w-0 text-left">
               <div className="flex items-center justify-between">
                 <p className="font-bold text-black text-sm truncate">

@@ -21,7 +21,14 @@ export const getOrCreateDirectChatRoom = async (memberId) => {
 };
 
 export const updateChatRoom = async (roomId, updates) => {
-  const response = await api.patch(`/chats/${roomId}`, updates);
+  const isFormData =
+    typeof FormData !== "undefined" && updates instanceof FormData;
+
+  const response = await api.patch(
+    `/chats/${roomId}`,
+    updates,
+    isFormData ? { headers: { "Content-Type": "multipart/form-data" } } : {},
+  );
   return response.data?.data ?? response.data;
 };
 

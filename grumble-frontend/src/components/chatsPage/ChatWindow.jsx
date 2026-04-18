@@ -35,7 +35,10 @@ const ChatWindow = ({
   const [pollQ, setPollQ] = useState("");
   const [pollOpts, setPollOpts] = useState(["", ""]);
   const [wheelOpts, setWheelOpts] = useState(["", ""]);
-  const [foodPlaceId, setFoodPlaceId] = useState("");
+  const [foodQuery, setFoodQuery] = useState("");
+  const [foodResults, setFoodResults] = useState([]);
+  const [foodSearchLoading, setFoodSearchLoading] = useState(false);
+  const [foodSearchError, setFoodSearchError] = useState(null);
 
   useEffect(() => {
     if (!roomId) return;
@@ -212,7 +215,36 @@ const ChatWindow = ({
     }
   };
 
-  const sendFoodSuggestion = async () => {
+  const searchFoodPlaces = async () => {
+    const q = foodQuery.trim();
+    if (!q) {
+      setFoodResults([]);
+      setFoodSearchError(null);
+      return;
+    }
+
+    try {
+      setFoodSearchLoading(true);
+      setFoodSearchError(null);
+
+      const res = await api.get("/food-places", {
+        params: { q, limit: 10, enrich: "false" },
+      });
+
+      setFoodResults(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      setFoodResults([]);
+      setFoodSearchError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to search food places",
+      );
+    } finally {
+      setFoodSearchLoading(false);
+    }
+  };
+
+  const sendFoodSuggestion = async (foodPlaceId) => {
     const parsed = Number(foodPlaceId);
     if (!Number.isInteger(parsed) || parsed <= 0 || !roomId || sending) return;
 
@@ -226,7 +258,9 @@ const ChatWindow = ({
       });
 
       appendMessage(res.data?.data);
-      setFoodPlaceId("");
+      setFoodQuery("");
+      setFoodResults([]);
+      setFoodSearchError(null);
       setShowFoodModal(false);
       onChatUpdated?.();
     } catch (err) {
@@ -467,22 +501,56 @@ const ChatWindow = ({
             <h2 className="text-lg font-bold text-gray-900 mb-2">
               Suggest Food
             </h2>
-            <p className="text-sm text-gray-400 mb-4">Enter a food place ID</p>
+            <p className="text-sm text-gray-400 mb-4">
+              Search by shop name
+            </p>
             <input
-              type="number"
-              inputMode="numeric"
-              placeholder="food_place_id"
-              value={foodPlaceId}
-              onChange={(e) => setFoodPlaceId(e.target.value)}
-              className="input-field mb-3"
+              type="text"
+              placeholder="e.g. Din Tai Fung"
+              value={foodQuery}
+              onChange={(e) => setFoodQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && searchFoodPlaces()}
+              className="input-field mb-2"
             />
+
+            {foodSearchError && (
+              <div className="text-sm text-red-600 mb-2">{foodSearchError}</div>
+            )}
+
             <button
-              onClick={sendFoodSuggestion}
-              className="btn-primary w-full py-3 rounded-xl"
-              disabled={sending}
+              onClick={searchFoodPlaces}
+              className="btn-secondary w-full py-2 rounded-xl text-sm mb-3"
+              disabled={sending || foodSearchLoading}
             >
-              Send Suggestion
+              {foodSearchLoading ? "Searching…" : "Search"}
             </button>
+
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {!foodSearchLoading && foodQuery.trim() && foodResults.length === 0 ? (
+                <div className="text-sm text-gray-400">No matches found.</div>
+              ) : (
+                foodResults.map((p) => {
+                  const address =
+                    p?.google?.address || p?.address || "Address unavailable";
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => sendFoodSuggestion(p.id)}
+                      className="w-full text-left p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors"
+                      disabled={sending}
+                    >
+                      <p className="text-sm font-bold text-gray-900 truncate">
+                        {p?.name || "Unknown"}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
+                        {address}
+                      </p>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       )}

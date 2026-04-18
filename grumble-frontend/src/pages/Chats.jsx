@@ -5,12 +5,17 @@ import {
   addMembersToChatRoom,
   getOrCreateDirectChatRoom,
 } from "../services/chatService";
-import { disconnectRealtimeSocket, getRealtimeSocket } from "../services/realtimeSocket";
+import {
+  disconnectRealtimeSocket,
+  getRealtimeSocket,
+} from "../services/realtimeSocket";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 import ChatList from "../components/chatsPage/ChatList";
 import ChatWindow from "../components/chatsPage/ChatWindow";
 import CreateGroupModal from "../components/chatsPage/CreateGroupModal";
+import GroupChatInfo from "../components/chatsPage/GroupChatInfo";
+import RestaurantDetailModal from "../components/findSpotsPage/RestaurantDetailModal";
 
 const formatRelativeTime = (ts) => {
   if (!ts) return "";
@@ -63,7 +68,6 @@ const Chats = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChat, setActiveChat] = useState(null);
   const [activeChatView, setActiveChatView] = useState("chat");
-  const [roomRefreshKey, setRoomRefreshKey] = useState(0);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [viewRestaurant, setViewRestaurant] = useState(null);
   const [unreadByRoomId, setUnreadByRoomId] = useState({});
@@ -218,53 +222,40 @@ const Chats = () => {
   if (activeChatDisplay)
     return (
       <div className="chats-page flex flex-col" style={{ height: "100dvh" }}>
-        <ChatWindow
-          chat={activeChatDisplay}
-          onBack={() => setActiveChat(null)}
-          onViewRestaurant={setViewRestaurant}
-          onChatUpdated={refreshChats}
-        />
+        {activeChatView === "groupInfo" &&
+        activeChatDisplay?.type === "group" ? (
+          <GroupChatInfo
+            roomId={activeChatDisplay.id}
+            onBack={() => setActiveChatView("chat")}
+            onLeftGroup={() => {
+              setActiveChatView("chat");
+              setActiveChat(null);
+            }}
+            onRoomUpdated={refreshChats}
+          />
+        ) : (
+          <ChatWindow
+            chat={activeChatDisplay}
+            onBack={() => {
+              setActiveChatView("chat");
+              setActiveChat(null);
+            }}
+            onViewRestaurant={setViewRestaurant}
+            onChatUpdated={refreshChats}
+            onOpenGroupInfo={() => setActiveChatView("groupInfo")}
+          />
+        )}
 
         {viewRestaurant && (
-          <div
-            className="fixed inset-0 bg-black/60 z-[4000] flex items-center justify-center p-4"
-            onClick={() => setViewRestaurant(null)}
-          >
-            <div
-              className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="h-48 bg-[#FCF1DD] flex items-center justify-center overflow-hidden">
-                {viewRestaurant.photo_url ? (
-                  <img
-                    src={viewRestaurant.photo_url}
-                    alt={viewRestaurant.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-[#FCF1DD] flex items-center justify-center text-6xl">
-                    🍽️
-                  </div>
-                )}
-              </div>
-              <div className="p-5">
-                <h2 className="text-xl font-bold text-gray-900">
-                  {viewRestaurant.name}
-                </h2>
-                {viewRestaurant.address && (
-                  <p className="text-sm text-gray-400 mt-0.5">
-                    {viewRestaurant.address}
-                  </p>
-                )}
-                <button
-                  className="btn-primary w-full py-3 rounded-xl mt-4"
-                  onClick={() => setViewRestaurant(null)}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
+          <RestaurantDetailModal
+            restaurant={{
+              id: viewRestaurant.id,
+              name: viewRestaurant.name,
+              image: viewRestaurant.photo_url,
+              location: viewRestaurant.address,
+            }}
+            onClose={() => setViewRestaurant(null)}
+          />
         )}
       </div>
     );

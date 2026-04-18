@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -15,6 +15,8 @@ import {
 const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
   const { user } = useAuth();
 
+  const avatarFileInputRef = useRef(null);
+
   const [room, setRoom] = useState(null);
   const [members, setMembers] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -22,8 +24,6 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-
-  const [avatarUrlInput, setAvatarUrlInput] = useState("");
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState([]);
 
@@ -58,7 +58,6 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
       setRoom(roomData);
       setMembers(roomData?.members || []);
-      setAvatarUrlInput(roomData?.avatar_url || "");
 
       setFriends(friendsRes.data?.data || []);
     } catch (err) {
@@ -77,15 +76,27 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
 
-  const saveAvatar = async () => {
+  const onPickAvatarImage = () => {
+    if (!isAdmin || saving) return;
+    avatarFileInputRef.current?.click();
+  };
+
+  const onAvatarFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    // allow selecting same file twice
+    e.target.value = "";
+
     if (!roomId || !isAdmin || saving) return;
+    if (!file) return;
 
     try {
       setSaving(true);
       setError(null);
 
-      const avatar_url = avatarUrlInput.trim() || null;
-      const updated = await updateChatRoom(roomId, { avatar_url });
+      const form = new FormData();
+      form.append("avatar", file);
+
+      const updated = await updateChatRoom(roomId, form);
       setRoom((prev) => ({ ...(prev || {}), ...(updated || {}) }));
       onRoomUpdated?.();
     } catch (err) {
@@ -210,46 +221,44 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
         ) : (
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-4 border border-gray-100">
-              <div className="flex items-center gap-3">
-                <Avatar
-                  name={room?.name || "Group"}
-                  src={room?.avatar_url || null}
-                  size="lg"
-                />
-                <div className="min-w-0">
-                  <p className="font-bold text-gray-900 text-lg truncate">
-                    {room?.name || "Group chat"}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {members.length} member{members.length === 1 ? "" : "s"}
-                  </p>
+              <div className="flex flex-col items-center text-center">
+                <div className="rounded-full border-4 border-[#F78660] p-1">
+                  <Avatar
+                    name={room?.name || "Group"}
+                    src={room?.avatar_url || null}
+                    size="xl"
+                  />
                 </div>
-              </div>
 
-              {isAdmin && (
-                <div className="mt-4">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">
-                    Group Avatar URL
-                  </p>
-                  <div className="flex gap-2">
+                <p className="mt-3 font-bold text-gray-900 text-2xl w-full truncate">
+                  {room?.name || "Group chat"}
+                </p>
+
+                {isAdmin && (
+                  <div className="mt-3">
                     <input
-                      type="text"
-                      placeholder="https://..."
-                      value={avatarUrlInput}
-                      onChange={(e) => setAvatarUrlInput(e.target.value)}
-                      className="input-field flex-1"
+                      ref={avatarFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={onAvatarFileSelected}
+                      className="hidden"
                       disabled={saving}
                     />
                     <button
-                      onClick={saveAvatar}
+                      type="button"
+                      onClick={onPickAvatarImage}
                       className="btn-primary px-4"
                       disabled={saving}
                     >
-                      Save
+                      {room?.avatar_url ? "Change photo" : "Add photo"}
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+
+                <p className="mt-3 text-sm text-gray-400">
+                  {members.length} member{members.length === 1 ? "" : "s"}
+                </p>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl p-4 border border-gray-100">
