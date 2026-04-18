@@ -26,20 +26,21 @@ const Explore = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
 
+  const fetchFeed = async (tab = activeTab) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await api.get("/posts", { params: { tab } });
+      setPosts(res.data);
+    } catch (err) {
+      console.error("Failed to fetch feed:", err);
+      setError("Could not load posts. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFeed = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await api.get("/posts", { params: { tab: activeTab } });
-        setPosts(res.data);
-      } catch (err) {
-        console.error("Failed to fetch feed:", err);
-        setError("Could not load posts. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchFeed();
   }, [activeTab]);
 
@@ -331,6 +332,7 @@ const Explore = () => {
           onPostCreated={() => {
             setShowCreate(false);
             setActiveTab("mine");
+            fetchFeed("mine");
           }}
         />
       )}

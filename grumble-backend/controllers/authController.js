@@ -540,15 +540,25 @@ const changePassword = async (req, res, next) => {
  */
 const savePreferences = async (req, res, next) => {
   try {
-    const { cuisines } = req.body;
+    const { cuisines, hashtags } = req.body;
 
-    if (!Array.isArray(cuisines)) {
+    if (cuisines && !Array.isArray(cuisines)) {
       return res
         .status(400)
         .json({ success: false, message: "Cuisines must be an array" });
     }
 
-    const prefs = await authRepository.savePreferences(req.user.id, cuisines);
+    if (hashtags && !Array.isArray(hashtags)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Hashtags must be an array" });
+    }
+
+    const prefs = await authRepository.savePreferences(
+      req.user.id,
+      cuisines || [],
+      hashtags || [],
+    );
     res.json({
       success: true,
       message: "Preferences saved",
@@ -606,6 +616,21 @@ async function equipAvatarController(req, res) {
   }
 }
 
+const getAvailableHashtags = async (req, res) => {
+  try {
+    const { HASHTAG_CATEGORIES } = require("../config/hashtags");
+    res.json({
+      success: true,
+      data: HASHTAG_CATEGORIES,
+    });
+  } catch (error) {
+    console.error("getAvailableHashtags error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch hashtags" });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -620,6 +645,7 @@ module.exports = {
   updateProfile,
   changePassword,
   savePreferences,
+  getAvailableHashtags,
   getStreak,
   getAchievements,
   equipAvatarController,

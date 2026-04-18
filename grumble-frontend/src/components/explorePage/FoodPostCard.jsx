@@ -152,6 +152,21 @@ const FoodPostCard = ({
             {/* description instead of caption */}
             {post.description || "No caption provided."}
           </p>
+
+          {/* Display hashtags if they exist */}
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {post.hashtags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs text-blue-600 hover:text-blue-800 cursor-pointer"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           <p className="text-xs text-gray-500 mt-2">
             {new Date(post.created_at).toLocaleDateString()}
           </p>

@@ -48,6 +48,7 @@ router.get("/stats", authMiddleware, authController.getUserStats);
 router.put("/profile", authMiddleware, authController.updateProfile);
 router.put("/password", authMiddleware, authController.changePassword);
 router.post("/preferences", authMiddleware, authController.savePreferences);
+router.get("/hashtags", authController.getAvailableHashtags);
 
 router.get("/streak", authMiddleware, authController.getStreak);
 router.get("/achievements", authMiddleware, authController.getAchievements);

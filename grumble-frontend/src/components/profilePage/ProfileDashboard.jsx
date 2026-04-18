@@ -1,12 +1,9 @@
-import { Bell } from "lucide-react";
-
 export default function ProfileDashboard({ stats, onViewAll }) {
   const cards = [
     {
       label: "Friends",
       value: stats?.friends ?? 0,
       key: "friends",
-      icon: <Bell size={16} color="#2945A8" />,
     },
     { label: "My posts", value: stats?.posts ?? 0, key: "posts" },
     { label: "Liked", value: stats?.liked ?? 0, key: "liked" },

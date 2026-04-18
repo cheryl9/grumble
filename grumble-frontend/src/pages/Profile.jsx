@@ -17,6 +17,7 @@ import TelegramConnectionModal from "../components/common/TelegramConnectionModa
 import AccountInfoModal from "../components/common/AccountInfoModal";
 import PostsModal from "../components/common/PostsModal";
 import AllAchievementsModal from "../components/common/AllAchievementsModal";
+import FriendsModal from "../components/common/FriendsModal";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ export default function Profile() {
   const [showPostsModal, setShowPostsModal] = useState(false);
   const [postsModalType, setPostsModalType] = useState("posts");
   const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [toast, setToast] = useState({ msg: "", type: "" });
   const [equippedAvatar, setEquippedAvatar] = useState(null);
 
@@ -187,8 +189,12 @@ export default function Profile() {
   };
 
   const handleViewAll = (key) => {
-    setPostsModalType(key);
-    setShowPostsModal(true);
+    if (key === "friends") {
+      setShowFriendsModal(true);
+    } else {
+      setPostsModalType(key);
+      setShowPostsModal(true);
+    }
   };
 
   const handleAccountInfo = () => {
@@ -510,6 +516,10 @@ export default function Profile() {
             fetchStats();
           }}
         />
+      )}
+
+      {showFriendsModal && (
+        <FriendsModal onClose={() => setShowFriendsModal(false)} />
       )}
 
       {showAllAchievements && (

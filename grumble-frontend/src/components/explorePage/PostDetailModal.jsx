@@ -12,6 +12,12 @@ const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
     setComments(post.comments || []);
   }, [post]);
 
+  // Debug: Log hashtags to see what we're getting
+  useEffect(() => {
+    console.log("Post object:", post);
+    console.log("Post hashtags:", post.hashtags);
+  }, [post]);
+
   const handlePostComment = async () => {
     const content = commentText.trim();
     if (!content || isPostingComment) return;
@@ -41,7 +47,7 @@ const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
 
   return (
     <div
-      className="fixed inset-0 bg-grey bg-opacity-60 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-grey bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -83,14 +89,22 @@ const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
 
           {/* Caption Section */}
           <div className="p-4 border-b">
-            <p className="text-sm mb-2">
-              <span className="font-semibold">{post.username}</span>{" "}
-              {post.description}
-            </p>
-            {post.tags && post.tags.length > 0 && (
+            <div className="flex gap-3 mb-2">
+              <UserAvatar equippedAvatar={post.equipped_avatar} size={32} />
+              <div className="flex-1">
+                <p className="text-sm">
+                  <span className="font-semibold">{post.username}</span>{" "}
+                  {post.description}
+                </p>
+              </div>
+            </div>
+            {post.hashtags && post.hashtags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
-                {post.tags.map((tag, index) => (
-                  <span key={index} className="text-blue-600 text-sm">
+                {post.hashtags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="text-blue-600 hover:text-blue-800 text-sm cursor-pointer"
+                  >
                     #{tag}
                   </span>
                 ))}
