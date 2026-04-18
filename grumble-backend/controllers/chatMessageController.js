@@ -222,7 +222,8 @@ const sendMessage = async (req, res, next) => {
 
     // Dual-channel notifications:
     // - In-app: connected users who are NOT actively subscribed to this room
-    // - Telegram: room members who are offline (no active socket connections)
+    // - Telegram: room members who are considered "inactive" for this room
+    //   (not actively subscribed), so they may miss realtime updates.
     try {
       const numericRoomId = Number(roomId);
       const room = await chatRoomRepository.getChatRoomById(roomId);
@@ -255,8 +256,10 @@ const sendMessage = async (req, res, next) => {
       for (const t of targets) {
         if (t.user_id === userId) continue;
 
+        const inactiveInRoom = !isUserActiveInRoom(numericRoomId, t.user_id);
+
         if (isUserConnected(t.user_id)) {
-          if (!isUserActiveInRoom(numericRoomId, t.user_id)) {
+          if (inactiveInRoom) {
             sendNotificationAlert(t.user_id, {
               room_id: numericRoomId,
               room: room
@@ -271,10 +274,12 @@ const sendMessage = async (req, res, next) => {
               preview,
             });
           }
-          continue;
         }
 
-        if (t.telegram_chat_id) {
+        if (inactiveInRoom && t.telegram_chat_id) {
+          console.log(
+            `📱 Blasting Telegram to user ${t.user_id} (chat_id: ${t.telegram_chat_id}) - "${preview}"`,
+          );
           void telegramService
             .sendChatNotification(t.telegram_chat_id, {
               senderName: completeMessage.sender?.username || "Someone",
