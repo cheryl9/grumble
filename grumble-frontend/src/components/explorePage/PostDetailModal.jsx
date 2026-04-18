@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { X, MapPin, User, MessageCircle } from 'lucide-react';
-import api from '../../services/api';
+import React, { useEffect, useState } from "react";
+import { X, MapPin, MessageCircle } from "lucide-react";
+import api from "../../services/api";
+import UserAvatar from "../common/UserAvatar";
 
-const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) => {
-  const [commentText, setCommentText] = useState('');
+const PostDetailModal = ({ post, onClose, onCommentAdded }) => {
+  const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState(post.comments || []);
   const [isPostingComment, setIsPostingComment] = useState(false);
 
@@ -17,39 +18,41 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
 
     try {
       setIsPostingComment(true);
-      const response = await api.post(`/posts/${post.id}/comments`, { content });
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const response = await api.post(`/posts/${post.id}/comments`, {
+        content,
+      });
+      const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
       const createdComment = response.data;
 
       const commentWithUsername = {
         ...createdComment,
-        username: createdComment.username || currentUser.username || 'You'
+        username: createdComment.username || currentUser.username || "You",
       };
 
       setComments((prev) => [...prev, commentWithUsername]);
       onCommentAdded?.();
-      setCommentText('');
+      setCommentText("");
     } catch (error) {
-      console.error('Failed to post comment:', error);
+      console.error("Failed to post comment:", error);
     } finally {
       setIsPostingComment(false);
     }
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+    <div
+      className="fixed inset-0 bg-grey bg-opacity-60 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white rounded-lg w-full max-w-5xl overflow-hidden flex shadow-2xl"
         onClick={(e) => e.stopPropagation()}
-        style={{ height: '80vh', maxHeight: '700px' }}
+        style={{ height: "80vh", maxHeight: "700px" }}
       >
         {/* Image */}
         <div className="w-1/2 bg-gray-100 flex items-center justify-center">
-          <img 
-            src={post.image_url} 
+          <img
+            src={post.image_url}
             alt={post.description}
             className="w-full h-full object-contain"
           />
@@ -59,9 +62,7 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
         <div className="w-1/2 flex flex-col bg-white">
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center">
-                <User size={24} />
-              </div>
+              <UserAvatar equippedAvatar={post.equipped_avatar} size={48} />
               <div>
                 <h3 className="font-semibold text-lg">{post.username}</h3>
                 {post.location_name && (
@@ -72,7 +73,7 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
                 )}
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="text-white bg-red-500 hover:bg-red-600 rounded-full p-1 transition"
             >
@@ -83,7 +84,8 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
           {/* Caption Section */}
           <div className="p-4 border-b">
             <p className="text-sm mb-2">
-              <span className="font-semibold">{post.username}</span> {post.description}
+              <span className="font-semibold">{post.username}</span>{" "}
+              {post.description}
             </p>
             {post.tags && post.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -94,7 +96,9 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-500">{new Date(post.created_at).toLocaleDateString()}</p>
+            <p className="text-xs text-gray-500">
+              {new Date(post.created_at).toLocaleDateString()}
+            </p>
           </div>
 
           {/* Comments Header */}
@@ -109,11 +113,15 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
               <div className="space-y-4">
                 {comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
-                      <User size={20} />
-                    </div>
+                    <UserAvatar
+                      equippedAvatar={comment.equipped_avatar}
+                      size={40}
+                      className="flex-shrink-0"
+                    />
                     <div className="flex-1">
-                      <h5 className="font-semibold text-sm mb-1">{comment.username}</h5>
+                      <h5 className="font-semibold text-sm mb-1">
+                        {comment.username}
+                      </h5>
                       <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
                         {comment.content}
                       </p>
@@ -131,7 +139,7 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
           {/* Comment Input */}
           <div className="p-4 border-t bg-white">
             <div className="flex gap-2">
-              <input 
+              <input
                 type="text"
                 placeholder="Add a comment..."
                 value={commentText}
@@ -143,7 +151,7 @@ const PostDetailModal = ({ post, onClose, onCommentAdded, onCommentDeleted }) =>
                 disabled={isPostingComment || !commentText.trim()}
                 className="px-8 py-3 bg-coral text-white rounded-full text-sm font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPostingComment ? 'Posting...' : 'Post'}
+                {isPostingComment ? "Posting..." : "Post"}
               </button>
             </div>
           </div>

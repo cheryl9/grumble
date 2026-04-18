@@ -22,7 +22,7 @@ const createReport = async (req, res, next) => {
       userId,
       category,
       description.trim(),
-      contactEmail || null
+      contactEmail || null,
     );
 
     res.status(201).json({
@@ -137,7 +137,7 @@ const updateReportStatus = async (req, res, next) => {
     const report = await supportRepo.updateReportStatus(
       id,
       status,
-      adminNotes || null
+      adminNotes || null,
     );
 
     if (!report) {

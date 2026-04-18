@@ -13,31 +13,19 @@ const supportController = require("../controllers/supportController");
 router.post("/report", authMiddleware, supportController.createReport);
 
 // Admin: Get all support reports
-router.get(
-  "/",
-  adminAuthMiddleware,
-  supportController.getAllReports
-);
+router.get("/", adminAuthMiddleware, supportController.getAllReports);
 
 // Admin: Get reports by status
 router.get(
   "/status/:status",
   adminAuthMiddleware,
-  supportController.getReportsByStatus
+  supportController.getReportsByStatus,
 );
 
 // Admin: Get a single report
-router.get(
-  "/:id",
-  adminAuthMiddleware,
-  supportController.getReportById
-);
+router.get("/:id", adminAuthMiddleware, supportController.getReportById);
 
 // Admin: Update report status and add notes
-router.patch(
-  "/:id",
-  adminAuthMiddleware,
-  supportController.updateReportStatus
-);
+router.patch("/:id", adminAuthMiddleware, supportController.updateReportStatus);
 
 module.exports = router;

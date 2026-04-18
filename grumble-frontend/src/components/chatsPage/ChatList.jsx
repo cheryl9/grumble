@@ -2,7 +2,7 @@ import React from "react";
 import { Search, Plus } from "lucide-react";
 import Avatar from "./Avatar";
 
-const TABS = ["groups", "friends"];
+const TABS = ["all", "groups", "friends"];
 
 const ChatList = ({
   chats,
@@ -17,6 +17,7 @@ const ChatList = ({
   const filtered = (chats || []).filter((c) => {
     const name = (c.name || "").toLowerCase();
     const matchTabs =
+      activeTab === "all" ||
       (activeTab === "groups" && c.type === "group") ||
       (activeTab === "friends" && c.type === "friend");
     const matchSearch = name.includes((searchQuery || "").toLowerCase());

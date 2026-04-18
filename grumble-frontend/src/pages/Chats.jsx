@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import api from "../services/api";
+import {
+  addMembersToChatRoom,
+  getOrCreateDirectChatRoom,
+} from "../services/chatService";
+import { disconnectRealtimeSocket, getRealtimeSocket } from "../services/realtimeSocket";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 import ChatList from "../components/chatsPage/ChatList";
 import ChatWindow from "../components/chatsPage/ChatWindow";
 import CreateGroupModal from "../components/chatsPage/CreateGroupModal";
-import {
-  addMembersToChatRoom,
-  getOrCreateDirectChatRoom,
-} from "../services/chatService";
 
 const formatRelativeTime = (ts) => {
   if (!ts) return "";
@@ -65,6 +66,7 @@ const Chats = () => {
   const [roomRefreshKey, setRoomRefreshKey] = useState(0);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [viewRestaurant, setViewRestaurant] = useState(null);
+  const [unreadByRoomId, setUnreadByRoomId] = useState({});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,6 +105,38 @@ const Chats = () => {
     load();
   }, [authLoading, isAuthenticated, refreshChats, refreshFriends]);
 
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) {
+      disconnectRealtimeSocket();
+      return undefined;
+    }
+
+    const socket = getRealtimeSocket();
+    if (!socket) return undefined;
+
+    const handleNotificationAlert = (payload) => {
+      const roomId = Number(payload?.room_id);
+      if (!Number.isInteger(roomId)) return;
+
+      if (activeChat?.id === roomId) {
+        return;
+      }
+
+      setUnreadByRoomId((prev) => ({
+        ...prev,
+        [roomId]: (prev[roomId] || 0) + 1,
+      }));
+
+      void refreshChats();
+    };
+
+    socket.on("notification_alert", handleNotificationAlert);
+
+    return () => {
+      socket.off("notification_alert", handleNotificationAlert);
+    };
+  }, [activeChat?.id, authLoading, isAuthenticated, refreshChats]);
+
   const handleCreateGroup = async (title, memberIds) => {
     const name = title.trim();
     if (!name || !memberIds?.length) return;
@@ -131,8 +165,11 @@ const Chats = () => {
       raw: f,
     }));
 
-    return [...groupItems, ...friendItems];
-  }, [chats, friends]);
+    return [...groupItems, ...friendItems].map((item) => ({
+      ...item,
+      unread: unreadByRoomId[item.id] || 0,
+    }));
+  }, [chats, friends, unreadByRoomId]);
 
   const handleSelectChat = useCallback(
     async (item) => {
@@ -152,12 +189,20 @@ const Chats = () => {
           avatar_url: room.avatar_url,
           raw: room,
         });
+        setUnreadByRoomId((prev) => ({
+          ...prev,
+          [room.id]: 0,
+        }));
 
         // Ensure list ordering stays fresh (e.g., last_message fields).
         await refreshChats();
         return;
       }
 
+      setUnreadByRoomId((prev) => ({
+        ...prev,
+        [item.id]: 0,
+      }));
       setActiveChat(item);
     },
     [refreshChats],

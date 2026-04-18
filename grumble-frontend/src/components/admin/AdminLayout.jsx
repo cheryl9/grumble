@@ -1,9 +1,19 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { useAdminAuth } from '../../context/AdminAuthContext';
-import logo from '../../assets/logo.png';
-import { LayoutDashboard, Users, FileText, Flag, HelpCircle, LogOut, History, Settings } from 'lucide-react';
-import { getReports } from '../../services/adminReportService';
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAdminAuth } from "../../context/AdminAuthContext";
+import logo from "../../assets/logo.png";
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Flag,
+  HelpCircle,
+  LogOut,
+  History,
+  Settings,
+  AlertCircle,
+} from "lucide-react";
+import { getReports } from "../../services/adminReportService";
 
 /**
  * AdminLayout Component
@@ -18,7 +28,11 @@ export default function AdminLayout() {
   useEffect(() => {
     const loadPendingCount = async () => {
       try {
-        const result = await getReports({ status: 'pending', page: 1, limit: 1 });
+        const result = await getReports({
+          status: "pending",
+          page: 1,
+          limit: 1,
+        });
         setPendingReports(result?.pagination?.total || 0);
       } catch (error) {
         setPendingReports(0);
@@ -30,20 +44,21 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/admin/login');
+    navigate("/admin/login");
   };
 
   const navItems = [
-    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-    { path: '/admin/users', icon: Users, label: 'Users' },
-    { path: '/admin/posts', icon: FileText, label: 'Posts' },
-    { path: '/admin/reports', icon: Flag, label: 'Reports' },
-    { path: '/admin/faqs', icon: HelpCircle, label: 'FAQs' },
+    { path: "/admin", icon: LayoutDashboard, label: "Dashboard", exact: true },
+    { path: "/admin/users", icon: Users, label: "Users" },
+    { path: "/admin/posts", icon: FileText, label: "Posts" },
+    { path: "/admin/reports", icon: Flag, label: "Reports" },
+    { path: "/admin/tickets", icon: AlertCircle, label: "Support Tickets" },
+    { path: "/admin/faqs", icon: HelpCircle, label: "FAQs" },
   ];
 
   const secondaryNavItems = [
-    { path: '/admin/logs', icon: History, label: 'Activity Logs' },
-    { path: '/admin/settings', icon: Settings, label: 'Settings' },
+    { path: "/admin/logs", icon: History, label: "Activity Logs" },
+    { path: "/admin/settings", icon: Settings, label: "Settings" },
   ];
 
   const isActive = (path, exact = false) => {
@@ -77,13 +92,13 @@ export default function AdminLayout() {
                   to={item.path}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     isActive(item.path, item.exact)
-                      ? 'bg-orange-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                      ? "bg-orange-600 text-white"
+                      : "text-gray-300 hover:bg-gray-800 hover:text-white"
                   }`}
                 >
                   <item.icon size={20} />
                   <span className="font-medium">{item.label}</span>
-                  {item.path === '/admin/reports' && pendingReports > 0 && (
+                  {item.path === "/admin/reports" && pendingReports > 0 && (
                     <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-red-500 text-white">
                       {pendingReports}
                     </span>
@@ -102,8 +117,8 @@ export default function AdminLayout() {
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-2 text-sm rounded-lg transition-colors ${
                       isActive(item.path)
-                        ? 'bg-orange-600 text-white'
-                        : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                        ? "bg-orange-600 text-white"
+                        : "text-gray-400 hover:bg-gray-800 hover:text-white"
                     }`}
                   >
                     <item.icon size={18} />
@@ -118,7 +133,9 @@ export default function AdminLayout() {
         {/* Admin Info */}
         <div className="p-4 border-t border-gray-800">
           <div className="mb-3">
-            <p className="text-sm font-medium text-white truncate">{admin?.username}</p>
+            <p className="text-sm font-medium text-white truncate">
+              {admin?.username}
+            </p>
             <p className="text-xs text-gray-400 capitalize">{admin?.role}</p>
           </div>
           <button

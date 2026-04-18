@@ -92,36 +92,50 @@ async function editPost(req, res) {
   try {
     const userId = req.user.id;
     const postId = parseInt(req.params.id, 10);
-    const { locationName, rating, imageUrl, description, visibility } = req.body;
+    const { locationName, rating, imageUrl, description, visibility } =
+      req.body;
 
-    const hasEditableField = [locationName, rating, imageUrl, description, visibility]
-      .some((value) => value !== undefined);
+    const hasEditableField = [
+      locationName,
+      rating,
+      imageUrl,
+      description,
+      visibility,
+    ].some((value) => value !== undefined);
 
     if (!hasEditableField) {
-      return res.status(400).json({ error: 'No fields provided to update' });
+      return res.status(400).json({ error: "No fields provided to update" });
     }
 
     if (rating !== undefined) {
       const numericRating = Number(rating);
-      if (!Number.isInteger(numericRating) || numericRating < 1 || numericRating > 5) {
-        return res.status(400).json({ error: 'Rating must be an integer between 1 and 5' });
+      if (
+        !Number.isInteger(numericRating) ||
+        numericRating < 1 ||
+        numericRating > 5
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Rating must be an integer between 1 and 5" });
       }
     }
 
     if (visibility !== undefined) {
-      const allowedVisibility = ['public', 'friends', 'private'];
+      const allowedVisibility = ["public", "friends", "private"];
       if (!allowedVisibility.includes(visibility)) {
-        return res.status(400).json({ error: 'Invalid visibility value' });
+        return res.status(400).json({ error: "Invalid visibility value" });
       }
     }
 
     const owner = await postsRepo.getPostOwner(postId);
     if (!owner || owner.is_deleted) {
-      return res.status(404).json({ error: 'Post not found' });
+      return res.status(404).json({ error: "Post not found" });
     }
 
     if (owner.user_id !== userId) {
-      return res.status(403).json({ error: 'You can only edit your own posts' });
+      return res
+        .status(403)
+        .json({ error: "You can only edit your own posts" });
     }
 
     const updatedPost = await postsRepo.updatePost(postId, {
@@ -134,8 +148,8 @@ async function editPost(req, res) {
 
     res.json(updatedPost);
   } catch (err) {
-    console.error('editPost error:', err);
-    res.status(500).json({ error: 'Failed to edit post' });
+    console.error("editPost error:", err);
+    res.status(500).json({ error: "Failed to edit post" });
   }
 }
 
@@ -146,18 +160,20 @@ async function deletePost(req, res) {
 
     const owner = await postsRepo.getPostOwner(postId);
     if (!owner || owner.is_deleted) {
-      return res.status(404).json({ error: 'Post not found' });
+      return res.status(404).json({ error: "Post not found" });
     }
 
     if (owner.user_id !== userId) {
-      return res.status(403).json({ error: 'You can only delete your own posts' });
+      return res
+        .status(403)
+        .json({ error: "You can only delete your own posts" });
     }
 
     await postsRepo.softDeletePost(postId);
-    res.json({ success: true, message: 'Post deleted successfully' });
+    res.json({ success: true, message: "Post deleted successfully" });
   } catch (err) {
-    console.error('deletePost error:', err);
-    res.status(500).json({ error: 'Failed to delete post' });
+    console.error("deletePost error:", err);
+    res.status(500).json({ error: "Failed to delete post" });
   }
 }
 
@@ -255,17 +271,21 @@ async function reportPost(req, res) {
     const { reason } = req.body;
 
     if (!reason || !reason.trim()) {
-      return res.status(400).json({ error: 'Report reason is required' });
+      return res.status(400).json({ error: "Report reason is required" });
     }
 
     const post = await postsRepo.getPostById(postId, reporterId);
-    if (!post) return res.status(404).json({ error: 'Post not found' });
+    if (!post) return res.status(404).json({ error: "Post not found" });
 
-    const report = await postsRepo.createReport(postId, reporterId, reason.trim());
+    const report = await postsRepo.createReport(
+      postId,
+      reporterId,
+      reason.trim(),
+    );
     res.status(201).json(report);
   } catch (err) {
-    console.error('reportPost error:', err);
-    res.status(500).json({ error: 'Failed to report post' });
+    console.error("reportPost error:", err);
+    res.status(500).json({ error: "Failed to report post" });
   }
 }
 

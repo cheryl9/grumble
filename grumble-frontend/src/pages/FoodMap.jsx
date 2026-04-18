@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import api from "../services/api";
 import logo from "../assets/logo.png";
 import { Users, User, Bookmark } from "lucide-react";
+import { getAvatarSrc } from "../utils/avatarUtils";
 import AddFoodSpotModal from "../components/foodMapPage/AddFoodSpotModal";
 
 const TABS = [
@@ -93,6 +94,7 @@ async function fetchPostPins(tab) {
       liked_by_me: p.liked_by_me,
       likes_count: p.likes_count,
       created_at: p.created_at, // Added for date filtering (Friends tab)
+      avatarUrl: p.equipped_avatar ? getAvatarSrc(p.equipped_avatar) : null,
       isPost: true, // flag so pin card knows it's a post, not a bare place
     }));
 }
@@ -156,6 +158,9 @@ const FoodMap = () => {
             username: p.username,
             liked_by_me: p.liked_by_me,
             likes_count: p.likes_count,
+            avatarUrl: p.equipped_avatar
+              ? getAvatarSrc(p.equipped_avatar)
+              : null,
             isPost: true,
           }));
       }

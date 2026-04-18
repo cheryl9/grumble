@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Plus, Clock, UserCheck } from "lucide-react";
 import * as friendService from "../../services/friendService";
+import UserAvatar from "../common/UserAvatar";
 
 const AddFriendSearch = ({
   sentRequests = [],
@@ -130,9 +131,11 @@ const AddFriendSearch = ({
               return (
                 <div key={user.id} className="friends-search-result">
                   <div className="friends-search-result-user">
-                    <div className="friends-search-result-avatar">
-                      {user.username?.charAt(0).toUpperCase() || "?"}
-                    </div>
+                    <UserAvatar
+                      equippedAvatar={user.equipped_avatar}
+                      size={36}
+                      className="flex-shrink-0"
+                    />
                     <p className="friends-search-result-username">
                       {user.username}
                     </p>

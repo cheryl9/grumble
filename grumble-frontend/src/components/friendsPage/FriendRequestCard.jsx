@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Check, X } from "lucide-react";
 import * as friendService from "../../services/friendService";
+import UserAvatar from "../common/UserAvatar";
 
 const FriendRequestCard = ({ request, onAccepted, onDeclined }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,11 +38,11 @@ const FriendRequestCard = ({ request, onAccepted, onDeclined }) => {
   return (
     <div className="friend-request-card">
       <div className="friend-request-content">
-        <div className="friend-avatar-section">
-          <div className="friend-avatar">
-            {request.requester_username?.charAt(0).toUpperCase() || "?"}
-          </div>
-        </div>
+        <UserAvatar
+          equippedAvatar={request.equipped_avatar}
+          size={48}
+          className="flex-shrink-0"
+        />
         <div className="friend-info">
           <p className="friend-name">{request.requester_username}</p>
         </div>
