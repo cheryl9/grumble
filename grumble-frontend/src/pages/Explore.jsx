@@ -142,14 +142,8 @@ const Explore = () => {
       );
     }
   };
-          };
-        });
-      }
-    }
-  };
-  // ────────────────────────────────────────────────────────────
 
->>>>>>> 768392928a5c0162a6c8647d7511e4bf41e89504
+  // Open post detail modal — fetches full post + comments
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);
@@ -172,7 +166,9 @@ const Explore = () => {
   const handleCommentDeleted = (postId) => {
     setPosts((prev) =>
       prev.map((p) =>
-        p.id === postId ? { ...p, comments_count: Math.max(p.comments_count - 1, 0) } : p,
+        p.id === postId
+          ? { ...p, comments_count: Math.max(p.comments_count - 1, 0) }
+          : p,
       ),
     );
   };

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
 import * as friendService from "../../services/friendService";
+import UserAvatar from "../common/UserAvatar";
 
 const FriendCard = ({ friend, onRemoved }) => {
   const [isRemoving, setIsRemoving] = useState(false);
@@ -31,9 +32,11 @@ const FriendCard = ({ friend, onRemoved }) => {
     <div className="friend-card">
       <div className="friend-card-content">
         {/* Avatar */}
-        <div className="friend-card-avatar">
-          {friend.friend_username?.charAt(0).toUpperCase() || "?"}
-        </div>
+        <UserAvatar
+          equippedAvatar={friend.equipped_avatar}
+          size={60}
+          className="flex-shrink-0"
+        />
 
         {/* Info */}
         <div className="friend-card-info">
