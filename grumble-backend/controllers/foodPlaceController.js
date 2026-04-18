@@ -99,6 +99,8 @@ async function enrichWithGoogle(place) {
 async function getAllFoodPlacesHandler(req, res) {
   try {
     const { category, cuisine, minLat, maxLat, minLon, maxLon, limit } = req.query;
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : null;
+    const enrich = String(req.query.enrich ?? "true").toLowerCase() !== "false";
     const places = await getAllFoodPlaces({
       category,
       cuisine,
@@ -106,8 +108,15 @@ async function getAllFoodPlacesHandler(req, res) {
       maxLat,
       minLon,
       maxLon,
+      q,
       limit: limit ? parseInt(limit) : 10,
     });
+
+    if (!enrich) {
+      res.json(places);
+      return;
+    }
+
     const enriched = await Promise.all(places.map(enrichWithGoogle));
     res.json(enriched);
   } catch (error) {
