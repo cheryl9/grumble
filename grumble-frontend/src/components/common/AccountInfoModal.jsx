@@ -105,7 +105,7 @@ export default function AccountInfoModal({ user, onClose }) {
                 color: "#111",
               }}
             >
-              {user?.phone_number || "Not set"}
+              {user?.phoneNumber || "Not set"}
             </div>
           </div>
         </div>

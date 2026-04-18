@@ -10,7 +10,7 @@ export default function EditProfileModal({
 }) {
   const [tab, setTab] = useState(initialTab); // 'info' | 'password'
   const [username, setUsername] = useState(user?.username || "");
-  const [phone_number, setPhoneNumber] = useState(user?.phone_number || "");
+  const [phone_number, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -37,7 +37,17 @@ export default function EditProfileModal({
         setError(response.data.message || "Update failed.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Update failed.");
+      const errorMessage = err.response?.data?.message || "Update failed.";
+      const errorField = err.response?.data?.field;
+
+      // Provide more context in error message based on field
+      if (errorField === "username") {
+        setError(`Username: ${errorMessage}`);
+      } else if (errorField === "phone_number") {
+        setError(`Phone Number: ${errorMessage}`);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -68,7 +78,18 @@ export default function EditProfileModal({
         setError(response.data.message || "Failed to change password.");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to change password.");
+      const errorMessage =
+        err.response?.data?.message || "Failed to change password.";
+      const errorField = err.response?.data?.field;
+
+      // Provide more context in error message based on field
+      if (errorField === "currentPassword") {
+        setError(`Current Password: ${errorMessage}`);
+      } else if (errorField === "newPassword") {
+        setError(`New Password: ${errorMessage}`);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

@@ -132,6 +132,14 @@ const isUsernameTaken = async (username, excludeUserId) => {
   return result.rows.length > 0;
 };
 
+const isPhoneNumberTaken = async (phoneNumber, excludeUserId) => {
+  const result = await pool.query(
+    "SELECT id FROM users WHERE phone_number = $1 AND id != $2",
+    [phoneNumber, excludeUserId],
+  );
+  return result.rows.length > 0;
+};
+
 const updateUser = async (userId, { username, phone_number }) => {
   const result = await pool.query(
     `UPDATE users SET username = $1, phone_number = $2, updated_at = NOW()
@@ -315,6 +323,7 @@ module.exports = {
   markOTPAsUsed,
   cleanupExpiredOTPs,
   isUsernameTaken,
+  isPhoneNumberTaken,
   updateUser,
   updatePasswordById,
   getPasswordHashById,
