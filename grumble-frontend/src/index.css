@@ -766,6 +766,15 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+.chats-search-bar .search-input::placeholder {
+  color: white;
+  opacity: 1;
+}
+
+.chats-search-bar .search-icon {
+  color: white;
+}
+
 .chats-list {
   background: white;
   margin: 1.5rem 2rem;

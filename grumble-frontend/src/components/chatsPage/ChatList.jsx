@@ -67,14 +67,13 @@ const ChatList = ({
 
       <div className="chats-list">
         {isLoading && (
-          <div className="text-center py-10 text-gray-400">
+          <div className="text-center py-10 text-black">
             <p className="font-semibold">Loading…</p>
           </div>
         )}
 
         {!isLoading && filtered.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-4xl mb-2">💬</p>
+          <div className="text-center py-16 text-black">
             <p className="font-semibold">No chats found</p>
           </div>
         )}
@@ -88,14 +87,14 @@ const ChatList = ({
             <Avatar name={chat.name} size="md" />
             <div className="flex-1 min-w-0 text-left">
               <div className="flex items-center justify-between">
-                <p className="font-bold text-gray-900 text-sm truncate">
+                <p className="font-bold text-black text-sm truncate">
                   {chat.name}
                 </p>
-                <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                <span className="text-xs text-black flex-shrink-0 ml-2">
                   {chat.time}
                 </span>
               </div>
-              <p className="text-xs text-gray-400 truncate mt-0.5">
+              <p className="text-xs text-black truncate mt-0.5">
                 {chat.lastMessage}
               </p>
             </div>

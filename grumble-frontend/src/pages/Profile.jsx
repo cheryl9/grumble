@@ -179,7 +179,7 @@ export default function Profile() {
   const bodyStyle = {
     maxWidth: "560px",
     margin: "0 auto",
-    padding: "20px 16px",
+    padding: "20px 2rem",
     display: "flex",
     flexDirection: "column",
     gap: "10px",
@@ -209,7 +209,7 @@ export default function Profile() {
           alt="Grumble logo"
           style={{ width: "70px", height: "70px" }}
         />
-        <span style={{ fontSize: "20px", fontWeight: "800", color: "#111" }}>
+        <span style={{ fontSize: "36px", fontWeight: "800", color: "#111" }}>
           Profile
         </span>
       </div>
