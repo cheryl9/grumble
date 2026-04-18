@@ -1,5 +1,5 @@
-require('../config/loadEnv');
-const axios = require('axios');
+require("../config/loadEnv");
+const axios = require("axios");
 
 /**
  * Telegram Bot Service
@@ -38,29 +38,31 @@ const sendMessage = async (chatId, text, options = {}) => {
     return null;
   }
 
+  if (!chatId) {
+    throw new Error("Chat ID is required to send Telegram message");
+  }
+
+  const payload = {
+    chat_id: chatId,
+    text: text,
+    ...options,
+  };
+
+  if (!payload.parse_mode) delete payload.parse_mode;
+
   try {
-    const payload = {
-      chat_id: chatId,
-      text: text,
-      ...options,
-    };
-
-    if (!payload.parse_mode) {
-      delete payload.parse_mode;
-    }
-
     const response = await axios.post(
       `${TELEGRAM_API_URL}/sendMessage`,
       payload,
     );
-
     return response.data;
   } catch (error) {
+    const detail = error.response?.data?.description || error.message;
     console.error(
       "❌ Telegram API error:",
       error.response?.data || error.message,
     );
-    throw new Error("Failed to send Telegram message");
+    throw new Error(`Failed to send Telegram message: ${detail}`);
   }
 };
 

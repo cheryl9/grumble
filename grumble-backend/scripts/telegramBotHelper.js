@@ -1,5 +1,4 @@
 require('../config/loadEnv');
-const express = require('express');
 const axios = require('axios');
 
 /**
@@ -125,8 +124,8 @@ async function start() {
   console.log('🔄 Listening for /start messages...\n');
   console.log('Press Ctrl+C to stop\n');
 
-  // Poll every 1 second
-  setInterval(pollUpdates, 1000);
+  // Poll every 30 seconds
+  setInterval(pollUpdates, 30000);
 }
 
 // Handle graceful shutdown
