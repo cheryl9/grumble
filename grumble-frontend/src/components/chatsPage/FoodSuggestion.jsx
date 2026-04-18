@@ -1,11 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ThumbsUp, ThumbsDown } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { MapPin, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import api from "../../services/api";
+import { getFoodPlaceById } from "../../services/foodPlacesService";
 
 const FoodSuggestion = ({ message, onViewRestaurant }) => {
   const suggestion = message?.payload;
   const place = suggestion?.food_place;
   const suggestionId = suggestion?.id;
+
+  const cardRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  const [placeDetails, setPlaceDetails] = useState(null);
+  const [detailsLoaded, setDetailsLoaded] = useState(false);
 
   const [likes, setLikes] = useState(suggestion?.likes ?? 0);
   const [dislikes, setDislikes] = useState(suggestion?.dislikes ?? 0);
@@ -16,17 +23,85 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
     setLikes(suggestion?.likes ?? 0);
     setDislikes(suggestion?.dislikes ?? 0);
     setReaction(null);
-  }, [suggestionId]);
+  }, [suggestionId, suggestion?.likes, suggestion?.dislikes]);
+
+  useEffect(() => {
+    setPlaceDetails(null);
+    setDetailsLoaded(false);
+  }, [place?.id]);
+
+  useEffect(() => {
+    if (!cardRef.current) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setIsVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchDetails = async () => {
+      const placeId = Number(place?.id);
+      if (!Number.isInteger(placeId)) {
+        setPlaceDetails(null);
+        setDetailsLoaded(false);
+        return;
+      }
+
+      if (!isVisible || detailsLoaded) return;
+
+      try {
+        const details = await getFoodPlaceById(placeId);
+        if (!isActive) return;
+        setPlaceDetails(details);
+        setDetailsLoaded(true);
+      } catch {
+        if (!isActive) return;
+        setPlaceDetails(null);
+        setDetailsLoaded(true);
+      }
+    };
+
+    fetchDetails();
+
+    return () => {
+      isActive = false;
+    };
+  }, [place?.id, isVisible, detailsLoaded]);
+
+  const rating =
+    placeDetails?.google?.rating ??
+    (typeof placeDetails?.rating === "number" ? placeDetails.rating : null);
+  const location =
+    placeDetails?.google?.address ||
+    placeDetails?.address ||
+    place?.address ||
+    "Address unavailable";
+
+  const imageUrl =
+    placeDetails?.google?.image ||
+    placeDetails?.image_url ||
+    placeDetails?.imageUrl ||
+    null;
 
   const viewPayload = useMemo(() => {
     if (!place) return null;
     return {
       id: place.id,
       name: place.name,
-      address: place.address,
-      photo_url: place.photo_url,
+      address: location,
+      photo_url: imageUrl,
     };
-  }, [place]);
+  }, [place, location, imageUrl]);
 
   const react = async (type) => {
     if (!suggestionId || loading) return;
@@ -55,13 +130,14 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
 
   return (
     <div
+      ref={cardRef}
       className="chat-food-suggestion"
       onClick={() => viewPayload && onViewRestaurant(viewPayload)}
     >
       <div className="food-suggestion-image">
-        {place.photo_url ? (
+        {imageUrl ? (
           <img
-            src={place.photo_url}
+            src={imageUrl}
             alt={place.name}
             className="w-full h-full object-cover"
           />
@@ -77,9 +153,19 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
           {message?.sender?.username || "Someone"} suggested:
         </p>
         <p className="font-bold text-gray-900 text-base">{place.name}</p>
-        {place.address && (
-          <p className="text-xs text-gray-400">{place.address}</p>
-        )}
+
+        <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+          <div className="flex items-center gap-1 min-w-0">
+            <Star size={14} className="text-yellow-500 fill-yellow-500" />
+            <span className="truncate">
+              {rating != null ? Number(rating).toFixed(1) : "N/A"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 min-w-0">
+            <MapPin size={14} className="text-red-500" />
+            <span className="truncate">{location}</span>
+          </div>
+        </div>
 
         <div className="flex gap-3 mt-2" onClick={(e) => e.stopPropagation()}>
           <button
@@ -105,6 +191,7 @@ const FoodSuggestion = ({ message, onViewRestaurant }) => {
             <ThumbsDown size={12} /> {dislikes}
           </button>
         </div>
+
       </div>
     </div>
   );
