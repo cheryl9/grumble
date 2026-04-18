@@ -2,10 +2,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Plus, ArrowLeft } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import Avatar from "./Avatar";
 import ChatMessage from "./ChatMessage";
 import { getChatRoom } from "../../services/chatService";
-import { subscribeToRoom, unsubscribeFromRoom } from "../../services/realtimeSocket";
+import {
+  subscribeToRoom,
+  unsubscribeFromRoom,
+} from "../../services/realtimeSocket";
 
 const ChatWindow = ({
   chat,
@@ -15,6 +19,7 @@ const ChatWindow = ({
   onOpenGroupInfo,
 }) => {
   const { user } = useAuth();
+  const { showErrorToast } = useToast();
   const roomId = chat?.id;
 
   const [room, setRoom] = useState(null);
@@ -23,7 +28,6 @@ const ChatWindow = ({
 
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState(null);
 
   const [input, setInput] = useState("");
   const [showActions, setShowActions] = useState(false);
@@ -48,7 +52,6 @@ const ChatWindow = ({
     const load = async () => {
       try {
         setLoading(true);
-        setError(null);
 
         const [roomRes, msgRes] = await Promise.all([
           getChatRoom(roomId),
@@ -67,8 +70,9 @@ const ChatWindow = ({
         setMessages(fetched);
       } catch (err) {
         if (cancelled) return;
-        setError(
+        showErrorToast(
           err?.response?.data?.message || err?.message || "Failed to load chat",
+          "Chat",
         );
       } finally {
         if (!cancelled) setLoading(false);
@@ -104,7 +108,7 @@ const ChatWindow = ({
     return () => {
       cancelled = true;
     };
-  }, [roomId]);
+  }, [roomId, onChatUpdated, showErrorToast]);
 
   const displayName = useMemo(() => {
     const fallback = chat?.name || "Chat";
@@ -139,7 +143,6 @@ const ChatWindow = ({
 
     try {
       setSending(true);
-      setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
         type: "text",
@@ -151,10 +154,11 @@ const ChatWindow = ({
       setShowActions(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message ||
           err?.message ||
           "Failed to send message",
+        "Send Message",
       );
     } finally {
       setSending(false);
@@ -168,7 +172,6 @@ const ChatWindow = ({
 
     try {
       setSending(true);
-      setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
         type: "poll",
@@ -181,8 +184,9 @@ const ChatWindow = ({
       setShowPollModal(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message || err?.message || "Failed to send poll",
+        "Send Poll",
       );
     } finally {
       setSending(false);
@@ -195,7 +199,6 @@ const ChatWindow = ({
 
     try {
       setSending(true);
-      setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
         type: "spin_wheel",
@@ -207,8 +210,9 @@ const ChatWindow = ({
       setShowWheelModal(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message || err?.message || "Failed to send wheel",
+        "Spin Wheel",
       );
     } finally {
       setSending(false);
@@ -250,7 +254,6 @@ const ChatWindow = ({
 
     try {
       setSending(true);
-      setError(null);
 
       const res = await api.post(`/chats/${roomId}/messages`, {
         type: "food_suggestion",
@@ -264,10 +267,11 @@ const ChatWindow = ({
       setShowFoodModal(false);
       onChatUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message ||
           err?.message ||
           "Failed to suggest food",
+        "Food Suggestion",
       );
     } finally {
       setSending(false);
@@ -310,7 +314,7 @@ const ChatWindow = ({
         </button>
       </div>
 
-      {error && <div className="px-4 py-2 text-sm text-red-600">{error}</div>}
+      {/* Errors are shown via global toasts */}
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
         {loading ? (
@@ -501,9 +505,7 @@ const ChatWindow = ({
             <h2 className="text-lg font-bold text-gray-900 mb-2">
               Suggest Food
             </h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Search by shop name
-            </p>
+            <p className="text-sm text-gray-400 mb-4">Search by shop name</p>
             <input
               type="text"
               placeholder="e.g. Din Tai Fung"
@@ -526,7 +528,9 @@ const ChatWindow = ({
             </button>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {!foodSearchLoading && foodQuery.trim() && foodResults.length === 0 ? (
+              {!foodSearchLoading &&
+              foodQuery.trim() &&
+              foodResults.length === 0 ? (
                 <div className="text-sm text-gray-400">No matches found.</div>
               ) : (
                 foodResults.map((p) => {

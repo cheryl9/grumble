@@ -1,7 +1,8 @@
 const chatRoomRepository = require("../repositories/chatRoomRepository");
 const friendsRepository = require("../repositories/friendsRepository");
 const multer = require("multer");
-const supabase = require('../config/supabase');
+const supabase = require("../config/supabase");
+// (No realtime membership change notifications.)
 
 //Need friendship repository to validate members when creating rooms
 
@@ -208,6 +209,8 @@ const addMembers = async (req, res) => {
       }
     }
 
+    // No realtime notification for membership changes.
+
     const updatedMembers = await chatRoomRepository.getChatRoomMembers(roomId);
 
     res.status(201).json({
@@ -265,14 +268,14 @@ const getChatRoom = async (req, res) => {
   }
 };
 
-const BUCKET = 'group-avatars';
+const BUCKET = "group-avatars";
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      return cb(new Error('Images only'));
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Images only"));
     }
     cb(null, true);
   },
@@ -281,7 +284,7 @@ const upload = multer({
 // PATCH /api/chats/:roomId
 // Handles name, avatar_url (text), or avatar file upload — all in one
 const updateChatRoom = [
-  upload.single('avatar'),
+  upload.single("avatar"),
   async (req, res) => {
     try {
       const { roomId } = req.params;
@@ -307,15 +310,18 @@ const updateChatRoom = [
         updates.avatar_url = data.publicUrl;
       }
 
-      const updatedRoom = await chatRoomRepository.updateChatRoom(roomId, updates);
+      const updatedRoom = await chatRoomRepository.updateChatRoom(
+        roomId,
+        updates,
+      );
 
       if (!updatedRoom) {
-        return res.status(400).json({ error: 'No valid fields to update' });
+        return res.status(400).json({ error: "No valid fields to update" });
       }
 
       res.json(updatedRoom);
     } catch (error) {
-      console.error('Failed to update chat room:', error.message);
+      console.error("Failed to update chat room:", error.message);
       res.status(500).json({ error: error.message });
     }
   },
@@ -479,6 +485,8 @@ const removeMember = async (req, res) => {
     }
 
     await chatRoomRepository.removeMemberFromRoom(roomId, memberId);
+
+    // No realtime notification for membership changes.
 
     const updatedMembers = await chatRoomRepository.getChatRoomMembers(roomId);
 

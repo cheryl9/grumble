@@ -1,11 +1,12 @@
 import { Outlet, useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Sidebar from "./Sidebar";
 import FloatingPet from "../common/FloatingPet";
 import api from "../../services/api";
 import { getRealtimeSocket } from "../../services/realtimeSocket";
 import { ACHIEVEMENT_BY_KEY } from "../../utils/achievementCatalog";
 import logoImg from "../../assets/logo.png";
+import ToastContext from "../../context/ToastContext";
 
 function GlobalToast({ toast, onClose, onAction }) {
   const topOffset = 20 + toast.index * 94;
@@ -53,7 +54,13 @@ function GlobalToast({ toast, onClose, onAction }) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: "11px", color: toast.kickerColor, fontWeight: 700 }}>
+          <div
+            style={{
+              fontSize: "11px",
+              color: toast.kickerColor,
+              fontWeight: 700,
+            }}
+          >
             {toast.kicker}
           </div>
           <div
@@ -67,7 +74,13 @@ function GlobalToast({ toast, onClose, onAction }) {
           >
             {toast.title}
           </div>
-          <div style={{ fontSize: "11px", color: toast.bodyColor, marginTop: "2px" }}>
+          <div
+            style={{
+              fontSize: "11px",
+              color: toast.bodyColor,
+              marginTop: "2px",
+            }}
+          >
             {toast.body}
           </div>
 
@@ -260,7 +273,9 @@ function buildUnreadNotificationToast(notification) {
       kind: "friend_request_accepted",
       kicker: "A new friendship!",
       title: notification.title || "Your friend request was accepted!",
-      body: notification.body || "You can start chatting or check the friends page.",
+      body:
+        notification.body ||
+        "You can start chatting or check the friends page.",
       image: logoImg,
       actionLabel: "View Friends",
       actionTo: "/friends",
@@ -279,6 +294,42 @@ function buildUnreadNotificationToast(notification) {
   return null;
 }
 
+function buildChatSuccessToast(title, body) {
+  return {
+    id: `chat-success-${Date.now()}-${Math.random()}`,
+    kind: "chat_success",
+    kicker: "Saved",
+    title,
+    body,
+    emoji: "✅",
+    borderColor: "#86efac",
+    background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+    shadow: "0 10px 24px rgba(22, 101, 52, 0.15)",
+    kickerColor: "#166534",
+    titleColor: "#14532d",
+    bodyColor: "#166534",
+    closeColor: "#14532d",
+  };
+}
+
+function buildErrorToast(message, title = "Something went wrong") {
+  return {
+    id: `error-${Date.now()}-${Math.random()}`,
+    kind: "error",
+    kicker: "Error",
+    title,
+    body: message,
+    emoji: "⚠️",
+    borderColor: "#fb7185",
+    background: "linear-gradient(135deg, #ffe2e5 0%, #ffd1d8 100%)",
+    shadow: "0 10px 24px rgba(251, 113, 133, 0.15)",
+    kickerColor: "#be123c",
+    titleColor: "#831843",
+    bodyColor: "#be123c",
+    closeColor: "#831843",
+  };
+}
+
 export default function MainLayout() {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -286,7 +337,7 @@ export default function MainLayout() {
   const [toasts, setToasts] = useState([]);
   const loginBootstrapDoneRef = useRef(false);
 
-  const pushToast = (toast) => {
+  const pushToast = useCallback((toast) => {
     if (!toast) return;
 
     setToasts((prev) => [...prev, toast].slice(-4));
@@ -294,18 +345,95 @@ export default function MainLayout() {
     window.setTimeout(() => {
       setToasts((prev) => prev.filter((item) => item.id !== toast.id));
     }, 5600);
-  };
+  }, []);
 
-  const dismissToast = (id) => {
+  const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((item) => item.id !== id));
-  };
+  }, []);
 
-  const handleToastAction = (toast) => {
-    if (toast?.actionTo) {
-      navigate(toast.actionTo);
-    }
-    dismissToast(toast.id);
-  };
+  const handleToastAction = useCallback(
+    (toast) => {
+      if (toast?.actionTo) {
+        navigate(toast.actionTo);
+      }
+      dismissToast(toast.id);
+    },
+    [dismissToast, navigate],
+  );
+
+  const showErrorToast = useCallback(
+    (message, title) => {
+      pushToast(buildErrorToast(message, title));
+    },
+    [pushToast],
+  );
+
+  const showGroupAvatarUpdatedToast = useCallback(() => {
+    pushToast(
+      buildChatSuccessToast(
+        "Group photo updated",
+        "Your group avatar has been updated.",
+      ),
+    );
+  }, [pushToast]);
+
+  const showGroupNameUpdatedToast = useCallback(() => {
+    pushToast(
+      buildChatSuccessToast(
+        "Group name updated",
+        "Your changes have been saved.",
+      ),
+    );
+  }, [pushToast]);
+
+  const showMembersAddedToast = useCallback(
+    (count = 1) => {
+      const n = Number(count) || 1;
+      pushToast(
+        buildChatSuccessToast(
+          "Members added",
+          `Added ${n} member${n === 1 ? "" : "s"} to the group.`,
+        ),
+      );
+    },
+    [pushToast],
+  );
+
+  const showMemberRemovedToast = useCallback(() => {
+    pushToast(
+      buildChatSuccessToast(
+        "Member removed",
+        "This member has been removed from the group.",
+      ),
+    );
+  }, [pushToast]);
+
+  const showRoleUpdatedToast = useCallback(() => {
+    pushToast(
+      buildChatSuccessToast("Role updated", "Member role has been updated."),
+    );
+  }, [pushToast]);
+
+  const toastContextValue = useMemo(
+    () => ({
+      pushToast,
+      showErrorToast,
+      showGroupAvatarUpdatedToast,
+      showGroupNameUpdatedToast,
+      showMembersAddedToast,
+      showMemberRemovedToast,
+      showRoleUpdatedToast,
+    }),
+    [
+      pushToast,
+      showErrorToast,
+      showGroupAvatarUpdatedToast,
+      showGroupNameUpdatedToast,
+      showMembersAddedToast,
+      showMemberRemovedToast,
+      showRoleUpdatedToast,
+    ],
+  );
 
   useEffect(() => {
     const fetchStreak = async () => {
@@ -360,13 +488,13 @@ export default function MainLayout() {
           .map(buildUnreadNotificationToast)
           .filter(Boolean)
           .forEach((toast) => pushToast(toast));
-      } catch (error) {
+      } catch {
         // Silent fail: realtime notifications will still work once connected.
       }
     };
 
     bootstrapNotifications();
-  }, []);
+  }, [pushToast]);
 
   useEffect(() => {
     const socket = getRealtimeSocket();
@@ -385,6 +513,7 @@ export default function MainLayout() {
 
       if (payload?.type === "friend_request_accepted") {
         pushToast(buildFriendRequestAcceptedToast(payload));
+        return;
       }
     };
 
@@ -393,26 +522,28 @@ export default function MainLayout() {
     return () => {
       socket.off("notification_alert", handleNotificationAlert);
     };
-  }, [navigate]);
+  }, [navigate, pushToast]);
 
   return (
-    <div className="flex h-screen">
-      {toasts.map((toast, index) => (
-        <GlobalToast
-          key={toast.id}
-          toast={{ ...toast, index }}
-          onClose={dismissToast}
-          onAction={handleToastAction}
-        />
-      ))}
-      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <main
-        className="flex-1 overflow-y-auto transition-all duration-300"
-        style={{ marginLeft: isSidebarOpen ? "200px" : "80px" }}
-      >
-        <Outlet />
-      </main>
-      <FloatingPet streak={streak} />
-    </div>
+    <ToastContext.Provider value={toastContextValue}>
+      <div className="flex h-screen">
+        {toasts.map((toast, index) => (
+          <GlobalToast
+            key={toast.id}
+            toast={{ ...toast, index }}
+            onClose={dismissToast}
+            onAction={handleToastAction}
+          />
+        ))}
+        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+        <main
+          className="flex-1 overflow-y-auto transition-all duration-300"
+          style={{ marginLeft: isSidebarOpen ? "200px" : "80px" }}
+        >
+          <Outlet />
+        </main>
+        <FloatingPet streak={streak} />
+      </div>
+    </ToastContext.Provider>
   );
 }

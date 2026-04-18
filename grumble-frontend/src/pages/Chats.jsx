@@ -10,6 +10,7 @@ import {
   getRealtimeSocket,
 } from "../services/realtimeSocket";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import logo from "../assets/logo.png";
 import ChatList from "../components/chatsPage/ChatList";
 import ChatWindow from "../components/chatsPage/ChatWindow";
@@ -60,6 +61,7 @@ const mapRoomToChatListItem = (room) => {
 
 const Chats = () => {
   const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { showErrorToast } = useToast();
 
   const [chats, setChats] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -73,7 +75,6 @@ const Chats = () => {
   const [unreadByRoomId, setUnreadByRoomId] = useState({});
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const refreshChats = useCallback(async () => {
     const res = await api.get("/chats");
@@ -93,21 +94,26 @@ const Chats = () => {
 
       try {
         setLoading(true);
-        setError(null);
         await Promise.all([refreshChats(), refreshFriends()]);
       } catch (err) {
-        setError(
+        const msg =
           err?.response?.data?.message ||
-            err?.message ||
-            "Failed to load chats",
-        );
+          err?.message ||
+          "Failed to load chats";
+        showErrorToast(msg, "Chats");
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [authLoading, isAuthenticated, refreshChats, refreshFriends]);
+  }, [
+    authLoading,
+    isAuthenticated,
+    refreshChats,
+    refreshFriends,
+    showErrorToast,
+  ]);
 
   useEffect(() => {
     if (authLoading || !isAuthenticated) {
@@ -119,6 +125,10 @@ const Chats = () => {
     if (!socket) return undefined;
 
     const handleNotificationAlert = (payload) => {
+      // Only treat untyped alerts as message notifications.
+      // Typed alerts are handled by MainLayout global toasts.
+      if (payload?.type) return;
+
       const roomId = Number(payload?.room_id);
       if (!Number.isInteger(roomId)) return;
 
@@ -271,7 +281,7 @@ const Chats = () => {
         </div>
       </div>
 
-      {error && <div className="px-4 py-2 text-sm text-red-600">{error}</div>}
+      {/* Errors are shown via global toasts */}
 
       <ChatList
         chats={chatListItems}

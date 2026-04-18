@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import api from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import Avatar from "./Avatar";
 import {
   addMembersToChatRoom,
@@ -14,6 +15,13 @@ import {
 
 const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
   const { user } = useAuth();
+  const {
+    showErrorToast,
+    showGroupAvatarUpdatedToast,
+    showMembersAddedToast,
+    showMemberRemovedToast,
+    showRoleUpdatedToast,
+  } = useToast();
 
   const avatarFileInputRef = useRef(null);
 
@@ -23,7 +31,6 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [selectedToAdd, setSelectedToAdd] = useState([]);
 
@@ -49,7 +56,6 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
     try {
       setLoading(true);
-      setError(null);
 
       const [roomData, friendsRes] = await Promise.all([
         getChatRoom(roomId),
@@ -61,10 +67,11 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
       setFriends(friendsRes.data?.data || []);
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message ||
           err?.message ||
           "Failed to load group info",
+        "Group Info",
       );
     } finally {
       setLoading(false);
@@ -91,19 +98,20 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
     try {
       setSaving(true);
-      setError(null);
 
       const form = new FormData();
       form.append("avatar", file);
 
       const updated = await updateChatRoom(roomId, form);
       setRoom((prev) => ({ ...(prev || {}), ...(updated || {}) }));
+      showGroupAvatarUpdatedToast();
       onRoomUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message ||
           err?.message ||
           "Failed to update avatar",
+        "Group Photo",
       );
     } finally {
       setSaving(false);
@@ -122,16 +130,17 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
     try {
       setSaving(true);
-      setError(null);
 
       const updatedMembers = await addMembersToChatRoom(roomId, selectedToAdd);
       setMembers(updatedMembers || []);
+      showMembersAddedToast(selectedToAdd.length);
       setSelectedToAdd([]);
       setShowAddMembers(false);
       onRoomUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message || err?.message || "Failed to add members",
+        "Add Members",
       );
     } finally {
       setSaving(false);
@@ -143,19 +152,20 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
     try {
       setSaving(true);
-      setError(null);
 
       const updatedMembers = await removeMemberFromChatRoom(
         roomId,
         memberUserId,
       );
       setMembers(updatedMembers || []);
+      showMemberRemovedToast();
       onRoomUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message ||
           err?.message ||
           "Failed to remove member",
+        "Remove Member",
       );
     } finally {
       setSaving(false);
@@ -167,7 +177,6 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
     try {
       setSaving(true);
-      setError(null);
 
       const updatedMembers = await updateChatMemberRole(
         roomId,
@@ -175,10 +184,12 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
         role,
       );
       setMembers(updatedMembers || []);
+      showRoleUpdatedToast();
       onRoomUpdated?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message || err?.message || "Failed to update role",
+        "Update Role",
       );
     } finally {
       setSaving(false);
@@ -190,14 +201,14 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
 
     try {
       setSaving(true);
-      setError(null);
 
       await leaveChatRoom(roomId);
       onRoomUpdated?.();
       onLeftGroup?.();
     } catch (err) {
-      setError(
+      showErrorToast(
         err?.response?.data?.message || err?.message || "Failed to leave group",
+        "Leave Group",
       );
     } finally {
       setSaving(false);
@@ -213,7 +224,7 @@ const GroupChatInfo = ({ roomId, onBack, onLeftGroup, onRoomUpdated }) => {
         <p className="font-bold text-gray-900 text-base truncate">Group Info</p>
       </div>
 
-      {error && <div className="px-4 py-2 text-sm text-red-600">{error}</div>}
+      {/* Errors are shown via global toasts */}
 
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {loading ? (

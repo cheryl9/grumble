@@ -16,12 +16,24 @@ export const getRealtimeSocket = () => {
     return null;
   }
 
-  if (socket && socket.connected && socket.auth?.token === token) {
-    return socket;
-  }
-
   if (socket) {
-    socket.disconnect();
+    // Reuse the existing singleton socket even while it's connecting.
+    // Recreating it can drop listeners registered by other parts of the app.
+    const existingToken = socket.auth?.token;
+    if (existingToken && existingToken !== token) {
+      socket.disconnect();
+      socket = null;
+    } else {
+      if (!existingToken) {
+        socket.auth = { token };
+      }
+
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      return socket;
+    }
   }
 
   socket = io(getSocketUrl(), {
