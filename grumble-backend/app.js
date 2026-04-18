@@ -15,6 +15,7 @@ const suggestionRoutes = require("./routes/suggestionRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const userRoutes = require("./routes/userRoutes");
 const friendRoutes = require("./routes/friendRoutes");
+const notificationsRoutes = require("./routes/notificationsRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const supportRoutes = require('./routes/supportRoutes');
 const faqController = require('./controllers/admin/faqController');
@@ -41,6 +42,7 @@ app.use("/api/suggestions", suggestionRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);
+app.use("/api/notifications", notificationsRoutes);
 app.get('/api/faqs', faqController.getFAQs);
 app.use('/api/support', supportRoutes);
 

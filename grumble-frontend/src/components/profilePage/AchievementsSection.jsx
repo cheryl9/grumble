@@ -1,85 +1,8 @@
 import { useState } from "react";
 import AvatarPickerModal from "./AvatarPickerModal";
+import { ACHIEVEMENT_CATALOG } from "../../utils/achievementCatalog";
 
-export const ALL_ACHIEVEMENTS = [
-  {
-    key: "tiny_tummy",
-    label: "Tiny Tummy",
-    description: "Post your very first Grumble restaurant review.",
-    avatarFile: "tiny_tummy.png",
-    rarity: "common",
-  },
-  {
-    key: "gut_guardian",
-    label: "Gut Guardian",
-    description: "Post restaurant reviews for 7 days in a row.",
-    avatarFile: "gut_guardian.png",
-    rarity: "common",
-  },
-  {
-    key: "digestive_dynamo",
-    label: "Digestive Dynamo",
-    description: "Maintain a 14-day Grumble streak.",
-    avatarFile: "digestive_dynamo.png",
-    rarity: "common",
-  },
-  {
-    key: "golden_kidney",
-    label: "Golden Kidney",
-    description: "Visit and post at 10 different cafés.",
-    avatarFile: "golden_kidney.png",
-    rarity: "common",
-  },
-  {
-    key: "bean_there_done_that",
-    label: "Bean There, Done That",
-    description: "Visit and post at the same restaurant as your friend",
-    avatarFile: "bean_there_done_that.png",
-    rarity: "common",
-  },
-  {
-    key: "snack_goblin",
-    label: "Snack Goblin",
-    description: "Review 15 dessert spots",
-    avatarFile: "snack_goblin.png",
-    rarity: "rare",
-  },
-  {
-    key: "liver_it_up",
-    label: "Liver It Up",
-    description: "Post your first late-night supper spot after 12am.",
-    avatarFile: "liver_it_up.png",
-    rarity: "rare",
-  },
-  {
-    key: "kidney_bean",
-    label: "Kidney Bean",
-    description: "Review 10 drink stores",
-    avatarFile: "kidney_bean.png",
-    rarity: "rare",
-  },
-  {
-    key: "heart_of_the_feast",
-    label: "Heart of the Feast",
-    description: "Share reviews for 50 dining restaurants.",
-    avatarFile: "heart_of_the_feast.png",
-    rarity: "epic",
-  },
-  {
-    key: "open_stomach_policy",
-    label: "Open Stomach Policy",
-    description: "Post 10 reviews",
-    avatarFile: "open_stomach_policy.png",
-    rarity: "epic",
-  },
-  {
-    key: "kidney_crew",
-    label: "Kidney Crew",
-    description: "Make 10 friends on Grumble",
-    avatarFile: "kidney_crew.png",
-    rarity: "epic",
-  },
-];
+export const ALL_ACHIEVEMENTS = ACHIEVEMENT_CATALOG;
 
 function RarityBadge({ rarity, color }) {
   return (

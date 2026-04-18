@@ -118,7 +118,7 @@ async function getFriends(userId) {
   const result = await pool.query(
     `SELECT
        f.id AS friendship_id,
-       f.created_at,
+       f.updated_at AS created_at,
        CASE
          WHEN f.user_id = $1 THEN u_friend.id
          ELSE u_user.id

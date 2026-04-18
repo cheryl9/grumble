@@ -1,4 +1,36 @@
 const friendsRepo = require("../repositories/friendsRepository");
+const achievementService = require("../services/achievementService");
+const pool = require("../config/db");
+const { sendNotificationAlert } = require("../services/realtime");
+const notificationsRepo = require("../repositories/notificationsRepository");
+
+async function checkAndNotifyFriendshipAchievements(userId) {
+  const newlyUnlocked = await achievementService.checkAndUnlockAchievements(
+    userId,
+    pool,
+  );
+
+  if (newlyUnlocked.length > 0) {
+    sendNotificationAlert(userId, {
+      type: "achievement_unlocked",
+      achievementKeys: newlyUnlocked,
+      unlockedAt: new Date().toISOString(),
+    });
+  }
+}
+
+async function saveFriendAcceptanceNotification(receiverId, accepterUsername, friendshipId, accepterId) {
+  await notificationsRepo.createNotification(receiverId, {
+    type: "friend_request_accepted",
+    title: `${accepterUsername} accepted your friend request!`,
+    body: "You can start chatting or check the friends page.",
+    payload: {
+      accepterId,
+      accepterUsername,
+      friendshipId,
+    },
+  });
+}
 
 const normalizeAcceptedFriend = (row) => {
   // Preserve existing fields used by FriendsList/AddFriendSearch,
@@ -19,18 +51,23 @@ async function sendRequest(req, res) {
   try {
     const userId = req.user.id;
     const { friendId } = req.body;
+    const numericFriendId = Number(friendId);
 
     if (!friendId) {
       return res.status(400).json({ error: "friendId is required" });
     }
 
-    if (friendId === userId) {
+    if (!Number.isInteger(numericFriendId)) {
+      return res.status(400).json({ error: "friendId must be an integer" });
+    }
+
+    if (numericFriendId === userId) {
       return res
         .status(400)
         .json({ error: "You cannot send a friend request to yourself" });
     }
 
-    const result = await friendsRepo.sendFriendRequest(userId, friendId);
+    const result = await friendsRepo.sendFriendRequest(userId, numericFriendId);
 
     if (result.alreadyFriends) {
       return res
@@ -41,6 +78,33 @@ async function sendRequest(req, res) {
       return res.status(400).json({ error: "Friend request already sent" });
     }
     if (result.autoAccepted) {
+      const firstUserId = Number(result.friendship?.user_id);
+      const secondUserId = Number(result.friendship?.friend_id);
+
+      sendNotificationAlert(firstUserId, {
+        type: "friend_request_accepted",
+        accepterId: secondUserId,
+        accepterUsername: req.user.username,
+        friendshipId: result.friendship?.id ?? null,
+        acceptedAt: new Date().toISOString(),
+      });
+
+      await saveFriendAcceptanceNotification(
+        firstUserId,
+        req.user.username,
+        result.friendship?.id ?? null,
+        secondUserId,
+      );
+
+      await Promise.all([
+        Number.isInteger(firstUserId)
+          ? checkAndNotifyFriendshipAchievements(firstUserId)
+          : Promise.resolve(),
+        Number.isInteger(secondUserId)
+          ? checkAndNotifyFriendshipAchievements(secondUserId)
+          : Promise.resolve(),
+      ]);
+
       return res.status(200).json({
         message: "Friend request auto-accepted — you are now friends!",
         friendship: result.friendship,
@@ -51,6 +115,14 @@ async function sendRequest(req, res) {
     res.status(201).json({
       message: "Friend request sent",
       friendship: result.friendship,
+    });
+
+    sendNotificationAlert(numericFriendId, {
+      type: "friend_request_received",
+      requesterId: userId,
+      requesterUsername: req.user.username,
+      friendshipId: result.friendship?.id ?? null,
+      requestedAt: new Date().toISOString(),
     });
   } catch (err) {
     console.error("sendRequest error:", err);
@@ -69,6 +141,33 @@ async function acceptRequest(req, res) {
         .status(404)
         .json({ error: "Friend request not found or already handled" });
     }
+
+    const firstUserId = Number(friendship.user_id);
+    const secondUserId = Number(friendship.friend_id);
+
+    sendNotificationAlert(firstUserId, {
+      type: "friend_request_accepted",
+      accepterId: secondUserId,
+      accepterUsername: req.user.username,
+      friendshipId: friendship.id ?? null,
+      acceptedAt: new Date().toISOString(),
+    });
+
+    await saveFriendAcceptanceNotification(
+      firstUserId,
+      req.user.username,
+      friendship.id ?? null,
+      secondUserId,
+    );
+
+    await Promise.all([
+      Number.isInteger(firstUserId)
+        ? checkAndNotifyFriendshipAchievements(firstUserId)
+        : Promise.resolve(),
+      Number.isInteger(secondUserId)
+        ? checkAndNotifyFriendshipAchievements(secondUserId)
+        : Promise.resolve(),
+    ]);
 
     res.json({ message: "Friend request accepted", friendship });
   } catch (err) {

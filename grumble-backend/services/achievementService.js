@@ -11,15 +11,15 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     key: "gut_guardian",
-    check: (s) => s.currentStreak >= 7,
+    check: (s) => s.longestStreak >= 7,
   },
   {
     key: "digestive_dynamo",
-    check: (s) => s.currentStreak >= 14,
+    check: (s) => s.longestStreak >= 14,
   },
   {
     key: "golden_kidney",
-    check: (s) => s.uniqueCafes >= 10,
+    check: (s) => s.uniquePlaces >= 10,
   },
   {
     key: "bean_there_done_that",
@@ -27,7 +27,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     key: "snack_goblin",
-    check: (s) => s.dessertPosts >= 15,
+    check: (s) => s.highRatedPosts >= 15,
   },
   {
     key: "liver_it_up",
@@ -51,6 +51,55 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
 ];
 
+async function getCurrentStreakFromPosts(userId, db) {
+  const { rows } = await db.query(
+    `SELECT DISTINCT DATE(created_at AT TIME ZONE 'Asia/Singapore') AS post_day
+     FROM posts
+     WHERE user_id = $1
+       AND COALESCE(is_deleted, false) = false
+     ORDER BY post_day DESC`,
+    [userId],
+  );
+
+  if (rows.length === 0) {
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+    };
+  }
+
+  let currentStreak = 1;
+  let longestStreak = 1;
+  let runningStreak = 1;
+
+  let previousDay = new Date(rows[0].post_day);
+
+  for (let i = 1; i < rows.length; i += 1) {
+    const currentDay = new Date(rows[i].post_day);
+    const diffDays = Math.round((previousDay - currentDay) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      runningStreak += 1;
+      longestStreak = Math.max(longestStreak, runningStreak);
+
+      if (i === currentStreak) {
+        currentStreak += 1;
+      }
+
+      previousDay = currentDay;
+      continue;
+    }
+
+    runningStreak = 1;
+    previousDay = currentDay;
+  }
+
+  return {
+    currentStreak,
+    longestStreak,
+  };
+}
+
 /**
  * Fetches all the raw activity numbers needed for achievement checks.
  * Extend this query as you add new achievement types.
@@ -60,39 +109,36 @@ async function getUserActivityStats(userId, db) {
   const {
     rows: [postRow],
   } = await db.query(
-    `SELECT COUNT(*) AS total_posts FROM posts WHERE user_id = $1`,
+    `SELECT COUNT(*) AS total_posts
+     FROM posts
+     WHERE user_id = $1
+       AND COALESCE(is_deleted, false) = false`,
     [userId],
   );
 
-  // --- Current streak (from user_streaks table) ---
-  const {
-    rows: [streakRow],
-  } = await db.query(
-    `SELECT current_streak FROM user_streaks WHERE user_id = $1`,
-    [userId],
-  );
+  // --- Current streak from actual distinct posting days ---
+  const streakStats = await getCurrentStreakFromPosts(userId, db);
 
-  // --- Unique cafés visited (restaurants tagged as café type) ---
+  // --- Unique places visited ---
   const {
-    rows: [cafeRow],
+    rows: [uniquePlaceRow],
   } = await db.query(
-    `SELECT COUNT(DISTINCT p.food_place_id) AS unique_cafes
+    `SELECT COUNT(DISTINCT p.food_place_id) AS unique_places
      FROM posts p
-     LEFT JOIN food_places fp ON p.food_place_id = fp.id
      WHERE p.user_id = $1
-       AND fp.category = 'cafe'`,
+       AND p.food_place_id IS NOT NULL`,
     [userId],
   );
 
-  // --- Dessert posts ---
+  // --- High-rated posts (strictly more than 4 stars) ---
   const {
-    rows: [dessertRow],
+    rows: [highRatedRow],
   } = await db.query(
-    `SELECT COUNT(*) AS dessert_posts
-     FROM posts p
-     LEFT JOIN food_places fp ON p.food_place_id = fp.id
-     WHERE p.user_id = $1
-       AND fp.category = 'dessert'`,
+    `SELECT COUNT(*) AS high_rated_posts
+     FROM posts
+     WHERE user_id = $1
+       AND COALESCE(is_deleted, false) = false
+       AND COALESCE(rating, 0) > 4`,
     [userId],
   );
 
@@ -103,8 +149,18 @@ async function getUserActivityStats(userId, db) {
     `SELECT COUNT(*) AS late_posts
      FROM posts
      WHERE user_id = $1
-       AND EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Singapore') >= 0
-       AND EXTRACT(HOUR FROM created_at AT TIME ZONE 'Asia/Singapore') < 5`,
+       AND COALESCE(is_deleted, false) = false
+       AND (
+         (
+           EXTRACT(HOUR FROM (created_at AT TIME ZONE 'Asia/Singapore')) >= 0
+           AND EXTRACT(HOUR FROM (created_at AT TIME ZONE 'Asia/Singapore')) < 5
+         )
+         OR
+         (
+           EXTRACT(HOUR FROM ((created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Singapore')) >= 0
+           AND EXTRACT(HOUR FROM ((created_at AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Singapore')) < 5
+         )
+       )`,
     [userId],
   );
 
@@ -151,12 +207,18 @@ async function getUserActivityStats(userId, db) {
     `SELECT EXISTS (
        SELECT 1
        FROM posts p1
-       JOIN posts p2 ON p1.food_place_id = p2.food_place_id AND p1.food_place_id IS NOT NULL
+       JOIN posts p2 ON (
+         (p1.food_place_id = p2.food_place_id AND p1.food_place_id IS NOT NULL)
+         OR
+         (p1.postal_code = p2.postal_code AND p1.postal_code IS NOT NULL)
+       )
        JOIN friendships f
          ON (f.user_id = $1 AND f.friend_id = p2.user_id)
          OR (f.friend_id = $1 AND f.user_id = p2.user_id)
        WHERE p1.user_id = $1
          AND p2.user_id <> $1
+         AND COALESCE(p1.is_deleted, false) = false
+         AND COALESCE(p2.is_deleted, false) = false
          AND f.status = 'accepted'
      ) AS shared`,
     [userId],
@@ -164,9 +226,10 @@ async function getUserActivityStats(userId, db) {
 
   return {
     totalPosts: parseInt(postRow.total_posts, 10),
-    currentStreak: parseInt(streakRow?.current_streak ?? 0, 10),
-    uniqueCafes: parseInt(cafeRow.unique_cafes, 10),
-    dessertPosts: parseInt(dessertRow.dessert_posts, 10),
+    currentStreak: streakStats.currentStreak,
+    longestStreak: streakStats.longestStreak,
+    uniquePlaces: parseInt(uniquePlaceRow.unique_places, 10),
+    highRatedPosts: parseInt(highRatedRow.high_rated_posts, 10),
     lateNightPosts: parseInt(lateRow.late_posts, 10),
     drinkStorePosts: parseInt(drinkRow.drink_posts, 10),
     diningPosts: parseInt(diningRow.dining_posts, 10),
@@ -186,20 +249,40 @@ async function getUnlockedKeys(userId, db) {
   return rows.map((r) => r.achievement_key);
 }
 
-async function checkAndUnlockAchievements(userId, db) {
-  const [stats, alreadyUnlocked] = await Promise.all([
+async function syncAchievements(userId, db) {
+  const [stats, alreadyUnlocked, userRow] = await Promise.all([
     getUserActivityStats(userId, db),
     getUnlockedKeys(userId, db),
+    db.query(`SELECT equipped_avatar FROM users WHERE id = $1`, [userId]),
   ]);
 
   console.log(`User ${userId} stats:`, stats);
   console.log(`Already unlocked:`, alreadyUnlocked);
 
   const alreadySet = new Set(alreadyUnlocked);
+  const shouldHave = new Set(
+    ACHIEVEMENT_DEFINITIONS.filter((def) => def.check(stats)).map(
+      (def) => def.key,
+    ),
+  );
   const newlyUnlocked = [];
+  const revoked = [];
+
+  for (const key of alreadyUnlocked) {
+    if (shouldHave.has(key)) continue;
+
+    await db.query(
+      `DELETE FROM user_achievements
+       WHERE user_id = $1
+         AND achievement_key = $2`,
+      [userId, key],
+    );
+    revoked.push(key);
+    alreadySet.delete(key);
+  }
 
   for (const def of ACHIEVEMENT_DEFINITIONS) {
-    if (!alreadySet.has(def.key) && def.check(stats)) {
+    if (!alreadySet.has(def.key) && shouldHave.has(def.key)) {
       await db.query(
         `INSERT INTO user_achievements (user_id, achievement_key)
          VALUES ($1, $2)
@@ -210,6 +293,20 @@ async function checkAndUnlockAchievements(userId, db) {
     }
   }
 
+  if (revoked.length > 0) {
+    const equippedAvatar = userRow.rows[0]?.equipped_avatar ?? null;
+    if (equippedAvatar && revoked.includes(equippedAvatar)) {
+      await db.query(`UPDATE users SET equipped_avatar = NULL WHERE id = $1`, [
+        userId,
+      ]);
+    }
+  }
+
+  return { newlyUnlocked, revoked };
+}
+
+async function checkAndUnlockAchievements(userId, db) {
+  const { newlyUnlocked } = await syncAchievements(userId, db);
   return newlyUnlocked;
 }
 
@@ -254,6 +351,7 @@ async function equipAvatar(userId, achievementKey, db) {
 
 module.exports = {
   checkAndUnlockAchievements,
+  syncAchievements,
   getUserAchievements,
   equipAvatar,
   getUnlockedKeys,
