@@ -1,8 +1,10 @@
 const pool = require("../config/db");
 
-async function getAllFoodPlaces({ category, cuisine, minLat, maxLat, minLon, maxLon, limit = 10 }) {
+async function getAllFoodPlaces({ category, cuisine, minLat, maxLat, minLon, maxLon, q, limit = 10 }) {
   let query = "SELECT * FROM food_places WHERE 1=1";
   const params = [];
+
+  const qTrimmed = typeof q === "string" ? q.trim() : "";
 
   if (category) {
     params.push(category);
@@ -15,6 +17,12 @@ async function getAllFoodPlaces({ category, cuisine, minLat, maxLat, minLon, max
   if (minLat && maxLat && minLon && maxLon) {
     params.push(minLon, minLat, maxLon, maxLat);
     query += ` AND ST_Within(geom, ST_MakeEnvelope($${params.length - 3}, $${params.length - 2}, $${params.length - 1}, $${params.length}, 4326))`;
+  }
+
+  if (qTrimmed) {
+    params.push(`%${qTrimmed}%`);
+    query += ` AND (name ILIKE $${params.length} OR address ILIKE $${params.length})`;
+    query += " ORDER BY name ASC";
   }
 
   params.push(limit);

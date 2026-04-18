@@ -1,5 +1,7 @@
 const chatRoomRepository = require("../repositories/chatRoomRepository");
 const friendsRepository = require("../repositories/friendsRepository");
+const multer = require("multer");
+const supabase = require('../config/supabase');
 
 //Need friendship repository to validate members when creating rooms
 
@@ -263,62 +265,61 @@ const getChatRoom = async (req, res) => {
   }
 };
 
-/**
- * PATCH /api/chats/:roomId - Update chat room (name, avatar)
- */
-const updateChatRoom = async (req, res) => {
-  try {
-    const { roomId } = req.params;
-    const { name, avatar_url } = req.body;
-    const userId = req.user.id;
+const BUCKET = 'group-avatars';
 
-    // Check if user is admin of the room
-    const members = await chatRoomRepository.getChatRoomMembers(roomId);
-    const userMember = members.find((m) => m.user_id === userId);
-
-    if (!userMember) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not a member of this chat room",
-      });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Images only'));
     }
+    cb(null, true);
+  },
+});
 
-    if (userMember.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Only admins can update the chat room",
-      });
+// PATCH /api/chats/:roomId
+// Handles name, avatar_url (text), or avatar file upload — all in one
+const updateChatRoom = [
+  upload.single('avatar'),
+  async (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const updates = { ...req.body };
+
+      // If a file was uploaded, push it to Supabase Storage
+      // and inject the resulting URL into updates before hitting the repository
+      if (req.file) {
+        const filePath = `groups/${roomId}/avatar`;
+
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          throw new Error(`Storage upload failed: ${uploadError.message}`);
+        }
+
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+        updates.avatar_url = data.publicUrl;
+      }
+
+      const updatedRoom = await chatRoomRepository.updateChatRoom(roomId, updates);
+
+      if (!updatedRoom) {
+        return res.status(400).json({ error: 'No valid fields to update' });
+      }
+
+      res.json(updatedRoom);
+    } catch (error) {
+      console.error('Failed to update chat room:', error.message);
+      res.status(500).json({ error: error.message });
     }
-
-    const updates = {};
-    if (name !== undefined) updates.name = name;
-    if (avatar_url !== undefined) updates.avatar_url = avatar_url;
-
-    const updatedRoom = await chatRoomRepository.updateChatRoom(
-      roomId,
-      updates,
-    );
-
-    if (!updatedRoom) {
-      return res.status(400).json({
-        success: false,
-        message: "No valid fields to update",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: updatedRoom,
-      message: "Chat room updated successfully",
-    });
-  } catch (error) {
-    console.error("Error updating chat room:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update chat room",
-    });
-  }
-};
+  },
+];
 
 /**
  * PATCH /api/chats/:roomId/members/:userId - Update a member role (admin/member)
