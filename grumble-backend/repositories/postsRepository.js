@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { executeTransaction } = require("../utils/transactionHelper");
 
 // Helper function to construct full image URL
 function getFullImageUrl(imageUrl) {
@@ -273,34 +274,40 @@ async function softDeletePost(postId) {
  * Toggle like on a post.
  * Returns { liked: true } if like was added, { liked: false } if removed.
  * Also keeps the denormalised likes_count in sync.
+ *
+ * Uses SERIALIZABLE transaction with FOR UPDATE locking to prevent race conditions
+ * (double likes, counter mismatches).
  */
 async function toggleLike(postId, userId) {
-  const existing = await pool.query(
-    `SELECT id FROM likes WHERE post_id = $1 AND user_id = $2`,
-    [postId, userId],
-  );
+  return executeTransaction(async (client) => {
+    const existing = await client.query(
+      `SELECT id FROM likes WHERE post_id = $1 AND user_id = $2
+       FOR UPDATE`,
+      [postId, userId],
+    );
 
-  if (existing.rows.length > 0) {
-    await pool.query(`DELETE FROM likes WHERE post_id = $1 AND user_id = $2`, [
-      postId,
-      userId,
-    ]);
-    await pool.query(
-      `UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = $1`,
-      [postId],
-    );
-    return { liked: false };
-  } else {
-    await pool.query(`INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`, [
-      postId,
-      userId,
-    ]);
-    await pool.query(
-      `UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1`,
-      [postId],
-    );
-    return { liked: true };
-  }
+    if (existing.rows.length > 0) {
+      await client.query(
+        `DELETE FROM likes WHERE post_id = $1 AND user_id = $2`,
+        [postId, userId],
+      );
+      await client.query(
+        `UPDATE posts SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = $1`,
+        [postId],
+      );
+      return { liked: false };
+    } else {
+      await client.query(
+        `INSERT INTO likes (post_id, user_id) VALUES ($1, $2)`,
+        [postId, userId],
+      );
+      await client.query(
+        `UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1`,
+        [postId],
+      );
+      return { liked: true };
+    }
+  });
 }
 
 // comments
@@ -321,60 +328,73 @@ async function getCommentsByPostId(postId) {
 }
 
 async function createComment(postId, userId, content) {
-  const result = await pool.query(
-    `INSERT INTO comments (post_id, user_id, content)
-     VALUES ($1, $2, $3)
-     RETURNING *`,
-    [postId, userId, content],
-  );
-  await pool.query(
-    `UPDATE posts SET comments_count = comments_count + 1 WHERE id = $1`,
-    [postId],
-  );
+  return executeTransaction(async (client) => {
+    const result = await client.query(
+      `INSERT INTO comments (post_id, user_id, content)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [postId, userId, content],
+    );
+    await client.query(
+      `UPDATE posts SET comments_count = comments_count + 1 WHERE id = $1`,
+      [postId],
+    );
 
-  // Get the comment with user info (username and avatar)
-  const commentWithUser = await pool.query(
-    `SELECT
-      c.id, c.post_id, c.user_id, c.content, c.created_at,
-      u.username,
-      u.equipped_avatar
-    FROM comments c
-    JOIN users u ON u.id = c.user_id
-    WHERE c.id = $1`,
-    [result.rows[0].id],
-  );
+    // Get the comment with user info (username and avatar)
+    const commentWithUser = await client.query(
+      `SELECT
+        c.id, c.post_id, c.user_id, c.content, c.created_at,
+        u.username,
+        u.equipped_avatar
+      FROM comments c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.id = $1`,
+      [result.rows[0].id],
+    );
 
-  return commentWithUser.rows[0];
+    return commentWithUser.rows[0];
+  });
 }
 
 // saves
+/**
+ * Toggle save on a post.
+ * Returns { saved: true } if save was added, { saved: false } if removed.
+ * Also keeps the denormalised saves_count in sync.
+ *
+ * Uses SERIALIZABLE transaction with FOR UPDATE locking to prevent race conditions
+ * (double saves, counter mismatches).
+ */
 async function toggleSave(postId, userId) {
-  const existing = await pool.query(
-    `SELECT id FROM saves WHERE post_id = $1 AND user_id = $2`,
-    [postId, userId],
-  );
+  return executeTransaction(async (client) => {
+    const existing = await client.query(
+      `SELECT id FROM saves WHERE post_id = $1 AND user_id = $2
+       FOR UPDATE`,
+      [postId, userId],
+    );
 
-  if (existing.rows.length > 0) {
-    await pool.query(`DELETE FROM saves WHERE post_id = $1 AND user_id = $2`, [
-      postId,
-      userId,
-    ]);
-    await pool.query(
-      `UPDATE posts SET saves_count = GREATEST(saves_count - 1, 0) WHERE id = $1`,
-      [postId],
-    );
-    return { saved: false, saved_by_me: false };
-  } else {
-    await pool.query(`INSERT INTO saves (post_id, user_id) VALUES ($1, $2)`, [
-      postId,
-      userId,
-    ]);
-    await pool.query(
-      `UPDATE posts SET saves_count = saves_count + 1 WHERE id = $1`,
-      [postId],
-    );
-    return { saved: true, saved_by_me: true };
-  }
+    if (existing.rows.length > 0) {
+      await client.query(
+        `DELETE FROM saves WHERE post_id = $1 AND user_id = $2`,
+        [postId, userId],
+      );
+      await client.query(
+        `UPDATE posts SET saves_count = GREATEST(saves_count - 1, 0) WHERE id = $1`,
+        [postId],
+      );
+      return { saved: false, saved_by_me: false };
+    } else {
+      await client.query(
+        `INSERT INTO saves (post_id, user_id) VALUES ($1, $2)`,
+        [postId, userId],
+      );
+      await client.query(
+        `UPDATE posts SET saves_count = saves_count + 1 WHERE id = $1`,
+        [postId],
+      );
+      return { saved: true, saved_by_me: true };
+    }
+  });
 }
 
 /**
