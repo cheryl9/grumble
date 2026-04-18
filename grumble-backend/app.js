@@ -1,15 +1,24 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+
+
 const app = express();
 const foodPlaceRoutes = require("./routes/foodPlaceRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const postRoutes = require("./routes/postRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const pollRoutes = require("./routes/pollRoutes");
+const spinWheelRoutes = require("./routes/spinWheelRoutes");
+const suggestionRoutes = require("./routes/suggestionRoutes");
+const messageRoutes = require("./routes/messageRoutes");
+const userRoutes = require("./routes/userRoutes");
 const friendRoutes = require("./routes/friendRoutes");
-const supportRoutes = require("./routes/supportRoutes");
 const errorHandler = require("./middleware/errorHandler");
-const faqController = require("./controllers/admin/faqController");
+const supportRoutes = require('./routes/supportRoutes');
+const faqController = require('./controllers/admin/faqController');
+
 
 app.use(cors());
 app.use(express.json());
@@ -20,14 +29,21 @@ app.get("/", (req, res) => {
   res.send("Grumble API is running");
 });
 
-app.get("/api/faqs", faqController.getFAQs);
 
 app.use("/api/posts", postRoutes);
-app.use("/api/friends", friendRoutes);
 app.use("/api/food-places", foodPlaceRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/support", supportRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/chats", chatRoutes);
+app.use("/api/polls", pollRoutes);
+app.use("/api/spin-wheels", spinWheelRoutes);
+app.use("/api/suggestions", suggestionRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/friends", friendRoutes);
+app.get('/api/faqs', faqController.getFAQs);
+app.use('/api/support', supportRoutes);
+
 
 app.use(errorHandler);
 

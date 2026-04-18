@@ -143,7 +143,6 @@ const Explore = () => {
     }
   };
 
-  // Open post detail modal — fetches full post + comments
   const handleOpenPost = async (post) => {
     try {
       const res = await api.get(`/posts/${post.id}`);

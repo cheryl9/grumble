@@ -128,9 +128,9 @@ async function getFriends(userId) {
          ELSE u_user.username
        END AS friend_username,
        CASE
-         WHEN f.user_id = $1 THEN u_friend.equipped_avatar
-         ELSE u_user.equipped_avatar
-       END AS equipped_avatar
+         WHEN f.user_id = $1 THEN u_friend.avatar_url
+         ELSE u_user.avatar_url
+       END AS friend_avatar_url
      FROM friendships f
      JOIN users u_user   ON u_user.id   = f.user_id
      JOIN users u_friend ON u_friend.id = f.friend_id
@@ -140,6 +140,22 @@ async function getFriends(userId) {
     [userId],
   );
   return result.rows;
+}
+
+/**
+ * Check if two users have an accepted friendship.
+ */
+async function areFriends(userId, otherUserId) {
+  const result = await pool.query(
+    `SELECT 1
+     FROM friendships
+     WHERE status = 'accepted'
+       AND ((user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1))
+     LIMIT 1`,
+    [userId, otherUserId],
+  );
+
+  return result.rows.length > 0;
 }
 
 /**
@@ -231,4 +247,5 @@ module.exports = {
   getSentRequests,
   searchUsers,
   getFriendIds,
+  areFriends,
 };

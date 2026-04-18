@@ -6,8 +6,8 @@ import {
   SINGAPORE_REGIONS,
   CUISINE_CATEGORIES,
   PRICE_RANGES,
-  OCCASIONS,
 } from "../utils/constants";
+import { getAreaFromCoordinates } from "../utils/postalCodeMapper";
 import logo from "../assets/logo.png";
 
 const FindSpots = () => {
@@ -16,13 +16,11 @@ const FindSpots = () => {
     location: "",
     cuisine: "",
     price: "",
-    occasion: "",
   });
   const [showDropdown, setShowDropdown] = useState({
     location: false,
     cuisine: false,
     price: false,
-    occasion: false,
   });
 
   const [allRestaurants, setAllRestaurants] = useState([]);
@@ -35,25 +33,42 @@ const FindSpots = () => {
       setIsLoading(true);
       setError(null);
       try {
+        // Don't filter by cuisine on the backend - fetch all and filter on frontend
         const params = {};
-        if (filters.cuisine) params.cuisine = filters.cuisine.toLowerCase();
         const res = await api.get("/food-places", { params });
 
-        const normalized = (res.data || []).map((p) => ({
-          id: p.id,
-          name: p.name || "Unknown place",
-          cuisine: p.cuisine || "Unknown",
-          category: p.category || "",
-          location: p.address || "Address unavailable",
-          openingHours: p.opening_hours || "Not available",
-          image: p.image_url || null,
-          priceRange: "-",
-          rating: p.rating != null ? Number(p.rating) : null,
-          reviewCount: p.review_count != null ? Number(p.review_count) : null,
-          website: p.website || null,
-          lat: p.lat,
-          lon: p.lon,
-        }));
+        const normalized = (res.data || []).map((p) => {
+          const priceLevel = p.google?.priceLevel;
+          const priceRange = priceLevel ? "$".repeat(priceLevel) : "-";
+          // Determine area from coordinates - convert to numbers
+          const lat = p.lat ? Number(p.lat) : null;
+          const lon = p.lon ? Number(p.lon) : null;
+          const locationArea =
+            lat && lon ? getAreaFromCoordinates(lat, lon) : null;
+
+          return {
+            id: p.id,
+            name: p.name || "Unknown place",
+            cuisine: p.cuisine || "Unknown",
+            category: p.category || "",
+            location: p.google?.address || p.address || "Address unavailable",
+            locationArea: locationArea || "Unknown",
+            openingHours:
+              p.google?.openingHours || p.opening_hours || "Not available",
+            image: p.google?.image || p.image_url || null,
+            priceRange: priceRange,
+            priceLevel: priceLevel,
+            rating: p.google?.rating != null ? Number(p.google.rating) : null,
+            reviewCount:
+              p.google?.reviewCount != null
+                ? Number(p.google.reviewCount)
+                : null,
+            website: p.website || null,
+            lat: lat,
+            lon: lon,
+            googleData: p.google || null,
+          };
+        });
 
         const curated = normalized
           .filter((r) => {
@@ -79,6 +94,16 @@ const FindSpots = () => {
             return score(b) - score(a);
           });
 
+        // Debug: log all unique cuisines with coordinates
+        const uniqueCuisines = [...new Set(curated.map((r) => r.cuisine))];
+        console.log("🍽️ Unique cuisines in database:", uniqueCuisines);
+        console.log("📊 Total restaurants:", curated.length);
+        curated.forEach((r) => {
+          console.log(
+            `${r.name} - Cuisine: ${r.cuisine}, Area: ${r.locationArea}, Coords: (${r.lat}, ${r.lon})`,
+          );
+        });
+
         setAllRestaurants(curated);
       } catch (err) {
         console.error("Failed to fetch food places:", err);
@@ -88,14 +113,13 @@ const FindSpots = () => {
       }
     };
     fetchPlaces();
-  }, [filters.cuisine]);
+  }, []);
 
   const handleResetFilters = () => {
     setFilters({
       location: "",
       cuisine: "",
       price: "",
-      occasion: "",
     });
     setSearchQuery("");
     setDisplayedCount(9);
@@ -124,16 +148,30 @@ const FindSpots = () => {
   };
 
   const filteredRestaurants = allRestaurants.filter((restaurant) => {
+    // Match search query
     const matchesSearch = restaurant.name
       ?.toLowerCase()
       .includes(searchQuery.toLowerCase());
+
+    // Match location filter - directly match the area
     const matchesLocation =
-      !filters.location || restaurant.location === filters.location;
+      !filters.location ||
+      (restaurant.locationArea &&
+        restaurant.locationArea.toLowerCase() ===
+          filters.location.toLowerCase());
+
+    // Match cuisine filter
     const matchesCuisine =
       !filters.cuisine ||
       restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
-    const matchesPrice =
-      !filters.price || restaurant.priceRange === filters.price;
+
+    // Match price filter - compare the $ count with priceLevel
+    let matchesPrice = true;
+    if (filters.price) {
+      const selectedPriceLength = filters.price.length; // "$" = 1, "$$" = 2, "$$$" = 3
+      matchesPrice = restaurant.priceRange.length === selectedPriceLength;
+    }
+
     return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
   });
 
@@ -238,39 +276,24 @@ const FindSpots = () => {
           </button>
           {showDropdown.price && (
             <div className="dropdown-menu">
-              {PRICE_RANGES.map((range) => (
-                <button
-                  key={range.value}
-                  onClick={() => handleFilterChange("price", range.label)}
-                  className="dropdown-item"
-                >
-                  {range.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Occasion Filter */}
-        <div className="filter-dropdown">
-          <button
-            onClick={() => toggleDropdown("occasion")}
-            className="filter-btn"
-          >
-            <span>{filters.occasion || "Occasion"}</span>
-            <ChevronDown size={16} />
-          </button>
-          {showDropdown.occasion && (
-            <div className="dropdown-menu">
-              {OCCASIONS.map((occasion) => (
-                <button
-                  key={occasion}
-                  onClick={() => handleFilterChange("occasion", occasion)}
-                  className="dropdown-item"
-                >
-                  {occasion}
-                </button>
-              ))}
+              <button
+                onClick={() => handleFilterChange("price", "$")}
+                className="dropdown-item"
+              >
+                $ (Budget-Friendly)
+              </button>
+              <button
+                onClick={() => handleFilterChange("price", "$$")}
+                className="dropdown-item"
+              >
+                $$ (Moderate)
+              </button>
+              <button
+                onClick={() => handleFilterChange("price", "$$$")}
+                className="dropdown-item"
+              >
+                $$$ (Expensive)
+              </button>
             </div>
           )}
         </div>

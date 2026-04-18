@@ -1,55 +1,81 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
 
 const getColor = (index) => {
-  const palette = ['#F78660', '#FFCC7A', '#2945A8'];
+  const palette = ["#F78660", "#FFCC7A", "#2945A8"];
   return palette[index % palette.length];
 };
 
-const SpinWheel = ({ options }) => {
-  const [spinning,  setSpinning]  = useState(false);
-  const [rotation,  setRotation]  = useState(0);
-  const [result,    setResult]    = useState(null);
+const SpinWheel = ({ options = [], sessionId, latestResult }) => {
+  const safeOptions = useMemo(
+    () => (Array.isArray(options) ? options : []),
+    [options],
+  );
 
-  const count = options.length;
-  const angle = 360 / count;
+  const [spinning, setSpinning] = useState(false);
+  const [rotation, setRotation] = useState(0);
+  const [result, setResult] = useState(latestResult || null);
+
+  useEffect(() => {
+    setResult(latestResult || null);
+  }, [latestResult, sessionId]);
+
+  const count = safeOptions.length;
+  const angle = count > 0 ? 360 / count : 0;
 
   const spin = () => {
-    if (spinning) return;
+    if (spinning || count < 2) return;
+
     setSpinning(true);
-    setResult(null);
-    const extra  = Math.floor(Math.random() * 360);
-    const spins  = 1440 + extra;
+    const extra = Math.floor(Math.random() * 360);
+    const spins = 1440 + extra;
     const newRot = rotation + spins;
     setRotation(newRot);
+
     setTimeout(() => {
       const normalized = ((newRot % 360) + 360) % 360;
       const idx = Math.floor((360 - normalized) / angle) % count;
-      setResult(options[idx]);
+      const chosen = safeOptions[idx];
+
+      setResult(chosen);
       setSpinning(false);
+
+      if (!sessionId) return;
+
+      void api
+        .post(`/spin-wheels/${sessionId}/spin`, { result: chosen })
+        .catch(() => {
+          // Best-effort: keep local UI result even if persist fails.
+        });
     }, 3000);
   };
 
+  if (count === 0) return null;
+
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="relative w-36 h-36">
+    <div className="flex flex-col items-center gap-5">
+      <div className="relative w-80 h-80">
         <svg
           viewBox="0 0 200 200"
           className="w-full h-full"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: spinning ? 'transform 3s cubic-bezier(0.17,0.67,0.12,0.99)' : 'none',
+            transition: spinning
+              ? "transform 3s cubic-bezier(0.17,0.67,0.12,0.99)"
+              : "none",
           }}
         >
-          {options.map((opt, i) => {
+          {safeOptions.map((opt, i) => {
             const startAngle = (i * angle * Math.PI) / 180;
-            const endAngle   = ((i + 1) * angle * Math.PI) / 180;
+            const endAngle = ((i + 1) * angle * Math.PI) / 180;
             const x1 = 100 + 90 * Math.cos(startAngle);
             const y1 = 100 + 90 * Math.sin(startAngle);
             const x2 = 100 + 90 * Math.cos(endAngle);
             const y2 = 100 + 90 * Math.sin(endAngle);
-            const mx = 100 + 55 * Math.cos((startAngle + endAngle) / 2);
-            const my = 100 + 55 * Math.sin((startAngle + endAngle) / 2);
+            const mx = 100 + 58 * Math.cos((startAngle + endAngle) / 2);
+            const my = 100 + 58 * Math.sin((startAngle + endAngle) / 2);
             const largeArc = angle > 180 ? 1 : 0;
+
             return (
               <g key={i}>
                 <path
@@ -59,15 +85,18 @@ const SpinWheel = ({ options }) => {
                   strokeWidth="2"
                 />
                 <text
-                  x={mx} y={my}
+                  x={mx}
+                  y={my}
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill="white"
-                  fontSize="10"
+                  fontSize="14"
                   fontWeight="bold"
                   transform={`rotate(${i * angle + angle / 2}, ${mx}, ${my})`}
                 >
-                  {opt.length > 6 ? opt.slice(0, 6) + '…' : opt}
+                  {String(opt).length > 6
+                    ? String(opt).slice(0, 6) + "…"
+                    : String(opt)}
                 </text>
               </g>
             );
@@ -77,20 +106,20 @@ const SpinWheel = ({ options }) => {
 
         {/* Pointer */}
         <div className="absolute top-1/2 right-0 -translate-y-1/2 translate-x-1">
-          <div className="w-0 h-0 border-t-[8px] border-b-[8px] border-r-[14px] border-t-transparent border-b-transparent border-r-gray-700" />
+          <div className="w-0 h-0 border-t-[12px] border-b-[12px] border-r-[20px] border-t-transparent border-b-transparent border-r-gray-700" />
         </div>
       </div>
 
       {result && (
-        <p className="text-sm font-bold text-[#F78660]">🎉 {result}!</p>
+        <p className="text-base font-bold text-[#F78660]">🎉 {result}!</p>
       )}
 
       <button
         onClick={spin}
-        disabled={spinning}
-        className="btn-primary px-6 py-2 rounded-full text-sm font-bold disabled:opacity-50"
+        disabled={spinning || count < 2}
+        className="btn-primary px-8 py-2.5 rounded-full text-base font-bold disabled:opacity-50"
       >
-        {spinning ? 'Spinning...' : 'SPIN THE WHEEL'}
+        {spinning ? "Spinning..." : "SPIN THE WHEEL"}
       </button>
     </div>
   );
