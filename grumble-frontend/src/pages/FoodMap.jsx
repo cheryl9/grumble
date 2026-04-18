@@ -252,12 +252,16 @@ const FoodMap = () => {
     >
       {/* Header */}
       <div className="explore-header">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-4">
           <img src={logo} alt="Grumble" className="w-12 h-12" />
-          <h1 className="text-4xl font-bold">Food Map</h1>
+          <div>
+            <h1 className="text-4xl font-bold">Food Map</h1>
+            <p className="explore-subtitle">
+              Pin all your favourite food spots in one place.
+            </p>
+          </div>
         </div>
       </div>
-
       {/* Tab Bar */}
       <div className="absolute top-30 left-1/2 -translate-x-1/2 z-[1000]">
         <div className="flex items-center gap-1 bg-white rounded-full shadow-lg px-2 py-2">

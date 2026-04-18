@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import api from "../../services/api";
 
@@ -8,7 +8,7 @@ export default function EditProfileModal({
   onSave,
   initialTab = "info",
 }) {
-  const [tab, setTab] = useState(initialTab); // 'info' | 'password'
+  const [tab, setTab] = useState(initialTab); // 'info' | 'password' | 'preferences'
   const [username, setUsername] = useState(user?.username || "");
   const [phone_number, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -17,6 +17,67 @@ export default function EditProfileModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [hashtagCategories, setHashtagCategories] = useState({});
+  const [selectedHashtags, setSelectedHashtags] = useState([]);
+  const [preferencesLoading, setPreferencesLoading] = useState(false);
+
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const [hashtagsRes, prefsRes] = await Promise.all([
+          api.get("/auth/hashtags"),
+          api.get("/auth/preferences"),
+        ]);
+        console.log("Hashtags response:", hashtagsRes.data);
+        console.log("Preferences response:", prefsRes.data);
+
+        // Handle both { data: {...} } and direct object responses
+        const categories = hashtagsRes.data?.data || hashtagsRes.data || {};
+        setHashtagCategories(categories);
+
+        // Normalize hashtags by removing # prefix for consistent comparison
+        const prefs = prefsRes.data?.data?.hashtag_preferences || [];
+        const normalizedPrefs = prefs.map((tag) =>
+          tag.startsWith("#") ? tag.substring(1) : tag,
+        );
+        setSelectedHashtags(normalizedPrefs);
+      } catch (err) {
+        console.error("Failed to load preferences:", err);
+      }
+    };
+    loadPreferences();
+  }, []);
+
+  const handleHashtagToggle = (tag) => {
+    setSelectedHashtags((prev) => {
+      if (prev.includes(tag)) {
+        return prev.filter((h) => h !== tag);
+      } else {
+        return [...prev, tag];
+      }
+    });
+  };
+
+  const handleSavePreferences = async () => {
+    setError("");
+    setSuccess("");
+    setPreferencesLoading(true);
+    try {
+      const response = await api.put("/auth/preferences", {
+        hashtags: selectedHashtags,
+      });
+      if (response.data.success) {
+        setSuccess("Preferences updated!");
+      } else {
+        setError(response.data.message || "Update failed.");
+      }
+    } catch (err) {
+      const errorMessage = err.response?.data?.message || "Update failed.";
+      setError(errorMessage);
+    } finally {
+      setPreferencesLoading(false);
+    }
+  };
 
   const handleSaveInfo = async () => {
     setError("");
@@ -149,7 +210,7 @@ export default function EditProfileModal({
 
         {/* Tabs */}
         <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
-          {["info", "password"].map((t) => (
+          {["info", "password", "preferences"].map((t) => (
             <button
               key={t}
               onClick={() => {
@@ -170,7 +231,11 @@ export default function EditProfileModal({
                 transition: "all 0.15s",
               }}
             >
-              {t === "info" ? "Account Info" : "Change Password"}
+              {t === "info"
+                ? "Account Info"
+                : t === "password"
+                  ? "Change Password"
+                  : "Interests"}
             </button>
           ))}
         </div>
@@ -223,7 +288,7 @@ export default function EditProfileModal({
               {loading ? "Saving..." : "Save Changes"}
             </button>
           </div>
-        ) : (
+        ) : tab === "password" ? (
           <div
             style={{ display: "flex", flexDirection: "column", gap: "14px" }}
           >
@@ -251,6 +316,98 @@ export default function EditProfileModal({
               style={primaryBtnStyle}
             >
               {loading ? "Updating..." : "Update Password"}
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+          >
+            <p style={{ fontSize: "13px", color: "#666", margin: "0 0 8px 0" }}>
+              Select your food interests and preferences:
+            </p>
+            <div
+              style={{
+                maxHeight: "350px",
+                overflowY: "auto",
+                paddingRight: "8px",
+              }}
+            >
+              {Object.entries(hashtagCategories).length === 0 ? (
+                <p style={{ fontSize: "12px", color: "#999" }}>
+                  Loading interests...
+                </p>
+              ) : (
+                Object.entries(hashtagCategories).map(([category, catData]) => {
+                  // Handle nested structure { label, tags } or flat array
+                  const tagsList = catData?.tags
+                    ? catData.tags
+                    : Array.isArray(catData)
+                      ? catData
+                      : [];
+                  const label = catData?.label || category;
+
+                  // Clean up hashtags (remove # if present)
+                  const cleanedTags = tagsList.map((tag) =>
+                    tag.startsWith("#") ? tag.substring(1) : tag,
+                  );
+
+                  return (
+                    <div key={category} style={{ marginBottom: "16px" }}>
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          color: "#999",
+                          marginBottom: "8px",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {label}
+                      </p>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "8px",
+                        }}
+                      >
+                        {cleanedTags.map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleHashtagToggle(tag)}
+                            style={{
+                              padding: "8px 12px",
+                              borderRadius: "20px",
+                              border: selectedHashtags.includes(tag)
+                                ? "2px solid #3B82F6"
+                                : "1px solid #e5e7eb",
+                              backgroundColor: selectedHashtags.includes(tag)
+                                ? "#3B82F6"
+                                : "#f9fafb",
+                              color: selectedHashtags.includes(tag)
+                                ? "#fff"
+                                : "#555",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              cursor: "pointer",
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <button
+              onClick={handleSavePreferences}
+              disabled={preferencesLoading}
+              style={primaryBtnStyle}
+            >
+              {preferencesLoading ? "Updating..." : "Update Preferences"}
             </button>
           </div>
         )}

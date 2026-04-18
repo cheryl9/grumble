@@ -69,7 +69,7 @@ export default function OnboardingSurvey() {
       const hashtagsForStorage = selectedHashtags.map((h) =>
         h.startsWith("#") ? h.substring(1) : h,
       );
-      await api.post("/auth/preferences", {
+      await api.put("/auth/preferences", {
         cuisines: selectedCuisines,
         hashtags: hashtagsForStorage,
       });

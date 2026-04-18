@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
 import { getAvatarSrc } from "../utils/avatarUtils";
@@ -21,7 +21,9 @@ import FriendsModal from "../components/common/FriendsModal";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { username } = useParams();
   const { user, logout, setUser } = useAuth();
+  const isViewingOtherProfile = !!username;
 
   const [stats, setStats] = useState({
     friends: 0,
@@ -140,7 +142,7 @@ export default function Profile() {
   };
 
   const handleShareProfile = () => {
-    const profileUrl = `${window.location.origin}/profile/${user?.username}`;
+    const profileUrl = `${window.location.origin}/@${user?.username}`;
     navigator.clipboard.writeText(profileUrl).then(() => {
       showToast("Profile link copied to clipboard!");
     });

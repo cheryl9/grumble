@@ -142,8 +142,7 @@
 
 /* Food Search custom components */
 .find-spots-page {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .search-bar-container {
@@ -708,8 +707,7 @@
 
 /* Food Map Page Styles */
 .food-map-page {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .leaflet-container {
@@ -751,8 +749,7 @@
 
 /* Chats Page Styles */
 .chats-page {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   min-height: 100dvh;
   background-color: #f9fafb;
 }

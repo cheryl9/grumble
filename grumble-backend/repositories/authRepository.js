@@ -201,6 +201,20 @@ const getUserStats = async (userId) => {
 
 // preferences
 
+const getPreferences = async (userId) => {
+  const result = await pool.query(
+    `SELECT cuisines, hashtag_preferences FROM user_preferences WHERE user_id = $1`,
+    [userId],
+  );
+  if (result.rows.length === 0) {
+    return { cuisines: [], hashtag_preferences: [] };
+  }
+  return {
+    cuisines: result.rows[0].cuisines || [],
+    hashtag_preferences: result.rows[0].hashtag_preferences || [],
+  };
+};
+
 const savePreferences = async (userId, cuisines, hashtags) => {
   const result = await pool.query(
     `INSERT INTO user_preferences (user_id, cuisines, hashtag_preferences)
@@ -343,6 +357,7 @@ module.exports = {
   updatePasswordById,
   getPasswordHashById,
   getUserStats,
+  getPreferences,
   savePreferences,
   updateTelegramConnection,
   disconnectTelegram,

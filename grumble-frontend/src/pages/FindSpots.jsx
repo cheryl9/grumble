@@ -191,13 +191,18 @@ const FindSpots = () => {
 
   return (
     <div className="find-spots-page">
-      {/* Header */}
-      <div className="explore-header">
-        <div className="flex items-center gap-3 mb-4">
-          <img src={logo} alt="Grumble" className="w-12 h-12" />
-          <h1 className="text-4xl font-bold">Find spots</h1>
-        </div>
-      </div>
+          {/* Header */}
+          <div className="explore-header">
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logo} alt="Grumble" className="w-12 h-12" />
+              <div>
+                <h1 className="text-4xl font-bold">Find Spots</h1>
+                <p className="explore-subtitle">
+                  Discover trending and nearby food spots.
+                </p>
+              </div>
+            </div>
+          </div>
 
       {/* Search and Filters Bar */}
       <div className="search-filter-bar">

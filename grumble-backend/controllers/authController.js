@@ -538,6 +538,18 @@ const changePassword = async (req, res, next) => {
 /**
  * Save onboarding cuisine preferences
  */
+const getPreferences = async (req, res, next) => {
+  try {
+    const preferences = await authRepository.getPreferences(req.user.id);
+    res.json({
+      success: true,
+      data: preferences || { cuisines: [], hashtag_preferences: [] },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const savePreferences = async (req, res, next) => {
   try {
     const { cuisines, hashtags } = req.body;
@@ -644,6 +656,7 @@ module.exports = {
   getUserStats,
   updateProfile,
   changePassword,
+  getPreferences,
   savePreferences,
   getAvailableHashtags,
   getStreak,
