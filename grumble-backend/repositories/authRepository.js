@@ -193,6 +193,7 @@ const getUserStats = async (userId) => {
     posts: parseInt(postsResult.rows[0].count),
     liked: parseInt(likedResult.rows[0].count),
     saved: parseInt(savedResult.rows[0].count),
+    friends: parseInt(friendsResult.rows[0].count),
     currentStreak: streak?.current_streak || 0,
     longestStreak: streak?.longest_streak || 0,
     lastPostDate: streak?.last_post_date || null,

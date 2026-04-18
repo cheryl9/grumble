@@ -315,6 +315,7 @@ export default function PostsModal({ type, onClose }) {
                       color: post.liked_by_me ? "#e84c3d" : "#666",
                       display: "flex",
                       alignItems: "center",
+                      gap: "6px",
                       transition: "transform 0.1s",
                     }}
                     onMouseDown={(e) =>
@@ -328,6 +329,9 @@ export default function PostsModal({ type, onClose }) {
                       size={20}
                       fill={post.liked_by_me ? "#e84c3d" : "none"}
                     />
+                    <span style={{ fontSize: "13px", fontWeight: "600" }}>
+                      {post.likes_count}
+                    </span>
                   </button>
 
                   <button
@@ -369,41 +373,6 @@ export default function PostsModal({ type, onClose }) {
                       fill={post.saved_by_me ? "#2945A8" : "none"}
                     />
                   </button>
-                </div>
-
-                {/* Likes & Rating */}
-                <div
-                  style={{
-                    padding: "8px 16px",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    color: "#111",
-                  }}
-                >
-                  <div
-                    style={{
-                      marginBottom: "4px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <Heart size={14} fill="#e84c3d" color="#e84c3d" />
-                    {post.likes_count}{" "}
-                    {post.likes_count === 1 ? "like" : "likes"}
-                  </div>
-                  {post.rating && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                      }}
-                    >
-                      <Star size={14} fill="#fbbf24" color="#fbbf24" />
-                      {post.rating}
-                    </div>
-                  )}
                 </div>
 
                 {/* Caption */}

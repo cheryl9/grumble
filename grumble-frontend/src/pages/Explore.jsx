@@ -45,6 +45,13 @@ const Explore = () => {
   }, [activeTab]);
 
   // Auto-open post detail modal if post ID was passed from Food Map
+  // Also switch to the correct tab if specified
+  useEffect(() => {
+    if (location.state?.selectedTab) {
+      setActiveTab(location.state.selectedTab);
+    }
+  }, [location.state?.selectedTab]);
+
   useEffect(() => {
     if (location.state?.selectedPostId && posts.length > 0) {
       const post = posts.find((p) => p.id === location.state.selectedPostId);
