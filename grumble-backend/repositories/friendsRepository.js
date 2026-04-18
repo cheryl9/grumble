@@ -1,68 +1,75 @@
 const pool = require("../config/db");
+const { executeTransaction } = require("../utils/transactionHelper");
 
 /**
  * Send a friend request from userId to friendId.
  * If friendId already sent a request to userId, auto-accept (mutual request).
  * Returns { friendship, autoAccepted } object.
+ *
+ * Uses SERIALIZABLE transaction with FOR UPDATE locking to prevent race conditions.
  */
 async function sendFriendRequest(userId, friendId) {
-  // Check if a reverse pending request exists (friendId -> userId)
-  const reverse = await pool.query(
-    `SELECT id, status FROM friendships
-     WHERE user_id = $1 AND friend_id = $2`,
-    [friendId, userId],
-  );
+  return executeTransaction(async (client) => {
+    // Check if a reverse pending request exists (friendId -> userId) with FOR UPDATE lock
+    const reverse = await client.query(
+      `SELECT id, status FROM friendships
+       WHERE user_id = $1 AND friend_id = $2
+       FOR UPDATE`,
+      [friendId, userId],
+    );
 
-  if (reverse.rows.length > 0) {
-    const row = reverse.rows[0];
-    if (row.status === "accepted") {
-      return { friendship: row, autoAccepted: false, alreadyFriends: true };
+    if (reverse.rows.length > 0) {
+      const row = reverse.rows[0];
+      if (row.status === "accepted") {
+        return { friendship: row, autoAccepted: false, alreadyFriends: true };
+      }
+      if (row.status === "pending") {
+        // Auto-accept: the other person already wants to be friends
+        const updated = await client.query(
+          `UPDATE friendships SET status = 'accepted', updated_at = NOW()
+           WHERE id = $1 RETURNING *`,
+          [row.id],
+        );
+        return { friendship: updated.rows[0], autoAccepted: true };
+      }
     }
-    if (row.status === "pending") {
-      // Auto-accept: the other person already wants to be friends
-      const updated = await pool.query(
-        `UPDATE friendships SET status = 'accepted', updated_at = NOW()
-         WHERE id = $1 RETURNING *`,
-        [row.id],
-      );
-      return { friendship: updated.rows[0], autoAccepted: true };
-    }
-  }
 
-  // Check if a forward request already exists (userId -> friendId)
-  const existing = await pool.query(
-    `SELECT id, status FROM friendships
-     WHERE user_id = $1 AND friend_id = $2`,
-    [userId, friendId],
-  );
+    // Check if a forward request already exists (userId -> friendId) with FOR UPDATE lock
+    const existing = await client.query(
+      `SELECT id, status FROM friendships
+       WHERE user_id = $1 AND friend_id = $2
+       FOR UPDATE`,
+      [userId, friendId],
+    );
 
-  if (existing.rows.length > 0) {
-    const row = existing.rows[0];
-    if (row.status === "accepted") {
-      return { friendship: row, autoAccepted: false, alreadyFriends: true };
+    if (existing.rows.length > 0) {
+      const row = existing.rows[0];
+      if (row.status === "accepted") {
+        return { friendship: row, autoAccepted: false, alreadyFriends: true };
+      }
+      if (row.status === "pending") {
+        return { friendship: row, autoAccepted: false, alreadyPending: true };
+      }
+      // If declined, allow re-sending by updating status back to pending
+      if (row.status === "declined") {
+        const updated = await client.query(
+          `UPDATE friendships SET status = 'pending', updated_at = NOW()
+           WHERE id = $1 RETURNING *`,
+          [row.id],
+        );
+        return { friendship: updated.rows[0], autoAccepted: false };
+      }
     }
-    if (row.status === "pending") {
-      return { friendship: row, autoAccepted: false, alreadyPending: true };
-    }
-    // If declined, allow re-sending by updating status back to pending
-    if (row.status === "declined") {
-      const updated = await pool.query(
-        `UPDATE friendships SET status = 'pending', updated_at = NOW()
-         WHERE id = $1 RETURNING *`,
-        [row.id],
-      );
-      return { friendship: updated.rows[0], autoAccepted: false };
-    }
-  }
 
-  // No existing row — insert a new pending request
-  const result = await pool.query(
-    `INSERT INTO friendships (user_id, friend_id, status)
-     VALUES ($1, $2, 'pending')
-     RETURNING *`,
-    [userId, friendId],
-  );
-  return { friendship: result.rows[0], autoAccepted: false };
+    // No existing row — insert a new pending request
+    const result = await client.query(
+      `INSERT INTO friendships (user_id, friend_id, status)
+       VALUES ($1, $2, 'pending')
+       RETURNING *`,
+      [userId, friendId],
+    );
+    return { friendship: result.rows[0], autoAccepted: false };
+  });
 }
 
 /**
@@ -118,7 +125,7 @@ async function getFriends(userId) {
   const result = await pool.query(
     `SELECT
        f.id AS friendship_id,
-       f.created_at,
+       f.updated_at AS created_at,
        CASE
          WHEN f.user_id = $1 THEN u_friend.id
          ELSE u_user.id

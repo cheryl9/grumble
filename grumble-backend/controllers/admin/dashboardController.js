@@ -1,4 +1,4 @@
-const analyticsRepository = require('../../repositories/admin/analyticsRepository');
+const analyticsRepository = require("../../repositories/admin/analyticsRepository");
 
 /**
  * Dashboard Controller
@@ -13,11 +13,16 @@ const getStats = async (req, res, next) => {
   try {
     const stats = await analyticsRepository.getDashboardStats();
     const avgPostsPerUser = await analyticsRepository.getAveragePostsPerUser();
-    
+
     // Calculate growth percentages (compare with previous period)
-    const userGrowth = stats.posts_last_30d > 0 ? 
-      ((stats.posts_last_30d / Math.max(stats.total_posts, 1)) * 100).toFixed(1) : 0;
-    
+    const userGrowth =
+      stats.posts_last_30d > 0
+        ? (
+            (stats.posts_last_30d / Math.max(stats.total_posts, 1)) *
+            100
+          ).toFixed(1)
+        : 0;
+
     res.json({
       success: true,
       data: {
@@ -30,9 +35,9 @@ const getStats = async (req, res, next) => {
         totalFoodPlaces: parseInt(stats.total_food_places),
         metrics: {
           userGrowthPercentage: parseFloat(userGrowth),
-          avgPostsPerUser: parseFloat(avgPostsPerUser).toFixed(2)
-        }
-      }
+          avgPostsPerUser: parseFloat(avgPostsPerUser).toFixed(2),
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -46,17 +51,22 @@ const getStats = async (req, res, next) => {
 const getUserGrowth = async (req, res, next) => {
   try {
     const { months = 12 } = req.query;
-    const growthData = await analyticsRepository.getUserGrowthData(parseInt(months));
-    
+    const growthData = await analyticsRepository.getUserGrowthData(
+      parseInt(months),
+    );
+
     // Transform data for frontend chart
-    const transformedData = growthData.map(item => ({
-      month: new Date(item.month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-      users: parseInt(item.new_users)
+    const transformedData = growthData.map((item) => ({
+      month: new Date(item.month).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      }),
+      users: parseInt(item.new_users),
     }));
-    
+
     res.json({
       success: true,
-      data: { growthData: transformedData }
+      data: { growthData: transformedData },
     });
   } catch (error) {
     next(error);
@@ -71,19 +81,28 @@ const getEngagementMetrics = async (req, res, next) => {
   try {
     const metrics = await analyticsRepository.getEngagementMetrics();
     const dailyActive = await analyticsRepository.getDailyActiveUsers(30);
-    const reportBreakdown = await analyticsRepository.getReportStatusBreakdown();
-    
+    const reportBreakdown =
+      await analyticsRepository.getReportStatusBreakdown();
+
+    // Convert count to number in visibility breakdown
+    const visibilityBreakdown = metrics.visibilityBreakdown.map((item) => ({
+      visibility: item.visibility,
+      count: parseInt(item.count, 10),
+    }));
+
     res.json({
       success: true,
       data: {
         totalLikes: metrics.totalLikes,
         totalComments: metrics.totalComments,
         avgLikesPerPost: metrics.avgLikesPerPost,
-        visibilityBreakdown: metrics.visibilityBreakdown,
-        activeStreakPercentage: parseFloat(metrics.activeStreakPercentage).toFixed(1),
+        visibilityBreakdown,
+        activeStreakPercentage: parseFloat(
+          metrics.activeStreakPercentage,
+        ).toFixed(1),
         dailyActiveUsers: dailyActive,
-        reportStatusBreakdown: reportBreakdown
-      }
+        reportStatusBreakdown: reportBreakdown,
+      },
     });
   } catch (error) {
     next(error);
@@ -96,17 +115,18 @@ const getEngagementMetrics = async (req, res, next) => {
  */
 const getStreakStats = async (req, res, next) => {
   try {
-    const streakDistribution = await analyticsRepository.getStreakDistribution();
-    
+    const streakDistribution =
+      await analyticsRepository.getStreakDistribution();
+
     // Transform data for frontend chart
-    const transformedData = streakDistribution.map(item => ({
+    const transformedData = streakDistribution.map((item) => ({
       range: item.streak_range,
-      count: parseInt(item.user_count)
+      count: parseInt(item.user_count),
     }));
-    
+
     res.json({
       success: true,
-      data: { streakDistribution: transformedData }
+      data: { streakDistribution: transformedData },
     });
   } catch (error) {
     next(error);
@@ -120,11 +140,13 @@ const getStreakStats = async (req, res, next) => {
 const getTopUsers = async (req, res, next) => {
   try {
     const { limit = 10 } = req.query;
-    const topUsers = await analyticsRepository.getTopActiveUsers(parseInt(limit));
-    
+    const topUsers = await analyticsRepository.getTopActiveUsers(
+      parseInt(limit),
+    );
+
     res.json({
       success: true,
-      data: { topUsers }
+      data: { topUsers },
     });
   } catch (error) {
     next(error);
@@ -136,5 +158,5 @@ module.exports = {
   getUserGrowth,
   getEngagementMetrics,
   getStreakStats,
-  getTopUsers
+  getTopUsers,
 };

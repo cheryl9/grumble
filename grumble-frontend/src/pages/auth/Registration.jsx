@@ -1,23 +1,25 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
-import logo from '../../assets/logo.png';
-import useContactPermission from '../../hooks/useContactPermission';
-import { validatePassword, validatePhoneNumber, validateUsername } from '../../utils/validation';
-import { ROUTES } from '../../utils/constants';
-import { useAuth } from '../../context/AuthContext';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Button from "../../components/common/Button";
+import Input from "../../components/common/Input";
+import logo from "../../assets/logo.png";
+import {
+  validatePassword,
+  validatePhoneNumber,
+  validateUsername,
+} from "../../utils/validation";
+import { ROUTES } from "../../utils/constants";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Registration() {
   const navigate = useNavigate();
   const { register: registerUser } = useAuth();
-  const { requestContactPermission, permissionStatus } = useContactPermission();
 
   const [formData, setFormData] = useState({
-    phoneNumber: '',
-    username: '',
-    password: '',
-    confirmPassword: ''
+    phoneNumber: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -25,15 +27,15 @@ export default function Registration() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: null
+        [name]: null,
       }));
     }
   };
@@ -51,7 +53,7 @@ export default function Registration() {
     if (passwordError) newErrors.password = passwordError;
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
     }
 
     setErrors(newErrors);
@@ -66,33 +68,55 @@ export default function Registration() {
     setIsSubmitting(true);
 
     try {
-      await registerUser(formData.phoneNumber, formData.username, formData.password);
-      await requestContactPermission();
+      await registerUser(
+        formData.phoneNumber,
+        formData.username,
+        formData.password,
+      );
       navigate(ROUTES.ONBOARDING);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
-      setErrors({ submit: errorMessage });
+      const errorMessage =
+        error.response?.data?.message ||
+        "Registration failed. Please try again.";
+      const errorField = error.response?.data?.field;
+
+      // Map backend field names to form field names
+      const fieldMap = {
+        phoneNumber: "phoneNumber",
+        username: "username",
+        password: "password",
+      };
+
+      if (errorField && fieldMap[errorField]) {
+        setErrors({ [fieldMap[errorField]]: errorMessage });
+      } else {
+        setErrors({ submit: errorMessage });
+      }
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleRequestContacts = async () => {
-    await requestContactPermission();
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-red-50 p-4">
       <div
         className="w-full bg-white rounded-2xl shadow-xl overflow-hidden"
-        style={{ maxWidth: '480px' }}
+        style={{ maxWidth: "480px" }}
       >
         {/* Inner content with padding */}
-        <div style={{ padding: '40px 48px' }}>
-          <img src={logo} alt="Grumble Logo" className="w-16 h-16 mx-auto mb-4" />
+        <div style={{ padding: "40px 48px" }}>
+          <img
+            src={logo}
+            alt="Grumble Logo"
+            className="w-16 h-16 mx-auto mb-4"
+          />
 
-          <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">Create Account</h1>
-          <p className="text-gray-600 text-center mb-8">Join the Grumble community</p>
+          <h1 className="text-2xl font-bold text-center mb-2 text-gray-800">
+            Create Account
+          </h1>
+          <p className="text-gray-600 text-center mb-8">
+            Join the Grumble community
+          </p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <Input
@@ -105,22 +129,6 @@ export default function Registration() {
               placeholder="81234567"
               required
             />
-
-            {permissionStatus === 'prompt' && (
-              <button
-                type="button"
-                onClick={handleRequestContacts}
-                className="w-full h-12 px-4 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-              >
-                Import Contacts (Optional)
-              </button>
-            )}
-
-            {permissionStatus === 'granted' && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm text-green-700 font-medium">✓ Contacts imported successfully</p>
-              </div>
-            )}
 
             <Input
               label="Username"
@@ -162,18 +170,15 @@ export default function Registration() {
             )}
 
             <div className="pt-2">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Creating Account...' : 'Sign Up'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating Account..." : "Sign Up"}
               </Button>
             </div>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <button
                 onClick={() => navigate(ROUTES.LOGIN)}
                 className="text-primary font-semibold hover:underline"

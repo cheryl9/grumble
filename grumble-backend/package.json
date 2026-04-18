@@ -4,6 +4,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "achievement:test-streak": "node scripts/testAchievementStreak.js",
     "sync-osm": "node scripts/syncOSM.js",
     "admin:create": "node scripts/createAdmin.js",
     "telegram:helper": "node scripts/telegramBotHelper.js",
@@ -26,7 +27,8 @@
     "migrate:016": "psql -U postgres -d grumble -f migrations/016_seed_faqs.sql",
     "migrate:017": "psql -U postgres -d grumble -f migrations/017_achievements_and_avatars.sql",
     "migrate:018": "psql -U postgres -d grumble -f migrations/018_create_support_reports.sql",
-    "migrate:all": "npm run migrate:001 && npm run migrate:002 && npm run migrate:003 && npm run migrate:004 && npm run migrate:005 && npm run migrate:006 && npm run migrate:007 && npm run migrate:008 && npm run migrate:009 && npm run migrate:010 && npm run migrate:011 && npm run migrate:012 && npm run migrate:013 && npm run migrate:014 && npm run migrate:015 && npm run migrate:016 && npm run migrate:017 && npm run migrate:018"
+    "migrate:019": "psql -U postgres -d grumble -f migrations/019_create_notifications.sql",
+    "migrate:all": "npm run migrate:001 && npm run migrate:002 && npm run migrate:003 && npm run migrate:004 && npm run migrate:005 && npm run migrate:006 && npm run migrate:007 && npm run migrate:008 && npm run migrate:009 && npm run migrate:010 && npm run migrate:011 && npm run migrate:012 && npm run migrate:013 && npm run migrate:014 && npm run migrate:015 && npm run migrate:016 && npm run migrate:017 && npm run migrate:018 && npm run migrate:019"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.3",

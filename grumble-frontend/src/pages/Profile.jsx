@@ -108,6 +108,30 @@ export default function Profile() {
     showToast(newKey ? "Avatar updated!" : "Avatar removed");
   };
 
+  const handleAvatarEquipFromAllAchievements = async (achievementKey) => {
+    try {
+      await api.put("/auth/achievements/equip", {
+        achievementKey,
+      });
+      handleAvatarChange(achievementKey);
+    } catch (err) {
+      console.error("Failed to equip avatar from all achievements:", err);
+      showToast("Could not equip this avatar", "error");
+    }
+  };
+
+  const handleAvatarUnequipFromAllAchievements = async () => {
+    try {
+      await api.put("/auth/achievements/equip", {
+        achievementKey: null,
+      });
+      handleAvatarChange(null);
+    } catch (err) {
+      console.error("Failed to unequip avatar from all achievements:", err);
+      showToast("Could not remove this avatar", "error");
+    }
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate(ROUTES.LOGIN);
@@ -179,7 +203,7 @@ export default function Profile() {
   const bodyStyle = {
     maxWidth: "560px",
     margin: "0 auto",
-    padding: "20px 16px",
+    padding: "20px 2rem",
     display: "flex",
     flexDirection: "column",
     gap: "10px",
@@ -209,7 +233,7 @@ export default function Profile() {
           alt="Grumble logo"
           style={{ width: "70px", height: "70px" }}
         />
-        <span style={{ fontSize: "20px", fontWeight: "800", color: "#111" }}>
+        <span style={{ fontSize: "36px", fontWeight: "800", color: "#111" }}>
           Profile
         </span>
       </div>
@@ -439,8 +463,10 @@ export default function Profile() {
       {showAllAchievements && (
         <AllAchievementsModal
           unlockedKeys={unlockedAchievements}
+          equippedAvatar={equippedAvatar}
           onClose={() => setShowAllAchievements(false)}
-          onAvatarSelect={handleAvatarChange}
+          onAvatarEquip={handleAvatarEquipFromAllAchievements}
+          onAvatarUnequip={handleAvatarUnequipFromAllAchievements}
         />
       )}
 

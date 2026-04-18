@@ -2,8 +2,9 @@ const authRepository = require("../repositories/authRepository");
 const bcrypt = require("bcrypt");
 const telegramService = require("../services/telegramService");
 const jwt = require("jsonwebtoken");
-const { get } = require("../app");
 const {
+  checkAndUnlockAchievements,
+  syncAchievements,
   getUserAchievements,
   equipAvatar,
 } = require("../services/achievementService");
@@ -16,9 +17,14 @@ const register = async (req, res, next) => {
     const { phoneNumber, username, password } = req.body;
 
     if (!phoneNumber || !username || !password) {
+      const missing = [];
+      if (!phoneNumber) missing.push("phone number");
+      if (!username) missing.push("username");
+      if (!password) missing.push("password");
       return res.status(400).json({
         success: false,
-        message: "Phone number, username, and password are required",
+        message: `Missing required fields: ${missing.join(", ")}`,
+        field: missing[0],
       });
     }
 
@@ -27,7 +33,9 @@ const register = async (req, res, next) => {
     if (existingPhone) {
       return res.status(409).json({
         success: false,
-        message: "Phone number already registered",
+        message:
+          "This phone number is already registered. Please use a different phone number or log in.",
+        field: "phoneNumber",
       });
     }
 
@@ -35,7 +43,9 @@ const register = async (req, res, next) => {
     if (existingUsername) {
       return res.status(409).json({
         success: false,
-        message: "Username already taken",
+        message:
+          "This username is already taken. Please choose a different username.",
+        field: "username",
       });
     }
 
@@ -418,17 +428,40 @@ const updateProfile = async (req, res, next) => {
     const { username, phone_number } = req.body;
 
     if (!username || !phone_number) {
+      const missing = [];
+      if (!username) missing.push("username");
+      if (!phone_number) missing.push("phone number");
       return res.status(400).json({
         success: false,
-        message: "Username and phone number are required",
+        message: `Missing required fields: ${missing.join(", ")}`,
+        field: missing[0],
       });
     }
 
-    const taken = await authRepository.isUsernameTaken(username, req.user.id);
-    if (taken) {
-      return res
-        .status(409)
-        .json({ success: false, message: "Username already taken" });
+    const usernameTaken = await authRepository.isUsernameTaken(
+      username,
+      req.user.id,
+    );
+    if (usernameTaken) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This username is already taken. Please choose a different username.",
+        field: "username",
+      });
+    }
+
+    const phoneTaken = await authRepository.isPhoneNumberTaken(
+      phone_number,
+      req.user.id,
+    );
+    if (phoneTaken) {
+      return res.status(409).json({
+        success: false,
+        message:
+          "This phone number is already in use by another account. Please use a different phone number.",
+        field: "phone_number",
+      });
     }
 
     const updated = await authRepository.updateUser(req.user.id, {
@@ -438,7 +471,21 @@ const updateProfile = async (req, res, next) => {
     res.json({
       success: true,
       message: "Profile updated",
-      data: { user: updated },
+      data: {
+        user: {
+          id: updated.id,
+          phoneNumber: updated.phone_number,
+          username: updated.username,
+          created_at: updated.created_at,
+          updated_at: updated.updated_at,
+          telegramChatId: updated.telegram_chat_id,
+          telegramUsername: updated.telegram_username,
+          telegramFirstName: updated.telegram_first_name,
+          telegramConnectedAt: updated.telegram_connected_at,
+          avatar_url: updated.avatar_url,
+          equipped_avatar: updated.equipped_avatar,
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -453,24 +500,32 @@ const changePassword = async (req, res, next) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
+      const missing = [];
+      if (!currentPassword) missing.push("current password");
+      if (!newPassword) missing.push("new password");
       return res.status(400).json({
         success: false,
-        message: "Current and new password are required",
+        message: `Missing required fields: ${missing.join(", ")}`,
+        field: missing[0],
       });
     }
+
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: "New password must be at least 6 characters",
+        message: "New password must be at least 6 characters long",
+        field: "newPassword",
       });
     }
 
     const hash = await authRepository.getPasswordHashById(req.user.id);
     const match = await bcrypt.compare(currentPassword, hash);
     if (!match) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Current password is incorrect" });
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect. Please try again.",
+        field: "currentPassword",
+      });
     }
 
     await authRepository.updatePasswordById(req.user.id, newPassword);
@@ -523,8 +578,12 @@ const getStreak = async (req, res, next) => {
 // achievements
 async function getAchievements(req, res) {
   try {
+    const { newlyUnlocked } = await syncAchievements(
+      req.user.id,
+      req.db,
+    );
     const data = await getUserAchievements(req.user.id, req.db);
-    res.json({ success: true, data });
+    res.json({ success: true, data: { ...data, newlyUnlockedKeys: newlyUnlocked } });
   } catch (err) {
     console.error("getAchievements error:", err);
     res
