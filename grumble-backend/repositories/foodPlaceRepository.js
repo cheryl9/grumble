@@ -85,9 +85,110 @@ async function convertPostcodeToCoordinates(postcode) {
   }
 }
 
+/**
+ * Get friends who have visited a food place based on friend posts near the place.
+ * "Visited" is inferred if a friend's post is within threshold meters of the place
+ * or if the post shares the same postal code as nearby known buildings of the place.
+ */
+async function getFriendsWhoVisited(
+  restaurantId,
+  userId,
+  thresholdMeters = 100,
+  postalMatchRadiusMeters = 1500,
+) {
+  const restaurantResult = await pool.query(
+    `SELECT id, lat, lon
+     FROM food_places
+     WHERE id = $1`,
+    [restaurantId],
+  );
+
+  const place = restaurantResult.rows[0];
+  if (!place || place.lat == null || place.lon == null) {
+    return [];
+  }
+
+  // Use PostGIS geography distance for accurate meters and good query performance.
+  const result = await pool.query(
+    `WITH nearby_restaurant_postcodes AS (
+      -- Postal codes around the restaurant point (primary match strategy)
+      SELECT DISTINCT b.postal_code
+      FROM buildings b
+      WHERE b.postal_code IS NOT NULL
+        AND b.latitude IS NOT NULL
+        AND b.longitude IS NOT NULL
+        AND ST_DWithin(
+          ST_SetSRID(ST_MakePoint(b.longitude::double precision, b.latitude::double precision), 4326)::geography,
+          ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography,
+          $5
+        )
+    ),
+    nearest_restaurant_postcode AS (
+      -- Fallback to nearest building postcode in case no nearby rows are found
+      SELECT b.postal_code
+      FROM buildings b
+      WHERE b.postal_code IS NOT NULL
+        AND b.latitude IS NOT NULL
+        AND b.longitude IS NOT NULL
+      ORDER BY ST_Distance(
+        ST_SetSRID(ST_MakePoint(b.longitude::double precision, b.latitude::double precision), 4326)::geography,
+        ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography
+      )
+      LIMIT 1
+    ),
+    restaurant_postcodes AS (
+      SELECT postal_code FROM nearby_restaurant_postcodes
+      UNION
+      SELECT postal_code FROM nearest_restaurant_postcode
+    ),
+    my_friends AS (
+      SELECT DISTINCT
+        CASE WHEN f.user_id = $1 THEN f.friend_id ELSE f.user_id END AS friend_id
+      FROM friendships f
+      WHERE (f.user_id = $1 OR f.friend_id = $1)
+        AND f.status = 'accepted'
+    ),
+    nearby_friend_posts AS (
+      SELECT DISTINCT p.user_id
+      FROM posts p
+      JOIN my_friends mf ON mf.friend_id = p.user_id
+      JOIN food_places fp ON fp.id = p.food_place_id
+      WHERE p.is_deleted = false
+        AND fp.lat IS NOT NULL
+        AND fp.lon IS NOT NULL
+        AND ST_DWithin(
+          ST_SetSRID(ST_MakePoint(fp.lon, fp.lat), 4326)::geography,
+          ST_SetSRID(ST_MakePoint($3, $2), 4326)::geography,
+          $4
+        )
+    ),
+    postal_friend_posts AS (
+      SELECT DISTINCT p.user_id
+      FROM posts p
+      JOIN my_friends mf ON mf.friend_id = p.user_id
+      JOIN restaurant_postcodes rp ON rp.postal_code = p.postal_code
+      WHERE p.is_deleted = false
+        AND p.postal_code IS NOT NULL
+    ),
+    matched_friends AS (
+      SELECT user_id FROM nearby_friend_posts
+      UNION
+      SELECT user_id FROM postal_friend_posts
+    )
+    SELECT u.id, u.username, u.avatar_url, u.equipped_avatar
+    FROM matched_friends mf
+    JOIN users u ON u.id = mf.user_id
+    ORDER BY u.username ASC`,
+    [userId, place.lat, place.lon, thresholdMeters, postalMatchRadiusMeters],
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   getAllFoodPlaces,
   getFoodPlaceById,
   createFoodPlace,
   convertPostcodeToCoordinates,
+  getFriendsWhoVisited,
 };

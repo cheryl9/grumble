@@ -115,7 +115,6 @@ const Explore = () => {
         prev.map((p) => {
           if (p.id !== postId) return p;
           if (p.saved_by_me === savedByMe) return p;
-
           return {
             ...p,
             saved_by_me: savedByMe,
@@ -320,7 +319,7 @@ const Explore = () => {
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           onLike={() => handleLike(selectedPost.id)}
-          onSave={() => handleSave(selectedPost.id)} // ← pass it down
+          onSave={() => handleSave(selectedPost.id)}
           onCommentAdded={() => handleCommentAdded(selectedPost.id)}
           onCommentDeleted={() => handleCommentDeleted(selectedPost.id)}
         />
