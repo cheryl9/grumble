@@ -2,7 +2,6 @@ const authRepository = require("../repositories/authRepository");
 const bcrypt = require("bcrypt");
 const telegramService = require("../services/telegramService");
 const jwt = require("jsonwebtoken");
-const { get } = require("../app");
 const {
   getUserAchievements,
   equipAvatar,

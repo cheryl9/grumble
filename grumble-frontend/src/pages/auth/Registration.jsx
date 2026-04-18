@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import logo from "../../assets/logo.png";
-import useContactPermission from "../../hooks/useContactPermission";
 import {
   validatePassword,
   validatePhoneNumber,
@@ -15,7 +14,6 @@ import { useAuth } from "../../context/AuthContext";
 export default function Registration() {
   const navigate = useNavigate();
   const { register: registerUser } = useAuth();
-  const { requestContactPermission, permissionStatus } = useContactPermission();
 
   const [formData, setFormData] = useState({
     phoneNumber: "",
@@ -75,7 +73,6 @@ export default function Registration() {
         formData.username,
         formData.password,
       );
-      await requestContactPermission();
       navigate(ROUTES.ONBOARDING);
     } catch (error) {
       const errorMessage =
@@ -98,10 +95,6 @@ export default function Registration() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleRequestContacts = async () => {
-    await requestContactPermission();
   };
 
   return (
@@ -136,24 +129,6 @@ export default function Registration() {
               placeholder="81234567"
               required
             />
-
-            {permissionStatus === "prompt" && (
-              <button
-                type="button"
-                onClick={handleRequestContacts}
-                className="w-full h-12 px-4 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-              >
-                Import Contacts (Optional)
-              </button>
-            )}
-
-            {permissionStatus === "granted" && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <p className="text-sm text-green-700 font-medium">
-                  ✓ Contacts imported successfully
-                </p>
-              </div>
-            )}
 
             <Input
               label="Username"
