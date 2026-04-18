@@ -3,6 +3,8 @@ const bcrypt = require("bcrypt");
 const telegramService = require("../services/telegramService");
 const jwt = require("jsonwebtoken");
 const {
+  checkAndUnlockAchievements,
+  syncAchievements,
   getUserAchievements,
   equipAvatar,
 } = require("../services/achievementService");
@@ -576,8 +578,12 @@ const getStreak = async (req, res, next) => {
 // achievements
 async function getAchievements(req, res) {
   try {
+    const { newlyUnlocked } = await syncAchievements(
+      req.user.id,
+      req.db,
+    );
     const data = await getUserAchievements(req.user.id, req.db);
-    res.json({ success: true, data });
+    res.json({ success: true, data: { ...data, newlyUnlockedKeys: newlyUnlocked } });
   } catch (err) {
     console.error("getAchievements error:", err);
     res

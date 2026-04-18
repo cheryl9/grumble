@@ -185,6 +185,8 @@ async function createPost({
   visibility,
   postal_code,
 }) {
+  const normalizedRating = rating !== undefined ? Number(rating) : null;
+
   const result = await pool.query(
     `INSERT INTO posts
        (user_id, food_place_id, location_name, rating, image_url, description, visibility, postal_code)
@@ -194,7 +196,7 @@ async function createPost({
       userId,
       foodPlaceId || null,
       locationName || null,
-      rating || null,
+      normalizedRating,
       imageUrl || null,
       description || null,
       visibility || "public",

@@ -1,108 +1,26 @@
+import { useState } from "react";
 import { X } from "lucide-react";
-import tinyTummyImg from "../../assets/avatars/tiny_tummy.png";
-import gutGuardianImg from "../../assets/avatars/gut_guardian.png";
-import digestiveDynamoImg from "../../assets/avatars/digestive_dynamo.png";
-import goldenKidneyImg from "../../assets/avatars/golden_kidney.png";
-import beanThereImg from "../../assets/avatars/bean_there_done_that.png";
-import snackGoblinImg from "../../assets/avatars/snack_goblin.png";
-import liverItUpImg from "../../assets/avatars/liver_it_up.png";
-import kidneyBeanImg from "../../assets/avatars/kidney_bean.png";
-import heartOfFeastImg from "../../assets/avatars/heart_of_the_feast.png";
-import openStomachImg from "../../assets/avatars/open_stomach_policy.png";
-import kidneyCrewImg from "../../assets/avatars/kidney_crew.png";
+import { ACHIEVEMENT_CATALOG } from "../../utils/achievementCatalog";
+import AvatarPickerModal from "../profilePage/AvatarPickerModal";
 
-const ACHIEVEMENTS = [
-  {
-    key: "tiny_tummy",
-    name: "Tiny Tummy",
-    description: "Created your first post",
-    rarity: "COMMON",
-    image: tinyTummyImg,
-  },
-  {
-    key: "gut_guardian",
-    name: "Gut Guardian",
-    description: "Maintained a 7-day streak",
-    rarity: "RARE",
-    image: gutGuardianImg,
-  },
-  {
-    key: "digestive_dynamo",
-    name: "Digestive Dynamo",
-    description: "Maintained a 14-day streak",
-    rarity: "RARE",
-    image: digestiveDynamoImg,
-  },
-  {
-    key: "golden_kidney",
-    name: "Golden Kidney",
-    description: "Visited 10 unique cafes",
-    rarity: "RARE",
-    image: goldenKidneyImg,
-  },
-  {
-    key: "bean_there_done_that",
-    name: "Bean There, Done That",
-    description: "Shared a restaurant review with a friend",
-    rarity: "EPIC",
-    image: beanThereImg,
-  },
-  {
-    key: "snack_goblin",
-    name: "Snack Goblin",
-    description: "Posted 15 dessert reviews",
-    rarity: "RARE",
-    image: snackGoblinImg,
-  },
-  {
-    key: "liver_it_up",
-    name: "Liver It Up",
-    description: "Posted a late-night review (after midnight)",
-    rarity: "COMMON",
-    image: liverItUpImg,
-  },
-  {
-    key: "kidney_bean",
-    name: "Kidney Bean",
-    description: "Posted 10 reviews from drink stores",
-    rarity: "RARE",
-    image: kidneyBeanImg,
-  },
-  {
-    key: "heart_of_the_feast",
-    name: "Heart of the Feast",
-    description: "Posted 50 dining reviews",
-    rarity: "EPIC",
-    image: heartOfFeastImg,
-  },
-  {
-    key: "open_stomach_policy",
-    name: "Open Stomach Policy",
-    description: "Posted 10 reviews",
-    rarity: "RARE",
-    image: openStomachImg,
-  },
-  {
-    key: "kidney_crew",
-    name: "Kidney Crew",
-    description: "Made 10 friends",
-    rarity: "EPIC",
-    image: kidneyCrewImg,
-  },
-];
+const ACHIEVEMENTS = ACHIEVEMENT_CATALOG;
 
 export default function AllAchievementsModal({
   unlockedKeys = [],
+  equippedAvatar = null,
   onClose,
-  onAvatarSelect,
+  onAvatarEquip,
+  onAvatarUnequip,
 }) {
+  const [selectedAchievement, setSelectedAchievement] = useState(null);
+
   const getRarityColor = (rarity) => {
     switch (rarity) {
-      case "COMMON":
+      case "common":
         return "#8b7355";
-      case "RARE":
+      case "rare":
         return "#4169e1";
-      case "EPIC":
+      case "epic":
         return "#8b2e8b";
       default:
         return "#999";
@@ -191,7 +109,7 @@ export default function AllAchievementsModal({
             return (
               <div
                 key={achievement.key}
-                onClick={() => isUnlocked && onAvatarSelect?.(achievement.key)}
+                onClick={() => isUnlocked && setSelectedAchievement(achievement)}
                 style={{
                   backgroundColor: isUnlocked ? "#fff" : "#f5f5f5",
                   border: isUnlocked
@@ -207,6 +125,7 @@ export default function AllAchievementsModal({
                   cursor: isUnlocked ? "pointer" : "default",
                   opacity: isUnlocked ? 1 : 0.6,
                   transition: "all 0.15s",
+                  position: "relative",
                 }}
                 onMouseEnter={(e) => {
                   if (isUnlocked) {
@@ -247,7 +166,7 @@ export default function AllAchievementsModal({
                 {/* Image */}
                 <img
                   src={achievement.image}
-                  alt={achievement.name}
+                  alt={achievement.label}
                   style={{
                     width: "50px",
                     height: "50px",
@@ -262,7 +181,7 @@ export default function AllAchievementsModal({
                 <div
                   style={{ fontSize: "12px", fontWeight: "600", color: "#111" }}
                 >
-                  {achievement.name}
+                  {achievement.label}
                 </div>
 
                 {/* Rarity */}
@@ -274,7 +193,7 @@ export default function AllAchievementsModal({
                     textTransform: "uppercase",
                   }}
                 >
-                  {achievement.rarity}
+                  {achievement.rarity.toUpperCase()}
                 </div>
 
                 {/* Description */}
@@ -288,6 +207,24 @@ export default function AllAchievementsModal({
           })}
         </div>
       </div>
+
+      {selectedAchievement && (
+        <AvatarPickerModal
+          achievement={selectedAchievement}
+          isCurrentlyEquipped={equippedAvatar === selectedAchievement.key}
+          onEquip={async (key) => {
+            await onAvatarEquip?.(key);
+            setSelectedAchievement(null);
+            onClose?.();
+          }}
+          onUnequip={async () => {
+            await onAvatarUnequip?.();
+            setSelectedAchievement(null);
+            onClose?.();
+          }}
+          onClose={() => setSelectedAchievement(null)}
+        />
+      )}
     </div>
   );
 }

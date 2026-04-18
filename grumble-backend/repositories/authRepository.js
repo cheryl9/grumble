@@ -170,18 +170,26 @@ const getPasswordHashById = async (userId) => {
 // stats
 
 const getUserStats = async (userId) => {
-  const [postsResult, likedResult, savedResult] = await Promise.all([
+  const [postsResult, likedResult, savedResult, friendsResult] = await Promise.all([
     pool.query(
       "SELECT COUNT(*) FROM posts WHERE user_id = $1 AND is_deleted = FALSE",
       [userId],
     ),
     pool.query("SELECT COUNT(*) FROM likes WHERE user_id = $1", [userId]),
     pool.query("SELECT COUNT(*) FROM saves WHERE user_id = $1", [userId]),
+    pool.query(
+      `SELECT COUNT(*)
+       FROM friendships
+       WHERE (user_id = $1 OR friend_id = $1)
+         AND status = 'accepted'`,
+      [userId],
+    ),
   ]);
 
   const streak = await getStreakByUserId(userId);
 
   return {
+    friends: parseInt(friendsResult.rows[0].count),
     posts: parseInt(postsResult.rows[0].count),
     liked: parseInt(likedResult.rows[0].count),
     saved: parseInt(savedResult.rows[0].count),
@@ -269,8 +277,16 @@ const upsertStreak = async (
   return result.rows[0];
 };
 
-const calculateAndUpdateStreak = async (userId) => {
-  const today = new Date();
+const calculateAndUpdateStreak = async (userId, options = {}) => {
+  const referenceDate = options.referenceDate
+    ? new Date(options.referenceDate)
+    : new Date();
+
+  if (Number.isNaN(referenceDate.getTime())) {
+    throw new Error("Invalid referenceDate passed to calculateAndUpdateStreak");
+  }
+
+  const today = new Date(referenceDate);
   today.setHours(0, 0, 0, 0);
 
   const yesterday = new Date(today);

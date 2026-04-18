@@ -1,6 +1,7 @@
 const postsRepo = require("../repositories/postsRepository");
 const authRepo = require("../repositories/authRepository");
 const achievementService = require("../services/achievementService");
+const { sendNotificationAlert } = require("../services/realtime");
 const pool = require("../config/db");
 
 async function getFeed(req, res) {
@@ -37,6 +38,7 @@ async function getPost(req, res) {
 async function createPost(req, res) {
   try {
     const userId = req.user.id;
+    let newlyUnlockedAchievements = [];
     const {
       foodPlaceId,
       locationName,
@@ -46,6 +48,7 @@ async function createPost(req, res) {
       visibility,
       postal_code,
     } = req.body;
+    const normalizedRating = Number(rating);
 
     // At least a location name or a food place must be provided
     if (!locationName && !foodPlaceId) {
@@ -54,11 +57,21 @@ async function createPost(req, res) {
         .json({ error: "Either locationName or foodPlaceId is required" });
     }
 
+    if (
+      !Number.isInteger(normalizedRating) ||
+      normalizedRating < 1 ||
+      normalizedRating > 5
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Rating must be an integer between 1 and 5" });
+    }
+
     const post = await postsRepo.createPost({
       userId,
       foodPlaceId,
       locationName,
-      rating,
+      rating: normalizedRating,
       imageUrl,
       description,
       visibility,
@@ -72,16 +85,31 @@ async function createPost(req, res) {
     }
 
     try {
-      const newlyUnlocked = await achievementService.checkAndUnlockAchievements(
+      newlyUnlockedAchievements = await achievementService.checkAndUnlockAchievements(
         userId,
         pool,
       );
-      console.log(`Achievements unlocked for user ${userId}:`, newlyUnlocked);
+
+      if (newlyUnlockedAchievements.length > 0) {
+        sendNotificationAlert(userId, {
+          type: "achievement_unlocked",
+          achievementKeys: newlyUnlockedAchievements,
+          unlockedAt: new Date().toISOString(),
+        });
+      }
+
+      console.log(
+        `Achievements unlocked for user ${userId}:`,
+        newlyUnlockedAchievements,
+      );
     } catch (achievementErr) {
       console.error("Error checking achievements:", achievementErr);
     }
 
-    res.status(201).json(post);
+    res.status(201).json({
+      ...post,
+      newlyUnlockedAchievements,
+    });
   } catch (err) {
     console.error("createPost error:", err);
     res.status(500).json({ error: "Failed to create post" });
@@ -146,6 +174,8 @@ async function editPost(req, res) {
       visibility,
     });
 
+    await achievementService.syncAchievements(userId, pool);
+
     res.json(updatedPost);
   } catch (err) {
     console.error("editPost error:", err);
@@ -170,6 +200,7 @@ async function deletePost(req, res) {
     }
 
     await postsRepo.softDeletePost(postId);
+    await achievementService.syncAchievements(userId, pool);
     res.json({ success: true, message: "Post deleted successfully" });
   } catch (err) {
     console.error("deletePost error:", err);
