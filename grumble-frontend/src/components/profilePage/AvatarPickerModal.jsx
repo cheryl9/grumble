@@ -118,7 +118,7 @@ export default function AvatarPickerModal({
         >
           {!imgError ? (
             <img
-              src={`/src/assets/avatars/${achievement.avatarFile}`}
+              src={achievement.image}
               alt={achievement.label}
               style={{ width: '80px', height: '80px', objectFit: 'contain' }}
               onError={() => setImgError(true)}

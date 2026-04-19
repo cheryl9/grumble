@@ -102,7 +102,7 @@ function AchievementCard({ achievement, isUnlocked, isEquipped, onClick }) {
       >
         {!imgError ? (
           <img
-            src={`/src/assets/avatars/${achievement.avatarFile}`}
+            src={achievement.image}
             alt={achievement.label}
             style={{ width: "46px", height: "46px", objectFit: "contain" }}
             onError={() => setImgError(true)}
