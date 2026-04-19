@@ -7,7 +7,7 @@ import CreatePostModal from "../components/explorePage/CreatePostModal";
 import ReportPostModal from "../components/explorePage/ReportPostModal";
 import EditPostModal from "../components/explorePage/EditPostModal";
 import logo from "../assets/logo.png";
-import { useToast } from "../context/ToastContext"; 
+import { useToast } from "../context/ToastContext";
 import { buildLocalActionToast } from "../utils/toastBuilders";
 
 const TABS = [
@@ -18,7 +18,7 @@ const TABS = [
 
 const Explore = () => {
   const location = useLocation();
-  const { pushToast } = useToast(); 
+  const { pushToast } = useToast();
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,13 +56,33 @@ const Explore = () => {
   }, [location.state?.selectedTab]);
 
   useEffect(() => {
-    if (location.state?.selectedPostId && posts.length > 0) {
-      const post = posts.find((p) => p.id === location.state.selectedPostId);
-      if (post) {
-        setSelectedPost(post);
-      }
+    const targetId = Number(location.state?.selectedPostId);
+    if (!Number.isInteger(targetId)) return;
+    if (Number(selectedPost?.id) === targetId) return;
+
+    const post = (posts || []).find((p) => Number(p.id) === targetId);
+    if (post) {
+      setSelectedPost(post);
+      return;
     }
-  }, [location.state?.selectedPostId, posts]);
+
+    let cancelled = false;
+    const fetchMissing = async () => {
+      try {
+        const res = await api.get(`/posts/${targetId}`);
+        if (cancelled) return;
+        setSelectedPost(res.data);
+      } catch (err) {
+        // If the post isn't accessible in the current context/tab, fail silently.
+        console.warn("Failed to fetch selected post:", err);
+      }
+    };
+
+    void fetchMissing();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state?.selectedPostId, posts, selectedPost?.id]);
 
   const handleLike = async (postId) => {
     setPosts((prev) =>
@@ -80,8 +100,13 @@ const Explore = () => {
     );
 
     // Show toast after optimistic update
-    const nowLiked = !posts.find(p => p.id === postId)?.liked_by_me;
-    pushToast(buildLocalActionToast("like_sent", nowLiked ? "Post liked!" : "Like removed"));
+    const nowLiked = !posts.find((p) => p.id === postId)?.liked_by_me;
+    pushToast(
+      buildLocalActionToast(
+        "like_sent",
+        nowLiked ? "Post liked!" : "Like removed",
+      ),
+    );
 
     try {
       await api.post(`/posts/${postId}/like`);
@@ -119,8 +144,13 @@ const Explore = () => {
     );
 
     // Show toast after optimistic update
-    const nowSaved = !posts.find(p => p.id === postId)?.saved_by_me;
-    pushToast(buildLocalActionToast("save_sent", nowSaved ? "Post saved!" : "Bookmark removed"));
+    const nowSaved = !posts.find((p) => p.id === postId)?.saved_by_me;
+    pushToast(
+      buildLocalActionToast(
+        "save_sent",
+        nowSaved ? "Post saved!" : "Bookmark removed",
+      ),
+    );
 
     try {
       const res = await api.post(`/posts/${postId}/save`);
@@ -172,7 +202,7 @@ const Explore = () => {
   };
 
   const handleCommentAdded = (postId) => {
-    pushToast(buildLocalActionToast("comment_sent", "Comment posted!")); 
+    pushToast(buildLocalActionToast("comment_sent", "Comment posted!"));
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p,

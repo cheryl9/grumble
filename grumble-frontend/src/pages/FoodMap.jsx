@@ -372,10 +372,17 @@ const FoodMap = () => {
                 onClick={() => {
                   // If it's a post, navigate to explore and select the post
                   if (selectedPin.isPost) {
+                    const selectedTab =
+                      activeTab === "friends"
+                        ? "friends"
+                        : activeTab === "self"
+                          ? "mine"
+                          : "foryou";
+
                     navigate("/explore", {
                       state: {
                         selectedPostId: selectedPin.id,
-                        selectedTab: "mine",
+                        selectedTab,
                       },
                     });
                   } else {
