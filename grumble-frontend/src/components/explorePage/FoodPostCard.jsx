@@ -37,7 +37,7 @@ const FoodPostCard = ({
     e.stopPropagation();
 
     try {
-      const shareLink = `http://localhost:5173/explore?post=${post.id}`;
+      const shareLink = `${window.location.origin}/post/${post.id}`;
       await navigator.clipboard.writeText(shareLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
