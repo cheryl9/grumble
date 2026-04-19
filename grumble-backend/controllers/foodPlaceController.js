@@ -216,8 +216,58 @@ async function enrichWithGoogle(place) {
 
 async function getAllFoodPlacesHandler(req, res) {
   try {
-    const { minLat, maxLat, minLon, maxLon } = req.query;
+    const { minLat, maxLat, minLon, maxLon, q } = req.query;
 
+    // If search query provided, use text search instead of nearby search
+    if (q) {
+      const response = await axios.get(
+        "https://maps.googleapis.com/maps/api/place/textsearch/json",
+        {
+          params: {
+            query: `${q} restaurant Singapore`,
+            key: process.env.GOOGLE_PLACES_API_KEY,
+          },
+        },
+      );
+
+      console.log("Google Places text search status:", response.data.status);
+      console.log("Google Places results count:", response.data.results?.length);
+
+      const results = response.data.results
+        .filter(
+          (place) =>
+            place.geometry.location.lat >= 1.2 &&
+            place.geometry.location.lat <= 1.47 &&
+            place.geometry.location.lng >= 103.6 &&
+            place.geometry.location.lng <= 104.1,
+        )
+        .slice(0, 10);
+
+      const places = results.map((place) => ({
+        id: place.place_id,
+        name: place.name,
+        lat: place.geometry.location.lat,
+        lon: place.geometry.location.lng,
+        address: place.formatted_address || place.vicinity || "Address unavailable",
+        cuisine: "Unknown",
+        category: "restaurant",
+        google: {
+          address: place.formatted_address || place.vicinity || "Address unavailable",
+          rating: place.rating ?? null,
+          reviewCount: place.user_ratings_total ?? null,
+          priceLevel: place.price_level ?? null,
+          openingHours: null,
+          image: place.photos?.[0]
+            ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${place.photos[0].photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
+            : null,
+        },
+        region: getRegionFromAddress(place.formatted_address || place.vicinity || ""),
+      }));
+
+      return res.json(places);
+    }
+
+    // Otherwise use nearby search with geographic bounds
     const lat = (parseFloat(minLat) + parseFloat(maxLat)) / 2 || 1.3521;
     const lon = (parseFloat(minLon) + parseFloat(maxLon)) / 2 || 103.8198;
 
