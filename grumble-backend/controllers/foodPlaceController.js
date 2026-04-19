@@ -1,11 +1,11 @@
 const {
-  getAllFoodPlaces,
   getFoodPlaceById,
   createFoodPlace,
   convertPostcodeToCoordinates,
   getFriendsWhoVisited,
 } = require("../repositories/foodPlaceRepository");
 const { getGoogleData } = require("../services/googlePlacesService");
+const axios = require("axios");
 
 // Map postal code prefix to region (matches postalCodeMapper.js logic)
 const POSTAL_CODE_TO_REGION = {
@@ -216,39 +216,52 @@ async function enrichWithGoogle(place) {
 
 async function getAllFoodPlacesHandler(req, res) {
   try {
-    const { category, cuisine, minLat, maxLat, minLon, maxLon, limit } = req.query;
-    const q = typeof req.query.q === "string" ? req.query.q.trim() : null;
-    const enrich = String(req.query.enrich ?? "true").toLowerCase() !== "false";
-    const places = await getAllFoodPlaces({
-      category,
-      cuisine,
-      minLat,
-      maxLat,
-      minLon,
-      maxLon,
-      q,
-      limit: limit ? parseInt(limit) : 10,
-    });
+    const { minLat, maxLat, minLon, maxLon } = req.query;
+    
+    const lat = ((parseFloat(minLat) + parseFloat(maxLat)) / 2) || 1.3521;
+    const lon = ((parseFloat(minLon) + parseFloat(maxLon)) / 2) || 103.8198;
 
-    if (!enrich) {
-      res.json(places);
-      return;
-    }
-
-    const enriched = await Promise.all(
-      places.map(async (place) => {
-        const withGoogle = await enrichWithGoogle(place);
-        // Extract region from Google address
-        const region = getRegionFromAddress(
-          withGoogle.google?.address || place.address,
-        );
-        return { ...withGoogle, region };
-      }),
+    // Fetch directly from Google Places Nearby Search
+    const response = await axios.get(
+      "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
+      {
+        params: {
+          location: `${lat},${lon}`,
+          radius: 5000,
+          type: "restaurant",
+          key: process.env.GOOGLE_PLACES_API_KEY,
+        },
+      }
     );
 
-    res.json(enriched);
+    const results = response.data.results.slice(0, 10);
+
+    const places = results.map((place) => ({
+      id: place.place_id,
+      name: place.name,
+      lat: place.geometry.location.lat,
+      lon: place.geometry.location.lng,
+      address: place.vicinity,
+      cuisine: "Unknown",
+      category: "restaurant",
+      google: {
+        address: place.vicinity,
+        rating: place.rating ?? null,
+        reviewCount: place.user_ratings_total ?? null,
+        priceLevel: place.price_level ?? null,
+        openingHours: place.opening_hours?.open_now != null
+          ? (place.opening_hours.open_now ? "Open now" : "Closed now")
+          : null,
+        image: place.photos?.[0]
+          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${place.photos[0].photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
+          : null,
+      },
+      region: getRegionFromAddress(place.vicinity),
+    }));
+
+    res.json(places);
   } catch (error) {
-    console.error("Detailed error:", error.message);
+    console.error("Failed to fetch from Google Places:", error.message);
     res.status(500).json({ error: "Failed to fetch food places" });
   }
 }
