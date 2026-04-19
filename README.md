@@ -1,4 +1,4 @@
-Team members: Cheryl Seow (A0300911X), Xavier (A0308909U), Wang Song (A0308161M), Chermaine (A0)
+Team members: Cheryl Seow (A0300911X), Xavier (A0308909U), Wang Song (A0308161M), Chermaine (A0311796X)
 
 Admin Account:
 Username: admin
