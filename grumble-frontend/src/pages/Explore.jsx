@@ -7,6 +7,8 @@ import CreatePostModal from "../components/explorePage/CreatePostModal";
 import ReportPostModal from "../components/explorePage/ReportPostModal";
 import EditPostModal from "../components/explorePage/EditPostModal";
 import logo from "../assets/logo.png";
+import { useToast } from "../context/ToastContext"; 
+import { buildLocalActionToast } from "../utils/toastBuilders";
 
 const TABS = [
   { key: "foryou", label: "For You" },
@@ -16,6 +18,7 @@ const TABS = [
 
 const Explore = () => {
   const location = useLocation();
+  const { pushToast } = useToast(); 
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +79,10 @@ const Explore = () => {
       }),
     );
 
+    // Show toast after optimistic update
+    const nowLiked = !posts.find(p => p.id === postId)?.liked_by_me;
+    pushToast(buildLocalActionToast("like_sent", nowLiked ? "Post liked!" : "Like removed"));
+
     try {
       await api.post(`/posts/${postId}/like`);
     } catch (err) {
@@ -110,6 +117,10 @@ const Explore = () => {
         };
       }),
     );
+
+    // Show toast after optimistic update
+    const nowSaved = !posts.find(p => p.id === postId)?.saved_by_me;
+    pushToast(buildLocalActionToast("save_sent", nowSaved ? "Post saved!" : "Bookmark removed"));
 
     try {
       const res = await api.post(`/posts/${postId}/save`);
@@ -161,6 +172,7 @@ const Explore = () => {
   };
 
   const handleCommentAdded = (postId) => {
+    pushToast(buildLocalActionToast("comment_sent", "Comment posted!")); 
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p,

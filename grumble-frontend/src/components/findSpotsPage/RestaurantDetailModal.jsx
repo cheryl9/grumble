@@ -1,9 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  ChevronLeft,
-  FileText,
-  Star,
-} from "lucide-react";
+import { ChevronLeft, Star } from "lucide-react";
 import UserAvatar from "../common/UserAvatar";
 import { getFriendsVisitedByRestaurantId } from "../../services/friendsVisitedService";
 
@@ -98,7 +94,9 @@ const RestaurantDetailModal = ({
                     ))}
                   </ul>
                 ) : (
-                  <p className="detail-value">Outlet information not available</p>
+                  <p className="detail-value">
+                    Outlet information not available
+                  </p>
                 )}
               </div>
 
@@ -127,16 +125,10 @@ const RestaurantDetailModal = ({
               </div>
 
               <div className="detail-item">
-                <h3 className="detail-label">Menu:</h3>
-                <div className="detail-link flex items-center gap-2 text-gray-500">
-                  <FileText size={16} />
-                  Menu not available
-                </div>
-              </div>
-
-              <div className="detail-item">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="detail-label mb-0">Friends who have visited:</h3>
+                  <h3 className="detail-label mb-0">
+                    Friends who have visited:
+                  </h3>
                   {friendsVisited.length > 4 && (
                     <span className="text-xs text-[#2945A8] cursor-pointer">
                       View all ({friendsVisited.length})
@@ -145,7 +137,9 @@ const RestaurantDetailModal = ({
                 </div>
 
                 {isLoading ? (
-                  <p className="text-sm text-gray-500">Loading friends data...</p>
+                  <p className="text-sm text-gray-500">
+                    Loading friends data...
+                  </p>
                 ) : friendsVisited.length === 0 ? (
                   <p className="text-sm text-gray-500">
                     No friends have posted from this location yet
@@ -153,13 +147,19 @@ const RestaurantDetailModal = ({
                 ) : (
                   <div className="friends-visited-modal-grid">
                     {friendsVisited.slice(0, 4).map((friend) => (
-                      <div key={friend.id} className="friends-visited-modal-item" title={`@${friend.username}`}>
+                      <div
+                        key={friend.id}
+                        className="friends-visited-modal-item"
+                        title={`@${friend.username}`}
+                      >
                         <UserAvatar
                           avatarUrl={friend.avatar_url}
                           equippedAvatar={friend.equipped_avatar}
                           size={40}
                         />
-                        <span className="friends-visited-handle">@{friend.username}</span>
+                        <span className="friends-visited-handle">
+                          @{friend.username}
+                        </span>
                       </div>
                     ))}
                   </div>
