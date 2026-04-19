@@ -221,71 +221,24 @@ async function getAllFoodPlacesHandler(req, res) {
     const lat = (parseFloat(minLat) + parseFloat(maxLat)) / 2 || 1.3521;
     const lon = (parseFloat(minLon) + parseFloat(maxLon)) / 2 || 103.8198;
 
-    // Check API key early and give a clear error
-    if (!process.env.GOOGLE_PLACES_API_KEY) {
-      console.error("❌ GOOGLE_PLACES_API_KEY is not set");
-      return res.status(500).json({ error: "Google Places API key not configured" });
-    }
-
+    // Fetch directly from Google Places Nearby Search
     const response = await axios.get(
       "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
       {
         params: {
           location: `${lat},${lon}`,
-          radius: 3000, // Reduced from 5000 to reduce JB bleed
+          radius: 5000,
           type: "restaurant",
           key: process.env.GOOGLE_PLACES_API_KEY,
         },
-        timeout: 10000, // Add timeout to prevent hanging connections
       },
     );
 
     console.log("Google Places status:", response.data.status);
     console.log("Google Places results count:", response.data.results?.length);
+    console.log("Google API key exists:", !!process.env.GOOGLE_PLACES_API_KEY);
 
-    // Handle non-OK Google API statuses explicitly
-    if (response.data.status !== "OK" && response.data.status !== "ZERO_RESULTS") {
-      console.error("Google Places API error:", response.data.status, response.data.error_message);
-      return res.status(502).json({
-        error: "Google Places API error",
-        status: response.data.status,
-        message: response.data.error_message || "Unknown error",
-      });
-    }
-
-    if (!response.data.results?.length) {
-      return res.json([]);
-    }
-
-    // Tighter Singapore bounding box to exclude JB
-    const SG_BOUNDS = {
-      minLat: 1.2050,
-      maxLat: 1.4755,
-      minLon: 103.6217,
-      maxLon: 103.9940,
-    };
-
-    // Additional check: exclude places with Malaysian address indicators
-    const results = response.data.results
-      .filter((place) => {
-        const { lat: pLat, lng: pLon } = place.geometry.location;
-        const inBounds =
-          pLat >= SG_BOUNDS.minLat &&
-          pLat <= SG_BOUNDS.maxLat &&
-          pLon >= SG_BOUNDS.minLon &&
-          pLon <= SG_BOUNDS.maxLon;
-
-        // Extra safety: filter out Malaysian addresses
-        const vicinity = place.vicinity?.toLowerCase() || "";
-        const isMalaysia =
-          vicinity.includes("johor") ||
-          vicinity.includes("malaysia") ||
-          vicinity.includes("johor bahru") ||
-          vicinity.includes(", jb");
-
-        return inBounds && !isMalaysia;
-      })
-      .slice(0, 10);
+    const results = response.data.results.slice(0, 10);
 
     const places = results.map((place) => ({
       id: place.place_id,
@@ -315,15 +268,6 @@ async function getAllFoodPlacesHandler(req, res) {
 
     res.json(places);
   } catch (error) {
-    // Differentiate between connection errors and other errors
-    if (error.code === "ECONNREFUSED" || error.code === "ENOTFOUND") {
-      console.error("❌ Network error reaching Google Places API:", error.message);
-      return res.status(502).json({ error: "Could not reach Google Places API" });
-    }
-    if (error.code === "ECONNABORTED") {
-      console.error("❌ Google Places API request timed out");
-      return res.status(504).json({ error: "Google Places API request timed out" });
-    }
     console.error("Failed to fetch from Google Places:", error.message);
     res.status(500).json({ error: "Failed to fetch food places" });
   }

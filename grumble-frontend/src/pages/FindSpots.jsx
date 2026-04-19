@@ -74,7 +74,19 @@ const FindSpots = () => {
         });
 
         const curated = normalized
-          .filter((r) => r.name && r.name !== "Unknown place")
+          .filter((r) => {
+            const hasKnownName =
+              r.name &&
+              r.name.toLowerCase() !== "unknown" &&
+              r.name.toLowerCase() !== "unknown place";
+            const hasAnyUsefulMeta =
+              r.location !== "Address unavailable" ||
+              r.openingHours !== "Not available" ||
+              r.website ||
+              r.image ||
+              r.rating != null;
+            return hasKnownName && hasAnyUsefulMeta;
+          })
           .sort((a, b) => {
             const score = (x) =>
               (x.image ? 1 : 0) +
