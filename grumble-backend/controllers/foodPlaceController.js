@@ -476,6 +476,30 @@ async function getFoodPlacesSuggestionsHandler(req, res) {
   }
 }
 
+async function getFriendsWhoVisitedHandler(req, res) {
+  try {
+    const { id: restaurantId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Check if ID is numeric (database) or Google Place ID (string)
+    const isNumericId = /^\d+$/.test(restaurantId);
+    if (!isNumericId) {
+      return res.json({ friendsVisited: [] });
+    }
+
+    const numericId = parseInt(restaurantId);
+    const friendsVisited = await getFriendsWhoVisited(numericId, userId);
+    return res.json({ friendsVisited });
+  } catch (error) {
+    console.error("Error fetching friends who visited:", error);
+    res.status(500).json({ error: "Failed to fetch friends who visited" });
+  }
+}
+
 module.exports = {
   getAllFoodPlacesHandler,
   getFoodPlaceByIdHandler,

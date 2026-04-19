@@ -1,7 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChevronLeft, Star } from "lucide-react";
+import { api } from "../../services/api";
 
 const RestaurantDetailModal = ({ restaurant, onClose }) => {
+  const [friendsVisited, setFriendsVisited] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+
+  useEffect(() => {
+    if (restaurant.id) {
+      fetchFriendsVisited();
+    }
+  }, [restaurant.id]);
+
+  const fetchFriendsVisited = async () => {
+    try {
+      setLoadingFriends(true);
+      const response = await api.get(
+        `/food-places/${restaurant.id}/friends-visited`,
+      );
+      setFriendsVisited(response.data.friendsVisited || []);
+    } catch (error) {
+      console.error("Error fetching friends visited:", error);
+      setFriendsVisited([]);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
   const outlets =
     restaurant.outlets?.length > 0
       ? restaurant.outlets
@@ -78,6 +103,29 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
                   <Star size={16} className="text-yellow-500 fill-yellow-500" />
                 </div>
               </div>
+
+              {!loadingFriends && friendsVisited.length > 0 && (
+                <div className="detail-item">
+                  <h3 className="detail-label">Friends who visited:</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {friendsVisited.map((friend) => (
+                      <div
+                        key={friend.id}
+                        className="flex items-center gap-1 bg-orange-50 px-3 py-1 rounded-full text-xs"
+                      >
+                        {friend.avatar_url && (
+                          <img
+                            src={friend.avatar_url}
+                            alt={friend.username}
+                            className="w-4 h-4 rounded-full"
+                          />
+                        )}
+                        <span className="text-gray-700">{friend.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

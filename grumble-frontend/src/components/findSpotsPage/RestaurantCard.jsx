@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { MapPin, Star } from "lucide-react";
 import RestaurantDetailModal from "./RestaurantDetailModal";
 

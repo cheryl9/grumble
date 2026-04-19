@@ -132,9 +132,40 @@ async function convertPostcodeToCoordinates(postcode) {
   }
 }
 
+async function getFriendsWhoVisited(restaurantId, userId) {
+  try {
+    const query = `
+      SELECT DISTINCT
+        u.id,
+        u.username,
+        u.avatar_url
+      FROM post_like pl
+      JOIN posts p ON pl.post_id = p.id
+      JOIN users u ON p.user_id = u.id
+      WHERE p.food_place_id = $1
+        AND u.id IN (
+          SELECT friend_id FROM friendships
+          WHERE user_id = $2 AND status = 'accepted'
+          UNION
+          SELECT user_id FROM friendships
+          WHERE friend_id = $2 AND status = 'accepted'
+        )
+        AND u.id != $2
+      LIMIT 5
+    `;
+
+    const result = await pool.query(query, [restaurantId, userId]);
+    return result.rows;
+  } catch (error) {
+    console.error("Error fetching friends who visited:", error);
+    return [];
+  }
+}
+
 module.exports = {
   getAllFoodPlaces,
   getFoodPlaceById,
   createFoodPlace,
   convertPostcodeToCoordinates,
+  getFriendsWhoVisited,
 };
