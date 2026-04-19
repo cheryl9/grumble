@@ -2,16 +2,25 @@ import React, { useState } from "react";
 import { Check, X } from "lucide-react";
 import * as friendService from "../../services/friendService";
 import UserAvatar from "../common/UserAvatar";
+import { useToast } from "../../context/ToastContext";
+import { buildLocalActionToast } from "../../utils/toastBuilders";
 
 const FriendRequestCard = ({ request, onAccepted, onDeclined }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { pushToast } = useToast();
 
   const handleAccept = async () => {
     setIsLoading(true);
     setError(null);
     try {
       await friendService.acceptFriendRequest(request.friendship_id);
+      pushToast(
+        buildLocalActionToast(
+          "friend_request_accepted",
+          "Friend request accepted!",
+        ),
+      );
       onAccepted?.(request.friendship_id);
     } catch (err) {
       console.error("Error accepting friend request:", err);
@@ -26,6 +35,12 @@ const FriendRequestCard = ({ request, onAccepted, onDeclined }) => {
     setError(null);
     try {
       await friendService.declineFriendRequest(request.friendship_id);
+      pushToast(
+        buildLocalActionToast(
+          "friend_request_declined",
+          "Friend request declined.",
+        ),
+      );
       onDeclined?.(request.friendship_id);
     } catch (err) {
       console.error("Error declining friend request:", err);

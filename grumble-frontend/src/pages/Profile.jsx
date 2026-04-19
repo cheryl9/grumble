@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
 import { getAvatarSrc } from "../utils/avatarUtils";
+import { useToast } from "../context/ToastContext";
 import * as authService from "../services/authService";
 import api from "../services/api";
 import logoImg from "../assets/logo.png";
@@ -19,10 +20,12 @@ import PostsModal from "../components/common/PostsModal";
 import AllAchievementsModal from "../components/common/AllAchievementsModal";
 import FriendsModal from "../components/common/FriendsModal";
 
+
 export default function Profile() {
   const navigate = useNavigate();
   const { username } = useParams();
   const { user, logout, setUser } = useAuth();
+  const { pushToast } = useToast();
   const isViewingOtherProfile = !!username;
 
   const [stats, setStats] = useState({
@@ -517,6 +520,7 @@ export default function Profile() {
             setShowPostsModal(false);
             fetchStats();
           }}
+          pushToast={pushToast}
         />
       )}
 

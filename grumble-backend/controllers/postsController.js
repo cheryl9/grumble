@@ -215,12 +215,22 @@ async function toggleLike(req, res) {
     const userId = req.user.id;
     const postId = parseInt(req.params.id);
 
-    // Confirm post exists
     const post = await postsRepo.getPostById(postId, userId);
     if (!post) return res.status(404).json({ error: "Post not found" });
 
     const result = await postsRepo.toggleLike(postId, userId);
-    res.json(result); // { liked: true } or { liked: false }
+
+    // Notify post owner if liked (not if unliked, and not if liking own post)
+    if (result.liked && post.user_id !== userId) {
+      sendNotificationAlert(post.user_id, {
+        type: "post_liked",
+        postId,
+        likerId: userId,
+        likerUsername: req.user.username,
+        postPreview: post.location_name || "your post",
+      });
+    }
+    res.json(result);
   } catch (err) {
     console.error("toggleLike error:", err);
     res.status(500).json({ error: "Failed to toggle like" });
@@ -237,15 +247,22 @@ async function addComment(req, res) {
       return res.status(400).json({ error: "Comment content cannot be empty" });
     }
 
-    // Confirm post exists
     const post = await postsRepo.getPostById(postId, userId);
     if (!post) return res.status(404).json({ error: "Post not found" });
 
-    const comment = await postsRepo.createComment(
-      postId,
-      userId,
-      content.trim(),
-    );
+    const comment = await postsRepo.createComment(postId, userId, content.trim());
+
+    // Notify post owner if someone else commented
+    if (post.user_id !== userId) {
+      sendNotificationAlert(post.user_id, {
+        type: "post_commented",
+        postId,
+        commenterId: userId,
+        commenterUsername: req.user.username,
+        postPreview: post.location_name || "your post",
+      });
+    }
+
     res.status(201).json(comment);
   } catch (err) {
     console.error("addComment error:", err);
@@ -262,7 +279,19 @@ async function toggleSave(req, res) {
     if (!post) return res.status(404).json({ error: "Post not found" });
 
     const result = await postsRepo.toggleSave(postId, userId);
-    res.json(result); // { saved: true } or { saved: false }
+
+    // Notify post owner if saved (not if unsaved, and not own post)
+    if (result.saved && post.user_id !== userId) {
+      sendNotificationAlert(post.user_id, {
+        type: "post_saved",
+        postId,
+        saverId: userId,
+        saverUsername: req.user.username,
+        postPreview: post.location_name || "your post",
+      });
+    }
+
+    res.json(result);
   } catch (err) {
     console.error("toggleSave error:", err);
     res.status(500).json({ error: "Failed to toggle save" });

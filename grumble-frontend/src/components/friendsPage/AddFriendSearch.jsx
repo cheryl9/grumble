@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Search, Plus, Clock, UserCheck } from "lucide-react";
 import * as friendService from "../../services/friendService";
 import UserAvatar from "../common/UserAvatar";
+import { useToast } from "../../context/ToastContext";
+import { buildLocalActionToast } from "../../utils/toastBuilders";
 
 const AddFriendSearch = ({
   sentRequests = [],
@@ -17,6 +19,7 @@ const AddFriendSearch = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceTimer = useRef(null);
   const dropdownRef = useRef(null);
+  const { pushToast } = useToast();
 
   // Convert sent requests and friends to maps for fast lookup
   const sentRequestMap = new Map(sentRequests.map((r) => [r.recipient_id, r]));
@@ -71,6 +74,10 @@ const AddFriendSearch = ({
       setQuery("");
       setShowDropdown(false);
       onRequestSent?.();
+      // Show success toast
+      pushToast(
+        buildLocalActionToast("friend_request_sent", "Friend request sent!"),
+      );
     } catch (err) {
       console.error("Error sending friend request:", err);
       setError("Failed to send friend request");

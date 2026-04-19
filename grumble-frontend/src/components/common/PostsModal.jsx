@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { X, Heart, MessageCircle, Bookmark, Star } from "lucide-react";
 import api from "../../services/api";
 import defaultPng from "../../assets/avatars/default.png";
+import { buildLocalActionToast } from "../../utils/toastBuilders";
 
-export default function PostsModal({ type, onClose }) {
+export default function PostsModal({ type, onClose, pushToast }) {
+  console.log("pushToast received:", pushToast); // ← add this
+  console.log("typeof pushToast:", typeof pushToast);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,6 +47,11 @@ export default function PostsModal({ type, onClose }) {
   };
 
   const handleToggleLike = async (postId) => {
+    console.log("handleToggleLike called", postId); // ← add this
+    console.log("pushToast is:", pushToast); // ← add this
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+
     // Optimistic update
     setPosts((prev) =>
       prev.map((p) =>
@@ -58,6 +66,10 @@ export default function PostsModal({ type, onClose }) {
           : p,
       ),
     );
+
+    // Show toast
+    const message = post.liked_by_me ? "Like removed" : "Post liked!";
+    pushToast(buildLocalActionToast("like_sent", message));
 
     try {
       await api.post(`/posts/${postId}/like`);
@@ -91,6 +103,10 @@ export default function PostsModal({ type, onClose }) {
       ),
     );
 
+    // Show toast
+    const message = post.saved_by_me ? "Bookmark removed" : "Post saved!";
+    pushToast(buildLocalActionToast("save_sent", message));
+
     try {
       await api.post(`/posts/${postId}/save`);
 
@@ -106,6 +122,28 @@ export default function PostsModal({ type, onClose }) {
           p.id === postId ? { ...p, saved_by_me: !p.saved_by_me } : p,
         ),
       );
+    }
+  };
+
+  const handleComment = async (postId) => {
+    const commentText = prompt("Write a comment:");
+    if (!commentText || !commentText.trim()) return;
+
+    try {
+      await api.post(`/posts/${postId}/comments`, {
+        content: commentText.trim(),
+      });
+      // Update comments count
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p,
+        ),
+      );
+      // Show toast
+      pushToast(buildLocalActionToast("comment_sent", "Comment posted!"));
+    } catch (err) {
+      console.error("Failed to add comment:", err);
+      alert("Failed to add comment");
     }
   };
 
@@ -335,6 +373,7 @@ export default function PostsModal({ type, onClose }) {
                   </button>
 
                   <button
+                    onClick={() => handleComment(post.id)}
                     style={{
                       background: "none",
                       border: "none",
