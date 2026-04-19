@@ -47,6 +47,7 @@ async function createPost(req, res) {
       description,
       visibility,
       postal_code,
+      hashtags,
     } = req.body;
     const normalizedRating = Number(rating);
 
@@ -76,6 +77,7 @@ async function createPost(req, res) {
       description,
       visibility,
       postal_code,
+      hashtags: hashtags || [],
     });
 
     try {

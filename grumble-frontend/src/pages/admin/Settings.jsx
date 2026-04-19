@@ -1,26 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, User, LogOut } from 'lucide-react';
-import { getCurrentAdmin, changeAdminPassword } from '../../services/adminFAQService';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { Lock, User, LogOut, Eye, EyeOff } from "lucide-react";
+import {
+  getCurrentAdmin,
+  changeAdminPassword,
+} from "../../services/adminFAQService";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Settings - Admin settings and profile management
  */
 export default function Settings() {
   const navigate = useNavigate();
-  
+
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  });
 
   useEffect(() => {
     loadAdminProfile();
@@ -32,7 +40,7 @@ export default function Settings() {
       const result = await getCurrentAdmin();
       setAdmin(result.data);
     } catch (err) {
-      setError('Failed to load admin profile');
+      setError("Failed to load admin profile");
     } finally {
       setLoading(false);
     }
@@ -40,7 +48,7 @@ export default function Settings() {
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordForm(prev => ({
+    setPasswordForm((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -48,28 +56,28 @@ export default function Settings() {
 
   const handleSubmitPasswordChange = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     // Validation
     if (!passwordForm.currentPassword) {
-      setError('Current password is required');
+      setError("Current password is required");
       return;
     }
     if (!passwordForm.newPassword) {
-      setError('New password is required');
+      setError("New password is required");
       return;
     }
     if (passwordForm.newPassword.length < 8) {
-      setError('New password must be at least 8 characters');
+      setError("New password must be at least 8 characters");
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
     if (passwordForm.currentPassword === passwordForm.newPassword) {
-      setError('New password must be different from current password');
+      setError("New password must be different from current password");
       return;
     }
 
@@ -77,33 +85,33 @@ export default function Settings() {
       setLoading(true);
       await changeAdminPassword(
         passwordForm.currentPassword,
-        passwordForm.newPassword
+        passwordForm.newPassword,
       );
-      setSuccess('Password changed successfully');
+      setSuccess("Password changed successfully");
       setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
       setShowPasswordForm(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change password');
+      setError(err.response?.data?.message || "Failed to change password");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.removeItem('adminToken');
-      navigate('/admin/login');
+    if (window.confirm("Are you sure you want to logout?")) {
+      localStorage.removeItem("adminToken");
+      navigate("/admin/login");
     }
   };
 
   // Clear success message after 3 seconds
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => setSuccess(''), 3000);
+      const timer = setTimeout(() => setSuccess(""), 3000);
       return () => clearTimeout(timer);
     }
   }, [success]);
@@ -111,7 +119,7 @@ export default function Settings() {
   // Clear error message after 5 seconds
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(''), 5000);
+      const timer = setTimeout(() => setError(""), 5000);
       return () => clearTimeout(timer);
     }
   }, [error]);
@@ -153,11 +161,11 @@ export default function Settings() {
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {admin.full_name || 'Admin User'}
+                {admin.full_name || "Admin User"}
               </h2>
               <p className="text-gray-600">@{admin.username}</p>
               <p className="text-sm text-gray-500 mt-1">
-                {admin.role === 'superadmin' ? '🔐 Superadmin' : '👤 Admin'}
+                {admin.role === "superadmin" ? "🔐 Superadmin" : "👤 Admin"}
               </p>
             </div>
           </div>
@@ -177,9 +185,9 @@ export default function Settings() {
             <div>
               <p className="text-sm text-gray-600">Last Login</p>
               <p className="font-medium text-gray-900">
-                {admin.last_login_at 
-                  ? new Date(admin.last_login_at).toLocaleString() 
-                  : 'Never'}
+                {admin.last_login_at
+                  ? new Date(admin.last_login_at).toLocaleString()
+                  : "Never"}
               </p>
             </div>
             <div>
@@ -224,15 +232,33 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Current Password *
               </label>
-              <input
-                type="password"
-                name="currentPassword"
-                value={passwordForm.currentPassword}
-                onChange={handlePasswordChange}
-                placeholder="Enter current password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  type={showPasswords.currentPassword ? "text" : "password"}
+                  name="currentPassword"
+                  value={passwordForm.currentPassword}
+                  onChange={handlePasswordChange}
+                  placeholder="Enter current password"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      currentPassword: !prev.currentPassword,
+                    }))
+                  }
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPasswords.currentPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* New Password */}
@@ -240,17 +266,36 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 New Password *
               </label>
-              <input
-                type="password"
-                name="newPassword"
-                value={passwordForm.newPassword}
-                onChange={handlePasswordChange}
-                placeholder="Enter new password (min 8 characters)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  type={showPasswords.newPassword ? "text" : "password"}
+                  name="newPassword"
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordChange}
+                  placeholder="Enter new password (min 8 characters)"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      newPassword: !prev.newPassword,
+                    }))
+                  }
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPasswords.newPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
-                Minimum 8 characters, mix of uppercase, lowercase, and numbers recommended
+                Minimum 8 characters, mix of uppercase, lowercase, and numbers
+                recommended
               </p>
             </div>
 
@@ -259,15 +304,33 @@ export default function Settings() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Confirm New Password *
               </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={passwordForm.confirmPassword}
-                onChange={handlePasswordChange}
-                placeholder="Confirm new password"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  type={showPasswords.confirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordChange}
+                  placeholder="Confirm new password"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPasswords((prev) => ({
+                      ...prev,
+                      confirmPassword: !prev.confirmPassword,
+                    }))
+                  }
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPasswords.confirmPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -277,9 +340,9 @@ export default function Settings() {
                 onClick={() => {
                   setShowPasswordForm(false);
                   setPasswordForm({
-                    currentPassword: '',
-                    newPassword: '',
-                    confirmPassword: '',
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
                   });
                 }}
                 disabled={loading}
@@ -292,7 +355,7 @@ export default function Settings() {
                 disabled={loading}
                 className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
               >
-                {loading ? 'Changing...' : 'Change Password'}
+                {loading ? "Changing..." : "Change Password"}
               </button>
             </div>
           </form>

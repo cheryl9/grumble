@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X, MapPin, Star, Image } from "lucide-react";
 import api from "../../services/api";
 
@@ -15,9 +15,54 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [visibility, setVisibility] = useState("public");
+  const [hashtags, setHashtags] = useState([]);
+  const [hashtagInput, setHashtagInput] = useState("");
+  const [hashtagCategories, setHashtagCategories] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Load available hashtags
+  useEffect(() => {
+    const loadHashtags = async () => {
+      try {
+        const response = await api.get("/auth/hashtags");
+        setHashtagCategories(response.data.data);
+      } catch (err) {
+        console.error("Failed to load hashtags:", err);
+      }
+    };
+    loadHashtags();
+  }, []);
+
+  const handleHashtagToggle = (tag) => {
+    const normalizedTag = tag.startsWith("#") ? tag.substring(1) : tag;
+    setHashtags((prev) => {
+      if (prev.includes(normalizedTag)) {
+        return prev.filter((h) => h !== normalizedTag);
+      } else {
+        return [...prev, normalizedTag];
+      }
+    });
+  };
+
+  const handleHashtagInputKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const trimmed = hashtagInput.trim();
+      const normalizedTag = trimmed.startsWith("#")
+        ? trimmed.substring(1)
+        : trimmed;
+      if (normalizedTag && !hashtags.includes(normalizedTag)) {
+        setHashtags((prev) => [...prev, normalizedTag]);
+        setHashtagInput("");
+      }
+    }
+  };
+
+  const removeHashtag = (tag) => {
+    setHashtags((prev) => prev.filter((h) => h !== tag));
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -117,13 +162,15 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
         description: description.trim(),
         visibility,
         postal_code: postcode || null,
+        hashtags,
       });
 
       onPostCreated?.();
       onClose();
     } catch (err) {
       console.error("Failed to create post:", err);
-      const backendMessage = err?.response?.data?.error || err?.response?.data?.message;
+      const backendMessage =
+        err?.response?.data?.error || err?.response?.data?.message;
       setError(backendMessage || "Failed to create post. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -362,6 +409,49 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
                   {v}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Hashtags */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Hashtags
+            </label>
+
+            {/* Custom hashtag input */}
+            {/* Hashtag categories */}
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {Object.entries(hashtagCategories).map(
+                ([categoryKey, category]) => (
+                  <div key={categoryKey}>
+                    <p className="text-xs font-semibold text-gray-600 mb-1">
+                      {category.label}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {category.tags.map((tag) => {
+                        const normalizedTag = tag.startsWith("#")
+                          ? tag.substring(1)
+                          : tag;
+                        const isSelected = hashtags.includes(normalizedTag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleHashtagToggle(normalizedTag)}
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all border ${
+                              isSelected
+                                ? "border-orange-500 bg-orange-50 text-orange-600"
+                                : "border-gray-300 bg-gray-50 text-gray-600 hover:border-gray-400"
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           </div>
 

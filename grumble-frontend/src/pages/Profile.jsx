@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ROUTES } from "../utils/constants";
 import { getAvatarSrc } from "../utils/avatarUtils";
@@ -17,10 +17,13 @@ import TelegramConnectionModal from "../components/common/TelegramConnectionModa
 import AccountInfoModal from "../components/common/AccountInfoModal";
 import PostsModal from "../components/common/PostsModal";
 import AllAchievementsModal from "../components/common/AllAchievementsModal";
+import FriendsModal from "../components/common/FriendsModal";
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { username } = useParams();
   const { user, logout, setUser } = useAuth();
+  const isViewingOtherProfile = !!username;
 
   const [stats, setStats] = useState({
     friends: 0,
@@ -39,6 +42,7 @@ export default function Profile() {
   const [showPostsModal, setShowPostsModal] = useState(false);
   const [postsModalType, setPostsModalType] = useState("posts");
   const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [toast, setToast] = useState({ msg: "", type: "" });
   const [equippedAvatar, setEquippedAvatar] = useState(null);
 
@@ -138,7 +142,7 @@ export default function Profile() {
   };
 
   const handleShareProfile = () => {
-    const profileUrl = `${window.location.origin}/profile/${user?.username}`;
+    const profileUrl = `${window.location.origin}/@${user?.username}`;
     navigator.clipboard.writeText(profileUrl).then(() => {
       showToast("Profile link copied to clipboard!");
     });
@@ -164,9 +168,35 @@ export default function Profile() {
     }
   };
 
+  const handleDisconnectTelegram = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to disconnect your Telegram account? You won't receive OTP codes via Telegram anymore.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await authService.disconnectTelegram();
+      const freshUser = await authService.fetchCurrentUser();
+
+      if (freshUser) setUser(freshUser);
+
+      showToast("Telegram disconnected!");
+    } catch (error) {
+      showToast("Failed to disconnect Telegram", "error");
+      console.error("Disconnect error:", error);
+    }
+  };
+
   const handleViewAll = (key) => {
-    setPostsModalType(key);
-    setShowPostsModal(true);
+    if (key === "friends") {
+      setShowFriendsModal(true);
+    } else {
+      setPostsModalType(key);
+      setShowPostsModal(true);
+    }
   };
 
   const handleAccountInfo = () => {
@@ -380,8 +410,38 @@ export default function Profile() {
               </div>
 
               {user.telegramChatId ? (
-                <div style={{ fontSize: "13px", color: "#166534" }}>
-                  Connected as {user.telegramUsername || "your account"}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  <div style={{ fontSize: "13px", color: "#166534" }}>
+                    ✓ Connected as {user.telegramUsername || "your account"}
+                  </div>
+                  <button
+                    onClick={handleDisconnectTelegram}
+                    style={{
+                      backgroundColor: "#ef4444",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                      fontSize: "13px",
+                      width: "fit-content",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#dc2626")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#ef4444")
+                    }
+                  >
+                    Disconnect
+                  </button>
                 </div>
               ) : (
                 <button
@@ -460,6 +520,10 @@ export default function Profile() {
         />
       )}
 
+      {showFriendsModal && (
+        <FriendsModal onClose={() => setShowFriendsModal(false)} />
+      )}
+
       {showAllAchievements && (
         <AllAchievementsModal
           unlockedKeys={unlockedAchievements}
@@ -474,7 +538,7 @@ export default function Profile() {
         isOpen={showTelegramModal}
         onClose={() => setShowTelegramModal(false)}
         onConnect={handleConnectTelegram}
-        botUsername="@grumble1122_bot"
+        botUsername="@GrumblyGrumbot"
       />
     </div>
   );

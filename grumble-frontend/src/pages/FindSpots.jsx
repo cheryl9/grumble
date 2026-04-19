@@ -4,6 +4,7 @@ import api from "../services/api";
 import RestaurantCard from "../components/findSpotsPage/RestaurantCard";
 import {
   SINGAPORE_REGIONS,
+  REGION_LIST,
   CUISINE_CATEGORIES,
   PRICE_RANGES,
 } from "../utils/constants";
@@ -33,18 +34,20 @@ const FindSpots = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Don't filter by cuisine on the backend - fetch all and filter on frontend
-        const params = {};
+        // Singapore geographic bounds
+        const params = {
+          minLat: 1.2242,
+          maxLat: 1.471,
+          minLon: 103.63,
+          maxLon: 104.915,
+        };
         const res = await api.get("/food-places", { params });
 
         const normalized = (res.data || []).map((p) => {
           const priceLevel = p.google?.priceLevel;
           const priceRange = priceLevel ? "$".repeat(priceLevel) : "-";
-          // Determine area from coordinates - convert to numbers
-          const lat = p.lat ? Number(p.lat) : null;
-          const lon = p.lon ? Number(p.lon) : null;
-          const locationArea =
-            lat && lon ? getAreaFromCoordinates(lat, lon) : null;
+          // Use region from backend (extracted from postal code in Google address)
+          const locationArea = p.region || "Unknown";
 
           return {
             id: p.id,
@@ -52,7 +55,7 @@ const FindSpots = () => {
             cuisine: p.cuisine || "Unknown",
             category: p.category || "",
             location: p.google?.address || p.address || "Address unavailable",
-            locationArea: locationArea || "Unknown",
+            locationArea: locationArea,
             openingHours:
               p.google?.openingHours || p.opening_hours || "Not available",
             image: p.google?.image || p.image_url || null,
@@ -64,8 +67,8 @@ const FindSpots = () => {
                 ? Number(p.google.reviewCount)
                 : null,
             website: p.website || null,
-            lat: lat,
-            lon: lon,
+            lat: p.lat ? Number(p.lat) : null,
+            lon: p.lon ? Number(p.lon) : null,
             googleData: p.google || null,
           };
         });
@@ -195,7 +198,12 @@ const FindSpots = () => {
       <div className="explore-header">
         <div className="flex items-center gap-3 mb-4">
           <img src={logo} alt="Grumble" className="w-12 h-12" />
-          <h1 className="text-4xl font-bold">Find spots</h1>
+          <div>
+            <h1 className="text-4xl font-bold">Find Spots</h1>
+            <p className="explore-subtitle">
+              Discover trending and nearby food spots.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -218,24 +226,19 @@ const FindSpots = () => {
             onClick={() => toggleDropdown("location")}
             className="filter-btn"
           >
-            <span>{filters.location || "Location"}</span>
+            <span>{filters.location || "Region"}</span>
             <ChevronDown size={16} />
           </button>
           {showDropdown.location && (
             <div className="dropdown-menu">
-              {Object.entries(SINGAPORE_REGIONS).map(([region, areas]) => (
-                <div key={region}>
-                  <div className="dropdown-region">{region}</div>
-                  {areas.map((area) => (
-                    <button
-                      key={area}
-                      onClick={() => handleFilterChange("location", area)}
-                      className="dropdown-item"
-                    >
-                      {area}
-                    </button>
-                  ))}
-                </div>
+              {REGION_LIST.map((region) => (
+                <button
+                  key={region}
+                  onClick={() => handleFilterChange("location", region)}
+                  className="dropdown-item"
+                >
+                  {region}
+                </button>
               ))}
             </div>
           )}

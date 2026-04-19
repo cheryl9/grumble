@@ -5,7 +5,7 @@
  */
 
 export const POSTAL_CODE_TO_REGION = {
-  // Central Region (01-19)
+  // Central Region (01-16, 70-79)
   "01": "Central",
   "02": "Central",
   "03": "Central",
@@ -22,11 +22,45 @@ export const POSTAL_CODE_TO_REGION = {
   14: "Central",
   15: "Central",
   16: "Central",
-  17: "Central",
-  18: "Central",
-  19: "Central",
+  70: "West", // Tengah/Lim Chu Kang
+  71: "West",
+  72: "Central",
+  73: "Central",
+  74: "Central",
+  75: "Central",
+  76: "Central",
+  77: "Central",
+  78: "Central",
 
-  // East Region (14, 15, 41-48)
+  // North-East Region (30, 79, 82)
+  30: "North-East", // Serangoon/Hougang
+  79: "North-East", // Seletar
+  18: "Central", // Bugis, Rochor, Golden Mile
+  19: "Central",
+  20: "Central",
+  21: "Central",
+  22: "Central", // Orchard/River Valley
+  23: "Central",
+  24: "Central", // Tanglin, Bukit Timah, Newton, Thomson
+  25: "Central",
+  26: "Central",
+  27: "Central",
+  28: "Central",
+  29: "Central",
+
+  // Adding 31-33 to Central (correction)
+  31: "Central",
+  32: "Central",
+  33: "Central",
+
+  // East Region (34-48, 49-52, 80, 81)
+  34: "East",
+  35: "East",
+  36: "East",
+  37: "East",
+  38: "East",
+  39: "East",
+  40: "East",
   41: "East",
   42: "East",
   43: "East",
@@ -35,30 +69,21 @@ export const POSTAL_CODE_TO_REGION = {
   46: "East",
   47: "East",
   48: "East",
+  49: "East", // Changi, Loyang, Tampines, Pasir Ris
+  50: "East",
+  51: "East",
+  52: "East",
+  80: "East", // Paya Lebar/Macpherson
+  81: "East", // Changi Airport
 
-  // North Region (20-28)
-  20: "North",
-  21: "North",
-  22: "North",
-  23: "North",
-  24: "North",
-  25: "North",
-  26: "North",
-  27: "North",
-  28: "North",
-
-  // North-East Region (30-37, 38)
-  30: "North-East",
-  31: "North-East",
-  32: "North-East",
-  33: "North-East",
-  34: "North-East",
-  35: "North-East",
-  36: "North-East",
-  37: "North-East",
-  38: "North-East",
-
-  // West Region (59, 60-68)
+  // West Region (17, 53-69)
+  17: "West",
+  53: "West",
+  54: "West",
+  55: "West",
+  56: "West",
+  57: "West",
+  58: "West",
   59: "West",
   60: "West",
   61: "West",
@@ -70,6 +95,7 @@ export const POSTAL_CODE_TO_REGION = {
   67: "West",
   68: "West",
   69: "West",
+  82: "North-East", // Punggol/Sengkang
 };
 
 /**

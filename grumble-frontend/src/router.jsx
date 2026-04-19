@@ -60,6 +60,7 @@ export const router = createBrowserRouter([
       { path: "chats", element: <Chats /> },
       { path: "friends", element: <FriendsList /> },
       { path: "profile", element: <Profile /> },
+      { path: "@:username", element: <Profile /> },
       { path: "help-support", element: <HelpSupport /> },
     ],
   },

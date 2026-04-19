@@ -193,6 +193,7 @@ const getUserStats = async (userId) => {
     posts: parseInt(postsResult.rows[0].count),
     liked: parseInt(likedResult.rows[0].count),
     saved: parseInt(savedResult.rows[0].count),
+    friends: parseInt(friendsResult.rows[0].count),
     currentStreak: streak?.current_streak || 0,
     longestStreak: streak?.longest_streak || 0,
     lastPostDate: streak?.last_post_date || null,
@@ -201,13 +202,27 @@ const getUserStats = async (userId) => {
 
 // preferences
 
-const savePreferences = async (userId, cuisines) => {
+const getPreferences = async (userId) => {
   const result = await pool.query(
-    `INSERT INTO user_preferences (user_id, cuisines)
-     VALUES ($1, $2)
-     ON CONFLICT (user_id) DO UPDATE SET cuisines = $2
+    `SELECT cuisines, hashtag_preferences FROM user_preferences WHERE user_id = $1`,
+    [userId],
+  );
+  if (result.rows.length === 0) {
+    return { cuisines: [], hashtag_preferences: [] };
+  }
+  return {
+    cuisines: result.rows[0].cuisines || [],
+    hashtag_preferences: result.rows[0].hashtag_preferences || [],
+  };
+};
+
+const savePreferences = async (userId, cuisines, hashtags) => {
+  const result = await pool.query(
+    `INSERT INTO user_preferences (user_id, cuisines, hashtag_preferences)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id) DO UPDATE SET cuisines = $2, hashtag_preferences = $3
      RETURNING *`,
-    [userId, JSON.stringify(cuisines)],
+    [userId, JSON.stringify(cuisines || []), JSON.stringify(hashtags || [])],
   );
   return result.rows[0];
 };
@@ -343,6 +358,7 @@ module.exports = {
   updatePasswordById,
   getPasswordHashById,
   getUserStats,
+  getPreferences,
   savePreferences,
   updateTelegramConnection,
   disconnectTelegram,

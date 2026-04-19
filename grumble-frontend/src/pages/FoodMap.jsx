@@ -6,6 +6,7 @@ import api from "../services/api";
 import logo from "../assets/logo.png";
 import { Users, User, Bookmark } from "lucide-react";
 import { getAvatarSrc } from "../utils/avatarUtils";
+import UserAvatar from "../components/common/UserAvatar";
 import AddFoodSpotModal from "../components/foodMapPage/AddFoodSpotModal";
 
 const TABS = [
@@ -14,8 +15,7 @@ const TABS = [
   { key: "saved", label: "Saved", icon: <Bookmark size={16} /> },
 ];
 
-// simplified pin icon — no user avatar data from food-places endpoint
-// when posts backend exists, pass user avatar in pin.avatarUrl and it'll render
+// simplified pin icon — uses user avatar for posts
 function createPinIcon(pin, isSelected = false) {
   const color = "#F78660";
   const size = isSelected ? 52 : 42;
@@ -31,7 +31,7 @@ function createPinIcon(pin, isSelected = false) {
         font-size:${Math.round(imgSize * 0.35)}px;
         font-weight:800;
         color:#F78660;
-      ">🍴</div>`;
+      ">🍲</div>`;
 
   const html = `
     <div style="position:relative;width:${size}px;height:${size + 8}px;display:flex;flex-direction:column;align-items:center;">
@@ -94,7 +94,8 @@ async function fetchPostPins(tab) {
       liked_by_me: p.liked_by_me,
       likes_count: p.likes_count,
       created_at: p.created_at, // Added for date filtering (Friends tab)
-      avatarUrl: p.equipped_avatar ? getAvatarSrc(p.equipped_avatar) : null,
+      equipped_avatar: p.equipped_avatar,
+      avatarUrl: getAvatarSrc(p.equipped_avatar),
       isPost: true, // flag so pin card knows it's a post, not a bare place
     }));
 }
@@ -158,9 +159,8 @@ const FoodMap = () => {
             username: p.username,
             liked_by_me: p.liked_by_me,
             likes_count: p.likes_count,
-            avatarUrl: p.equipped_avatar
-              ? getAvatarSrc(p.equipped_avatar)
-              : null,
+            equipped_avatar: p.equipped_avatar,
+            avatarUrl: getAvatarSrc(p.equipped_avatar),
             isPost: true,
           }));
       }
@@ -252,12 +252,16 @@ const FoodMap = () => {
     >
       {/* Header */}
       <div className="explore-header">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-4">
           <img src={logo} alt="Grumble" className="w-12 h-12" />
-          <h1 className="text-4xl font-bold">Food Map</h1>
+          <div>
+            <h1 className="text-4xl font-bold">Food Map</h1>
+            <p className="explore-subtitle">
+              Pin all your favourite food spots in one place.
+            </p>
+          </div>
         </div>
       </div>
-
       {/* Tab Bar */}
       <div className="absolute top-30 left-1/2 -translate-x-1/2 z-[1000]">
         <div className="flex items-center gap-1 bg-white rounded-full shadow-lg px-2 py-2">
@@ -300,10 +304,11 @@ const FoodMap = () => {
             <div className="h-1.5 rounded-t-2xl bg-[#F78660]" />
             <div className="p-4">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-base font-bold flex-shrink-0 bg-[#FCF1DD] text-[#F78660]">
-                  {selectedPin.username
-                    ? selectedPin.username[0].toUpperCase()
-                    : "🍴"}
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-[#FCF1DD] overflow-hidden">
+                  <UserAvatar
+                    equippedAvatar={selectedPin.equipped_avatar}
+                    size={48}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   {/* Show username if it's a post pin */}
@@ -364,11 +369,20 @@ const FoodMap = () => {
                 </p>
               )}
               <button
-                onClick={() =>
-                  navigate("/explore", {
-                    state: { selectedPostId: selectedPin.id },
-                  })
-                }
+                onClick={() => {
+                  // If it's a post, navigate to explore and select the post
+                  if (selectedPin.isPost) {
+                    navigate("/explore", {
+                      state: {
+                        selectedPostId: selectedPin.id,
+                        selectedTab: "mine",
+                      },
+                    });
+                  } else {
+                    // If it's just a place, navigate to find-spots
+                    navigate("/find-spots");
+                  }
+                }}
                 className="btn-primary mt-3 w-full py-2.5 rounded-xl text-sm"
               >
                 See post →

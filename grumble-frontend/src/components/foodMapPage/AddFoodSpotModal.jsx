@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X, MapPin, Star, Image } from "lucide-react";
 import api from "../../services/api";
 
@@ -15,9 +15,24 @@ const AddFoodSpotModal = ({ onClose, onSpotAdded, lat, lon }) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [visibility, setVisibility] = useState("public");
+  const [hashtags, setHashtags] = useState([]);
+  const [hashtagCategories, setHashtagCategories] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Load available hashtags
+  useEffect(() => {
+    const loadHashtags = async () => {
+      try {
+        const response = await api.get("/auth/hashtags");
+        setHashtagCategories(response.data.data);
+      } catch (err) {
+        console.error("Failed to load hashtags:", err);
+      }
+    };
+    loadHashtags();
+  }, []);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -42,6 +57,16 @@ const AddFoodSpotModal = ({ onClose, onSpotAdded, lat, lon }) => {
     const value = e.target.value.replace(/\D/g, "").slice(0, 6);
     setPostcode(value);
     setPostcodeError("");
+  };
+
+  const handleHashtagToggle = (tag) => {
+    setHashtags((prev) => {
+      if (prev.includes(tag)) {
+        return prev.filter((h) => h !== tag);
+      } else {
+        return [...prev, tag];
+      }
+    });
   };
 
   const convertPostcode = async () => {
@@ -117,6 +142,7 @@ const AddFoodSpotModal = ({ onClose, onSpotAdded, lat, lon }) => {
         description: description.trim(),
         visibility,
         postal_code: postcode || null, // Include postal code if provided
+        hashtags,
       });
 
       onSpotAdded?.();
@@ -362,6 +388,48 @@ const AddFoodSpotModal = ({ onClose, onSpotAdded, lat, lon }) => {
                   {v}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Hashtags */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Hashtags
+            </label>
+
+            {/* Hashtag categories */}
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {Object.entries(hashtagCategories).map(
+                ([categoryKey, category]) => (
+                  <div key={categoryKey}>
+                    <p className="text-xs font-semibold text-gray-600 mb-1">
+                      {category.label}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {category.tags.map((tag) => {
+                        const normalizedTag = tag.startsWith("#")
+                          ? tag.substring(1)
+                          : tag;
+                        const isSelected = hashtags.includes(normalizedTag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleHashtagToggle(normalizedTag)}
+                            className={`px-2 py-1 rounded-full text-xs font-medium transition-all border ${
+                              isSelected
+                                ? "border-orange-500 bg-orange-50 text-orange-600"
+                                : "border-gray-300 bg-gray-50 text-gray-600 hover:border-gray-400"
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ),
+              )}
             </div>
           </div>
 

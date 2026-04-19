@@ -35,6 +35,9 @@ export const ROUTES = {
   PROFILE: "/profile",
 };
 
+// Regions for location filtering
+export const REGION_LIST = ["Central", "East", "North", "North-East", "West"];
+
 export const SINGAPORE_REGIONS = {
   Central: [
     "Bishan",

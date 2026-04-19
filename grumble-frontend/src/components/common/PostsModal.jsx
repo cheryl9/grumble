@@ -34,7 +34,7 @@ export default function PostsModal({ type, onClose }) {
       const response = await api.get(endpoint);
       // Handle both { data: [...] } and plain array responses
       const raw = response.data;
-      setPosts(Array.isArray(raw) ? raw : raw.data ?? []);
+      setPosts(Array.isArray(raw) ? raw : (raw.data ?? []));
     } catch (err) {
       console.error("Error fetching posts:", err);
       setError("Failed to load posts");
@@ -55,8 +55,8 @@ export default function PostsModal({ type, onClose }) {
                 ? Math.max(0, p.likes_count - 1)
                 : p.likes_count + 1,
             }
-          : p
-      )
+          : p,
+      ),
     );
 
     try {
@@ -74,8 +74,8 @@ export default function PostsModal({ type, onClose }) {
                   ? Math.max(0, p.likes_count - 1)
                   : p.likes_count + 1,
               }
-            : p
-        )
+            : p,
+        ),
       );
     }
   };
@@ -87,8 +87,8 @@ export default function PostsModal({ type, onClose }) {
     // Optimistic update
     setPosts((prev) =>
       prev.map((p) =>
-        p.id === postId ? { ...p, saved_by_me: !p.saved_by_me } : p
-      )
+        p.id === postId ? { ...p, saved_by_me: !p.saved_by_me } : p,
+      ),
     );
 
     try {
@@ -103,8 +103,8 @@ export default function PostsModal({ type, onClose }) {
       // Revert on failure
       setPosts((prev) =>
         prev.map((p) =>
-          p.id === postId ? { ...p, saved_by_me: !p.saved_by_me } : p
-        )
+          p.id === postId ? { ...p, saved_by_me: !p.saved_by_me } : p,
+        ),
       );
     }
   };
@@ -124,30 +124,14 @@ export default function PostsModal({ type, onClose }) {
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        zIndex: 2000,
-        padding: "16px",
-      }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
     >
       <div
+        className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: "#fff",
-          borderRadius: "20px 20px 0 0",
-          width: "100%",
-          maxWidth: "560px",
           maxHeight: "85vh",
-          position: "relative",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          boxShadow: "0 -4px 32px rgba(0,0,0,0.15)",
         }}
       >
         {/* Header */}
@@ -164,12 +148,24 @@ export default function PostsModal({ type, onClose }) {
             zIndex: 100,
           }}
         >
-          <h2 style={{ fontSize: "18px", fontWeight: "700", color: "#111", margin: 0 }}>
+          <h2
+            style={{
+              fontSize: "18px",
+              fontWeight: "700",
+              color: "#111",
+              margin: 0,
+            }}
+          >
             {titles[type]}
           </h2>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: "4px" }}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "4px",
+            }}
           >
             <X size={20} color="#666" />
           </button>
@@ -178,7 +174,13 @@ export default function PostsModal({ type, onClose }) {
         {/* Feed */}
         <div style={{ overflowY: "auto", flex: 1 }}>
           {loading && (
-            <div style={{ textAlign: "center", padding: "64px 20px", color: "#999" }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "64px 20px",
+                color: "#999",
+              }}
+            >
               Loading...
             </div>
           )}
@@ -199,12 +201,18 @@ export default function PostsModal({ type, onClose }) {
           )}
 
           {!loading && posts.length === 0 && (
-            <div style={{ textAlign: "center", padding: "64px 20px", color: "#999" }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "64px 20px",
+                color: "#999",
+              }}
+            >
               {type === "saved"
                 ? "No saved posts yet — tap the bookmark on any post!"
                 : type === "liked"
-                ? "No liked posts yet."
-                : "No posts yet."}
+                  ? "No liked posts yet."
+                  : "No posts yet."}
             </div>
           )}
 
@@ -212,7 +220,10 @@ export default function PostsModal({ type, onClose }) {
             posts.map((post) => (
               <div
                 key={post.id}
-                style={{ borderBottom: "1px solid #e5e5e5", backgroundColor: "#fff" }}
+                style={{
+                  borderBottom: "1px solid #e5e5e5",
+                  backgroundColor: "#fff",
+                }}
               >
                 {/* Post Header */}
                 <div
@@ -236,14 +247,28 @@ export default function PostsModal({ type, onClose }) {
                     }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: "14px", fontWeight: "600", color: "#111" }}>
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#111",
+                      }}
+                    >
                       {post.username}
                     </div>
-                    <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#999",
+                        marginTop: "2px",
+                      }}
+                    >
                       {post.place_name || post.location_name}
                     </div>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#999", flexShrink: 0 }}>
+                  <div
+                    style={{ fontSize: "12px", color: "#999", flexShrink: 0 }}
+                  >
                     {formatDate(post.created_at)}
                   </div>
                 </div>
@@ -261,7 +286,11 @@ export default function PostsModal({ type, onClose }) {
                     <img
                       src={post.image_url}
                       alt="Post"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
                     />
                   </div>
                 )}
@@ -286,12 +315,23 @@ export default function PostsModal({ type, onClose }) {
                       color: post.liked_by_me ? "#e84c3d" : "#666",
                       display: "flex",
                       alignItems: "center",
+                      gap: "6px",
                       transition: "transform 0.1s",
                     }}
-                    onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.85)")}
-                    onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                    onMouseDown={(e) =>
+                      (e.currentTarget.style.transform = "scale(0.85)")
+                    }
+                    onMouseUp={(e) =>
+                      (e.currentTarget.style.transform = "scale(1)")
+                    }
                   >
-                    <Heart size={20} fill={post.liked_by_me ? "#e84c3d" : "none"} />
+                    <Heart
+                      size={20}
+                      fill={post.liked_by_me ? "#e84c3d" : "none"}
+                    />
+                    <span style={{ fontSize: "13px", fontWeight: "600" }}>
+                      {post.likes_count}
+                    </span>
                   </button>
 
                   <button
@@ -321,27 +361,18 @@ export default function PostsModal({ type, onClose }) {
                       alignItems: "center",
                       transition: "transform 0.1s",
                     }}
-                    onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.85)")}
-                    onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                    onMouseDown={(e) =>
+                      (e.currentTarget.style.transform = "scale(0.85)")
+                    }
+                    onMouseUp={(e) =>
+                      (e.currentTarget.style.transform = "scale(1)")
+                    }
                   >
-                    <Bookmark size={20} fill={post.saved_by_me ? "#2945A8" : "none"} />
+                    <Bookmark
+                      size={20}
+                      fill={post.saved_by_me ? "#2945A8" : "none"}
+                    />
                   </button>
-                </div>
-
-                {/* Likes & Rating */}
-                <div style={{ padding: "8px 16px", fontSize: "13px", fontWeight: "600", color: "#111" }}>
-                  <div
-                    style={{ marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}
-                  >
-                    <Heart size={14} fill="#e84c3d" color="#e84c3d" />
-                    {post.likes_count} {post.likes_count === 1 ? "like" : "likes"}
-                  </div>
-                  {post.rating && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Star size={14} fill="#fbbf24" color="#fbbf24" />
-                      {post.rating}
-                    </div>
-                  )}
                 </div>
 
                 {/* Caption */}

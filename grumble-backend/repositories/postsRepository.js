@@ -43,6 +43,7 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         p.rating, p.image_url, p.description, p.visibility,
         p.likes_count, p.comments_count, p.saves_count,
         p.created_at,
+        p.hashtags,
         u.username,
         u.equipped_avatar,
         fp.name  AS place_name,
@@ -74,6 +75,7 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
         p.rating, p.image_url, p.description, p.visibility,
         p.likes_count, p.comments_count, p.saves_count,
         p.created_at,
+        p.hashtags,
         u.username,
         u.equipped_avatar,
         fp.name  AS place_name,
@@ -104,13 +106,14 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
     `;
     params = [userId, limit, offset];
   } else {
-    // 'foryou' - all public posts
+    // 'foryou' - public posts matching user's hashtag interests
     query = `
       SELECT
         p.id, p.user_id, p.food_place_id, p.location_name,
         p.rating, p.image_url, p.description, p.visibility,
         p.likes_count, p.comments_count, p.saves_count,
         p.created_at,
+        p.hashtags,
         u.username,
         u.equipped_avatar,
         fp.name  AS place_name,
@@ -129,9 +132,22 @@ async function getFeedPosts(userId, tab = "foryou", limit = 20, offset = 0) {
       FROM posts p
       JOIN users u ON u.id = p.user_id
       LEFT JOIN food_places fp ON fp.id = p.food_place_id
+      LEFT JOIN user_preferences up ON up.user_id = $1
       WHERE p.visibility = 'public'
         AND p.user_id <> $1
         AND p.is_deleted = false
+        AND (
+          -- If user has hashtag preferences, match posts with those hashtags
+          (COALESCE(up.hashtag_preferences, '[]'::jsonb)::text != '[]'::text
+           AND p.hashtags IS NOT NULL
+           AND p.hashtags::text != '[]'::text
+           AND p.hashtags ?| (
+              SELECT array_agg(value::text)
+              FROM jsonb_array_elements_text(up.hashtag_preferences)
+           ))
+          -- If user has no hashtag preferences yet, show all public posts
+          OR COALESCE(up.hashtag_preferences, '[]'::jsonb)::text = '[]'::text
+        )
       ORDER BY p.created_at DESC
       LIMIT $2 OFFSET $3
     `;
@@ -150,6 +166,7 @@ async function getPostById(postId, userId) {
       p.rating, p.image_url, p.description, p.visibility,
       p.likes_count, p.comments_count, p.saves_count,
       p.created_at,
+      p.hashtags,
       u.username,
       u.equipped_avatar,
       fp.name  AS place_name,
@@ -184,13 +201,14 @@ async function createPost({
   description,
   visibility,
   postal_code,
+  hashtags,
 }) {
   const normalizedRating = rating !== undefined ? Number(rating) : null;
 
   const result = await pool.query(
     `INSERT INTO posts
-       (user_id, food_place_id, location_name, rating, image_url, description, visibility, postal_code)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       (user_id, food_place_id, location_name, rating, image_url, description, visibility, postal_code, hashtags)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
     [
       userId,
@@ -201,6 +219,7 @@ async function createPost({
       description || null,
       visibility || "public",
       postal_code || null,
+      JSON.stringify(hashtags || []),
     ],
   );
   return transformPost(result.rows[0]);

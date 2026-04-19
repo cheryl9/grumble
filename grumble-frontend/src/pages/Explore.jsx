@@ -26,24 +26,32 @@ const Explore = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
 
+  const fetchFeed = async (tab = activeTab) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await api.get("/posts", { params: { tab } });
+      setPosts(res.data);
+    } catch (err) {
+      console.error("Failed to fetch feed:", err);
+      setError("Could not load posts. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFeed = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const res = await api.get("/posts", { params: { tab: activeTab } });
-        setPosts(res.data);
-      } catch (err) {
-        console.error("Failed to fetch feed:", err);
-        setError("Could not load posts. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchFeed();
   }, [activeTab]);
 
   // Auto-open post detail modal if post ID was passed from Food Map
+  // Also switch to the correct tab if specified
+  useEffect(() => {
+    if (location.state?.selectedTab) {
+      setActiveTab(location.state.selectedTab);
+    }
+  }, [location.state?.selectedTab]);
+
   useEffect(() => {
     if (location.state?.selectedPostId && posts.length > 0) {
       const post = posts.find((p) => p.id === location.state.selectedPostId);
@@ -331,6 +339,7 @@ const Explore = () => {
           onPostCreated={() => {
             setShowCreate(false);
             setActiveTab("mine");
+            fetchFeed("mine");
           }}
         />
       )}
