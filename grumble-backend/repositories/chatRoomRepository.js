@@ -30,7 +30,15 @@ const getChatRoomsForUser = async (userId) => {
           (SELECT COUNT(*) FROM chat_room_members WHERE room_id = cr.id) as member_count,
           lm.content as last_message,
           lm.created_at as last_message_at,
-          lm.message_type as last_message_type
+          lm.message_type as last_message_type,
+          CASE 
+            WHEN cr.type = 'direct' THEN (
+              SELECT crm2.user_id FROM chat_room_members crm2 
+              WHERE crm2.room_id = cr.id AND crm2.user_id != $1 
+              LIMIT 1
+            )
+            ELSE NULL
+          END as other_user_id
    FROM chat_rooms cr
    INNER JOIN chat_room_members crm ON cr.id = crm.room_id
    LEFT JOIN LATERAL (

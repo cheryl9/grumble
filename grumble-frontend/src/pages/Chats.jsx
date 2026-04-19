@@ -11,6 +11,7 @@ import {
 } from "../services/realtimeSocket";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { useChatUnread } from "../context/ChatUnreadContext";
 import logo from "../assets/logo.png";
 import ChatList from "../components/chatsPage/ChatList";
 import ChatWindow from "../components/chatsPage/ChatWindow";
@@ -62,6 +63,7 @@ const mapRoomToChatListItem = (room) => {
 const Chats = () => {
   const { isLoading: authLoading, isAuthenticated } = useAuth();
   const { showErrorToast } = useToast();
+  const { unreadByRoomId, markRoomRead, setActiveRoomId } = useChatUnread();
 
   const [chats, setChats] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -72,7 +74,6 @@ const Chats = () => {
   const [activeChatView, setActiveChatView] = useState("chat");
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [viewRestaurant, setViewRestaurant] = useState(null);
-  const [unreadByRoomId, setUnreadByRoomId] = useState({});
 
   const [loading, setLoading] = useState(true);
 
@@ -132,16 +133,10 @@ const Chats = () => {
       const roomId = Number(payload?.room_id);
       if (!Number.isInteger(roomId)) return;
 
-      if (activeChat?.id === roomId) {
-        return;
+      // Unread counts are handled globally; Chats page only refreshes list ordering.
+      if (activeChat?.id !== roomId) {
+        void refreshChats();
       }
-
-      setUnreadByRoomId((prev) => ({
-        ...prev,
-        [roomId]: (prev[roomId] || 0) + 1,
-      }));
-
-      void refreshChats();
     };
 
     socket.on("notification_alert", handleNotificationAlert);
@@ -167,22 +162,45 @@ const Chats = () => {
 
   const chatListItems = useMemo(() => {
     const groupItems = (chats || []).filter((c) => c.type === "group");
-    const friendItems = (friends || []).map((f) => ({
-      id: `friend-${f.id}`,
-      type: "friend",
-      name: f.username,
-      avatar_url: f.avatar_url,
-      lastMessage: "",
-      time: "",
-      unread: 0,
-      friend_user_id: f.id,
-      raw: f,
-    }));
 
-    return [...groupItems, ...friendItems].map((item) => ({
-      ...item,
-      unread: unreadByRoomId[item.id] || 0,
-    }));
+    // Build a map of user IDs to their direct chat rooms for efficient lookup
+    const directChatByUserId = new Map();
+    (chats || [])
+      .filter((c) => c.type === "direct")
+      .forEach((room) => {
+        const otherUserId = Number(room?.raw?.other_user_id);
+        if (Number.isInteger(otherUserId)) {
+          directChatByUserId.set(otherUserId, room);
+        }
+      });
+
+    const friendItems = (friends || []).map((f) => {
+      // Find the direct chat room for this friend using other_user_id
+      const directChat = directChatByUserId.get(Number(f.id));
+
+      return {
+        id: `friend-${f.id}`,
+        type: "friend",
+        name: f.username,
+        avatar_url: f.avatar_url,
+        // `directChat` here is already a mapped chat list item.
+        // Reuse its derived fields instead of expecting raw DB columns.
+        lastMessage: directChat?.lastMessage || "",
+        time: directChat?.time || "",
+        unread: 0,
+        friend_user_id: f.id,
+        raw: f,
+        roomId: directChat?.id,
+      };
+    });
+
+    return [...groupItems, ...friendItems].map((item) => {
+      const unreadKey = item.roomId ?? item.id;
+      return {
+        ...item,
+        unread: unreadByRoomId[unreadKey] || 0,
+      };
+    });
   }, [chats, friends, unreadByRoomId]);
 
   const handleSelectChat = useCallback(
@@ -203,23 +221,19 @@ const Chats = () => {
           avatar_url: room.avatar_url,
           raw: room,
         });
-        setUnreadByRoomId((prev) => ({
-          ...prev,
-          [room.id]: 0,
-        }));
+        setActiveRoomId(room.id);
+        markRoomRead(room.id);
 
         // Ensure list ordering stays fresh (e.g., last_message fields).
         await refreshChats();
         return;
       }
 
-      setUnreadByRoomId((prev) => ({
-        ...prev,
-        [item.id]: 0,
-      }));
+      setActiveRoomId(item.id);
+      markRoomRead(item.id);
       setActiveChat(item);
     },
-    [refreshChats],
+    [markRoomRead, refreshChats, setActiveRoomId],
   );
 
   const activeChatDisplay = useMemo(() => activeChat, [activeChat]);
@@ -228,6 +242,11 @@ const Chats = () => {
     // Reset sub-view when switching chats.
     setActiveChatView("chat");
   }, [activeChatDisplay?.id]);
+
+  useEffect(() => {
+    // Keep global unread suppression in sync with the currently open room.
+    setActiveRoomId(activeChatDisplay?.id ?? null);
+  }, [activeChatDisplay?.id, setActiveRoomId]);
 
   if (activeChatDisplay)
     return (
@@ -248,6 +267,7 @@ const Chats = () => {
             chat={activeChatDisplay}
             onBack={() => {
               setActiveChatView("chat");
+              setActiveRoomId(null);
               setActiveChat(null);
             }}
             onViewRestaurant={setViewRestaurant}

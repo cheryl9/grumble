@@ -11,10 +11,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useChatUnread } from "../../context/ChatUnreadContext";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { totalUnread } = useChatUnread();
 
   const menuItems = [
     { id: "explore", label: "Explore", icon: Home, path: "/explore" },
@@ -40,6 +42,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
+          const showChatBadge = item.id === "chats" && totalUnread > 0;
+          const chatBadgeLabel = totalUnread > 99 ? "99+" : String(totalUnread);
 
           return (
             <button
@@ -48,7 +52,23 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               className={`sidebar-item ${isActive ? "sidebar-item-active" : "sidebar-item-inactive"}`}
               title={!isOpen ? item.label : " "}
             >
-              <Icon size={24} strokeWidth={2} />
+              <span style={{ position: "relative", display: "inline-flex" }}>
+                <Icon size={24} strokeWidth={2} />
+                {showChatBadge && (
+                  <span
+                    className="chat-unread-badge"
+                    style={{
+                      position: "absolute",
+                      top: "-7px",
+                      right: "-7px",
+                      transform: "scale(0.9)",
+                    }}
+                    aria-label={`${chatBadgeLabel} unread messages`}
+                  >
+                    {chatBadgeLabel}
+                  </span>
+                )}
+              </span>
               {isOpen && <span className="font-medium"> {item.label} </span>}
             </button>
           );

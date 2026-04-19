@@ -7,6 +7,7 @@ import { getRealtimeSocket } from "../../services/realtimeSocket";
 import { ACHIEVEMENT_BY_KEY } from "../../utils/achievementCatalog";
 import logoImg from "../../assets/logo.png";
 import ToastContext from "../../context/ToastContext";
+import ChatUnreadContext from "../../context/ChatUnreadContext";
 
 function GlobalToast({ toast, onClose, onAction }) {
   const topOffset = 20 + toast.index * 94;
@@ -337,6 +338,47 @@ export default function MainLayout() {
   const [toasts, setToasts] = useState([]);
   const loginBootstrapDoneRef = useRef(false);
 
+  const [unreadByRoomId, setUnreadByRoomId] = useState({});
+  const [activeRoomId, setActiveRoomIdState] = useState(null);
+  const activeRoomIdRef = useRef(null);
+
+  const setActiveRoomId = useCallback((roomId) => {
+    const rid = roomId == null ? null : Number(roomId);
+    const next = Number.isInteger(rid) ? rid : null;
+    activeRoomIdRef.current = next;
+    setActiveRoomIdState(next);
+  }, []);
+
+  const incrementUnread = useCallback((roomId, by = 1) => {
+    const rid = Number(roomId);
+    if (!Number.isInteger(rid)) return;
+
+    const inc = Number(by);
+    const delta = Number.isFinite(inc) && inc > 0 ? inc : 1;
+
+    setUnreadByRoomId((prev) => ({
+      ...prev,
+      [rid]: (prev[rid] || 0) + delta,
+    }));
+  }, []);
+
+  const markRoomRead = useCallback((roomId) => {
+    const rid = Number(roomId);
+    if (!Number.isInteger(rid)) return;
+
+    setUnreadByRoomId((prev) => {
+      if (!prev[rid]) return prev;
+      const next = { ...prev };
+      delete next[rid];
+      return next;
+    });
+  }, []);
+
+  const totalUnread = useMemo(
+    () => Object.values(unreadByRoomId).reduce((sum, n) => sum + (Number(n) || 0), 0),
+    [unreadByRoomId],
+  );
+
   const pushToast = useCallback((toast) => {
     if (!toast) return;
 
@@ -515,6 +557,16 @@ export default function MainLayout() {
         pushToast(buildFriendRequestAcceptedToast(payload));
         return;
       }
+
+      // Untyped alerts are treated as chat message notifications.
+      const roomId = Number(payload?.room_id);
+      if (!Number.isInteger(roomId)) return;
+
+      if (activeRoomIdRef.current === roomId) {
+        return;
+      }
+
+      incrementUnread(roomId, 1);
     };
 
     socket.on("notification_alert", handleNotificationAlert);
@@ -522,28 +574,42 @@ export default function MainLayout() {
     return () => {
       socket.off("notification_alert", handleNotificationAlert);
     };
-  }, [navigate, pushToast]);
+  }, [incrementUnread, pushToast]);
+
+  const chatUnreadContextValue = useMemo(
+    () => ({
+      unreadByRoomId,
+      totalUnread,
+      activeRoomId,
+      setActiveRoomId,
+      incrementUnread,
+      markRoomRead,
+    }),
+    [activeRoomId, incrementUnread, markRoomRead, setActiveRoomId, totalUnread, unreadByRoomId],
+  );
 
   return (
     <ToastContext.Provider value={toastContextValue}>
-      <div className="flex h-screen">
-        {toasts.map((toast, index) => (
-          <GlobalToast
-            key={toast.id}
-            toast={{ ...toast, index }}
-            onClose={dismissToast}
-            onAction={handleToastAction}
-          />
-        ))}
-        <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-        <main
-          className="flex-1 overflow-y-auto transition-all duration-300"
-          style={{ marginLeft: isSidebarOpen ? "200px" : "80px" }}
-        >
-          <Outlet />
-        </main>
-        <FloatingPet streak={streak} />
-      </div>
+      <ChatUnreadContext.Provider value={chatUnreadContextValue}>
+        <div className="flex h-screen">
+          {toasts.map((toast, index) => (
+            <GlobalToast
+              key={toast.id}
+              toast={{ ...toast, index }}
+              onClose={dismissToast}
+              onAction={handleToastAction}
+            />
+          ))}
+          <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+          <main
+            className="flex-1 overflow-y-auto transition-all duration-300"
+            style={{ marginLeft: isSidebarOpen ? "200px" : "80px" }}
+          >
+            <Outlet />
+          </main>
+          <FloatingPet streak={streak} />
+        </div>
+      </ChatUnreadContext.Provider>
     </ToastContext.Provider>
   );
 }
