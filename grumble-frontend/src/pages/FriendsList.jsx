@@ -41,24 +41,15 @@ const FriendsList = () => {
   };
 
   const handleRemoved = (friendshipId) => {
-    // Remove from friends list without reloading
-    setFriends((prev) => prev.filter((f) => f.friendship_id !== friendshipId));
+    fetchData();
   };
 
   const handleAccepted = (friendshipId) => {
-    // Move from requests to friends without reloading
-    const accepted = requests.find((r) => r.friendship_id === friendshipId);
-    if (accepted) {
-      setRequests((prev) =>
-        prev.filter((r) => r.friendship_id !== friendshipId),
-      );
-      setFriends((prev) => [...prev, accepted]);
-    }
+    fetchData();
   };
 
   const handleDeclined = (friendshipId) => {
-    // Remove from requests without reloading
-    setRequests((prev) => prev.filter((r) => r.friendship_id !== friendshipId));
+    fetchData();
   };
 
   return (
@@ -69,10 +60,7 @@ const FriendsList = () => {
           <AddFriendSearch
             sentRequests={sentRequests}
             friends={friends}
-            onRequestSent={(newRequest) => {
-              // Add to sent requests without reloading
-              setSentRequests((prev) => [...prev, newRequest]);
-            }}
+            onRequestSent={fetchData}
             isTopBar={true}
           />
         </div>

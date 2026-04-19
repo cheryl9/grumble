@@ -1,38 +1,58 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronLeft, Star } from "lucide-react";
-import { api } from "../../services/api";
+import UserAvatar from "../common/UserAvatar";
+import { getFriendsVisitedByRestaurantId } from "../../services/friendsVisitedService";
 
-const RestaurantDetailModal = ({ restaurant, onClose }) => {
-  const [friendsVisited, setFriendsVisited] = useState([]);
-  const [loadingFriends, setLoadingFriends] = useState(false);
-
-  useEffect(() => {
-    if (restaurant.id) {
-      fetchFriendsVisited();
-    }
-  }, [restaurant.id]);
-
-  const fetchFriendsVisited = async () => {
-    try {
-      setLoadingFriends(true);
-      const response = await api.get(
-        `/food-places/${restaurant.id}/friends-visited`,
-      );
-      setFriendsVisited(response.data.friendsVisited || []);
-    } catch (error) {
-      console.error("Error fetching friends visited:", error);
-      setFriendsVisited([]);
-    } finally {
-      setLoadingFriends(false);
-    }
-  };
-
+const RestaurantDetailModal = ({
+  restaurant,
+  onClose,
+  initialFriendsVisited = [],
+  initialLoaded = false,
+}) => {
   const outlets =
     restaurant.outlets?.length > 0
       ? restaurant.outlets
       : restaurant.location
         ? [restaurant.location]
         : [];
+
+  const [friendsVisited, setFriendsVisited] = useState(initialFriendsVisited);
+  const [isLoading, setIsLoading] = useState(!initialLoaded);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const fetchFriendsWhoVisited = async () => {
+      if (!restaurant?.id) {
+        if (isActive) setIsLoading(false);
+        return;
+      }
+
+      if (initialLoaded) {
+        if (isActive) setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const friends = await getFriendsVisitedByRestaurantId(restaurant.id);
+        if (!isActive) return;
+        setFriendsVisited(friends);
+      } catch (error) {
+        if (!isActive) return;
+        console.error("Failed to fetch friends who visited:", error);
+        setFriendsVisited([]);
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    };
+
+    fetchFriendsWhoVisited();
+
+    return () => {
+      isActive = false;
+    };
+  }, [restaurant?.id, initialLoaded]);
 
   const openingHoursText = restaurant.openingHours || "Not available";
 
@@ -104,28 +124,47 @@ const RestaurantDetailModal = ({ restaurant, onClose }) => {
                 </div>
               </div>
 
-              {!loadingFriends && friendsVisited.length > 0 && (
-                <div className="detail-item">
-                  <h3 className="detail-label">Friends who visited:</h3>
-                  <div className="flex gap-2 flex-wrap">
-                    {friendsVisited.map((friend) => (
+              <div className="detail-item">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="detail-label mb-0">
+                    Friends who have visited:
+                  </h3>
+                  {friendsVisited.length > 4 && (
+                    <span className="text-xs text-[#2945A8] cursor-pointer">
+                      View all ({friendsVisited.length})
+                    </span>
+                  )}
+                </div>
+
+                {isLoading ? (
+                  <p className="text-sm text-gray-500">
+                    Loading friends data...
+                  </p>
+                ) : friendsVisited.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No friends have posted from this location yet
+                  </p>
+                ) : (
+                  <div className="friends-visited-modal-grid">
+                    {friendsVisited.slice(0, 4).map((friend) => (
                       <div
                         key={friend.id}
-                        className="flex items-center gap-1 bg-orange-50 px-3 py-1 rounded-full text-xs"
+                        className="friends-visited-modal-item"
+                        title={`@${friend.username}`}
                       >
-                        {friend.avatar_url && (
-                          <img
-                            src={friend.avatar_url}
-                            alt={friend.username}
-                            className="w-4 h-4 rounded-full"
-                          />
-                        )}
-                        <span className="text-gray-700">{friend.username}</span>
+                        <UserAvatar
+                          avatarUrl={friend.avatar_url}
+                          equippedAvatar={friend.equipped_avatar}
+                          size={40}
+                        />
+                        <span className="friends-visited-handle">
+                          @{friend.username}
+                        </span>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

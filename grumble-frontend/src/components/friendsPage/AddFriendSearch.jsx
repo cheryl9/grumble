@@ -69,11 +69,11 @@ const AddFriendSearch = ({
   const handleAddFriend = async (userId) => {
     setSendingRequestIds(new Set(sendingRequestIds).add(userId));
     try {
-      const response = await friendService.sendFriendRequest(userId);
-      // Clear the search and notify parent with the new request data
+      await friendService.sendFriendRequest(userId);
+      // Clear the search and notify parent to refetch
       setQuery("");
       setShowDropdown(false);
-      onRequestSent?.(response?.data);
+      onRequestSent?.();
       // Show success toast
       pushToast(
         buildLocalActionToast("friend_request_sent", "Friend request sent!"),

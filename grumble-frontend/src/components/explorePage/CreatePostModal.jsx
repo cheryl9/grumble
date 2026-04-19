@@ -154,7 +154,7 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
       const foodPlaceId = foodPlaceRes.data.id;
 
       // Step 3: Create the post linked to that food place
-      const postRes = await api.post("/posts", {
+      await api.post("/posts", {
         foodPlaceId,
         locationName: locationName.trim(),
         rating,
@@ -165,7 +165,7 @@ const CreatePostModal = ({ onClose, onPostCreated }) => {
         hashtags,
       });
 
-      onPostCreated?.(postRes.data);
+      onPostCreated?.();
       onClose();
     } catch (err) {
       console.error("Failed to create post:", err);
