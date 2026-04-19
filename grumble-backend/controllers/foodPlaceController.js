@@ -237,8 +237,23 @@ async function getAllFoodPlacesHandler(req, res) {
     console.log("Google Places status:", response.data.status);
     console.log("Google Places results count:", response.data.results?.length);
     console.log("Google API key exists:", !!process.env.GOOGLE_PLACES_API_KEY);
+    console.log("Center coordinates:", { lat, lon });
 
-    const results = response.data.results.slice(0, 10);
+    // Filter results to only Singapore (rough bounding box)
+    const singaporeMinLat = 1.2;
+    const singaporeMaxLat = 1.47;
+    const singaporeMinLon = 103.6;
+    const singaporeMaxLon = 104.1;
+
+    const results = response.data.results
+      .filter(
+        (place) =>
+          place.geometry.location.lat >= singaporeMinLat &&
+          place.geometry.location.lat <= singaporeMaxLat &&
+          place.geometry.location.lng >= singaporeMinLon &&
+          place.geometry.location.lng <= singaporeMaxLon
+      )
+      .slice(0, 10);
 
     const places = results.map((place) => ({
       id: place.place_id,

@@ -4,7 +4,7 @@ const app = require("./app");
 const http = require("http");
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
-
+const { startPolling, stopPolling } = require("./services/telegramBotHelper");
 const pool = require("./config/db");
 const chatRoomRepository = require("./repositories/chatRoomRepository");
 const {
@@ -129,4 +129,15 @@ setSocketServer(io);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🚀 Connected to Supabase DB`);
+  startPolling();
+});
+
+process.on('SIGINT', () => {
+  stopPolling();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  stopPolling();
+  process.exit(0);
 });
