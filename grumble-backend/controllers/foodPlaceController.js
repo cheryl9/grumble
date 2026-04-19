@@ -234,6 +234,10 @@ async function getAllFoodPlacesHandler(req, res) {
       }
     );
 
+    console.log("Google Places status:", response.data.status);
+    console.log("Google Places results count:", response.data.results?.length);
+    console.log("Google API key exists:", !!process.env.GOOGLE_PLACES_API_KEY);
+
     const results = response.data.results.slice(0, 10);
 
     const places = results.map((place) => ({
