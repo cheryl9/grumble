@@ -38,7 +38,7 @@ export default function Settings() {
     try {
       setLoading(true);
       const result = await getCurrentAdmin();
-      setAdmin(result.data);
+      setAdmin(result.data.admin);
     } catch (err) {
       setError("Failed to load admin profile");
     } finally {
