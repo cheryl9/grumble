@@ -39,7 +39,7 @@ const FindSpots = () => {
           minLat: 1.2242,
           maxLat: 1.471,
           minLon: 103.63,
-          maxLon: 104.915,
+          maxLon: 103.99,
         };
         const res = await api.get("/food-places", { params });
 
