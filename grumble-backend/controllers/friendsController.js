@@ -38,12 +38,14 @@ const normalizeAcceptedFriend = (row) => {
   const id = row.friend_user_id;
   const username = row.friend_username;
   const avatar_url = row.friend_avatar_url ?? null;
+  const equipped_avatar = row.friend_equipped_avatar ?? null;
 
   return {
     ...row,
     id,
     username,
     avatar_url,
+    equipped_avatar,
   };
 };
 

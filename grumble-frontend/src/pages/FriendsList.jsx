@@ -11,6 +11,7 @@ const FriendsList = () => {
   const [sentRequests, setSentRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [avatarRefreshToken, setAvatarRefreshToken] = useState(0);
 
   // Fetch friends and requests on mount
   useEffect(() => {
@@ -29,6 +30,8 @@ const FriendsList = () => {
       setFriends(friendsData || []);
       setRequests(requestsData || []);
       setSentRequests(sentData || []);
+      // Forces avatar <img> reload if friends overwrite an existing avatar URL.
+      setAvatarRefreshToken(Date.now());
     } catch (err) {
       console.error("Error fetching friends data:", err);
       setError("Failed to load friends data");
@@ -118,6 +121,7 @@ const FriendsList = () => {
                     <FriendCard
                       key={friend.friendship_id}
                       friend={friend}
+                      avatarCacheKey={avatarRefreshToken}
                       onRemoved={handleRemoved}
                     />
                   ))}
