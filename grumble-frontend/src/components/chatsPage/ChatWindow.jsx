@@ -5,7 +5,10 @@ import { useAuth } from "../../context/AuthContext";
 import Avatar from "./Avatar";
 import ChatMessage from "./ChatMessage";
 import { getChatRoom } from "../../services/chatService";
-import { subscribeToRoom, unsubscribeFromRoom } from "../../services/realtimeSocket";
+import {
+  subscribeToRoom,
+  unsubscribeFromRoom,
+} from "../../services/realtimeSocket";
 
 const ChatWindow = ({
   chat,
@@ -245,8 +248,13 @@ const ChatWindow = ({
   };
 
   const sendFoodSuggestion = async (foodPlaceId) => {
-    const parsed = Number(foodPlaceId);
-    if (!Number.isInteger(parsed) || parsed <= 0 || !roomId || sending) return;
+    if (!foodPlaceId || !roomId || sending) return;
+
+    // Handle both database IDs (numbers) and Google Place IDs (strings)
+    const contentValue =
+      typeof foodPlaceId === "string" && foodPlaceId.startsWith("ChIJ")
+        ? foodPlaceId // Google Place ID
+        : Number(foodPlaceId); // Database ID
 
     try {
       setSending(true);
@@ -254,7 +262,7 @@ const ChatWindow = ({
 
       const res = await api.post(`/chats/${roomId}/messages`, {
         type: "food_suggestion",
-        content: { food_place_id: parsed },
+        content: { food_place_id: contentValue },
       });
 
       appendMessage(res.data?.data);
@@ -501,9 +509,7 @@ const ChatWindow = ({
             <h2 className="text-lg font-bold text-gray-900 mb-2">
               Suggest Food
             </h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Search by shop name
-            </p>
+            <p className="text-sm text-gray-400 mb-4">Search by shop name</p>
             <input
               type="text"
               placeholder="e.g. Din Tai Fung"
@@ -526,7 +532,9 @@ const ChatWindow = ({
             </button>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {!foodSearchLoading && foodQuery.trim() && foodResults.length === 0 ? (
+              {!foodSearchLoading &&
+              foodQuery.trim() &&
+              foodResults.length === 0 ? (
                 <div className="text-sm text-gray-400">No matches found.</div>
               ) : (
                 foodResults.map((p) => {
