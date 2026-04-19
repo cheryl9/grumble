@@ -20,7 +20,6 @@ import PostsModal from "../components/common/PostsModal";
 import AllAchievementsModal from "../components/common/AllAchievementsModal";
 import FriendsModal from "../components/common/FriendsModal";
 
-
 export default function Profile() {
   const navigate = useNavigate();
   const { username } = useParams();
@@ -145,7 +144,7 @@ export default function Profile() {
   };
 
   const handleShareProfile = () => {
-    const profileUrl = `${window.location.origin}/@${user?.username}`;
+    const profileUrl = `${window.location.origin}/user/${user?.username}`;
     navigator.clipboard.writeText(profileUrl).then(() => {
       showToast("Profile link copied to clipboard!");
     });
