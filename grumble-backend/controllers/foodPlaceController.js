@@ -217,9 +217,9 @@ async function enrichWithGoogle(place) {
 async function getAllFoodPlacesHandler(req, res) {
   try {
     const { minLat, maxLat, minLon, maxLon } = req.query;
-    
-    const lat = ((parseFloat(minLat) + parseFloat(maxLat)) / 2) || 1.3521;
-    const lon = ((parseFloat(minLon) + parseFloat(maxLon)) / 2) || 103.8198;
+
+    const lat = (parseFloat(minLat) + parseFloat(maxLat)) / 2 || 1.3521;
+    const lon = (parseFloat(minLon) + parseFloat(maxLon)) / 2 || 103.8198;
 
     // Fetch directly from Google Places Nearby Search
     const response = await axios.get(
@@ -231,15 +231,14 @@ async function getAllFoodPlacesHandler(req, res) {
           type: "restaurant",
           key: process.env.GOOGLE_PLACES_API_KEY,
         },
-      }
+      },
     );
 
     console.log("Google Places status:", response.data.status);
     console.log("Google Places results count:", response.data.results?.length);
     console.log("Google API key exists:", !!process.env.GOOGLE_PLACES_API_KEY);
-    console.log("Center coordinates:", { lat, lon });
 
-    // Filter results to only Singapore (rough bounding box)
+    // Filter results to only Singapore (bounding box)
     const singaporeMinLat = 1.2;
     const singaporeMaxLat = 1.47;
     const singaporeMinLon = 103.6;
@@ -251,7 +250,7 @@ async function getAllFoodPlacesHandler(req, res) {
           place.geometry.location.lat >= singaporeMinLat &&
           place.geometry.location.lat <= singaporeMaxLat &&
           place.geometry.location.lng >= singaporeMinLon &&
-          place.geometry.location.lng <= singaporeMaxLon
+          place.geometry.location.lng <= singaporeMaxLon,
       )
       .slice(0, 10);
 
@@ -268,9 +267,12 @@ async function getAllFoodPlacesHandler(req, res) {
         rating: place.rating ?? null,
         reviewCount: place.user_ratings_total ?? null,
         priceLevel: place.price_level ?? null,
-        openingHours: place.opening_hours?.open_now != null
-          ? (place.opening_hours.open_now ? "Open now" : "Closed now")
-          : null,
+        openingHours:
+          place.opening_hours?.open_now != null
+            ? place.opening_hours.open_now
+              ? "Open now"
+              : "Closed now"
+            : null,
         image: place.photos?.[0]
           ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${place.photos[0].photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
           : null,
