@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 
-async function getAllFoodPlaces({ category, cuisine, minLat, maxLat, minLon, maxLon, q, limit = 10 }) {
+async function getAllFoodPlaces({ category, cuisine, minLat, maxLat, minLon, maxLon, q, limit = 500 }) {
   let query = "SELECT * FROM food_places WHERE 1=1";
   const params = [];
 

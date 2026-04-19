@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getAllFoodPlacesHandler,
+  getFoodPlacesSuggestionsHandler,
   getFoodPlaceByIdHandler,
   getApiUsage,
   createFoodPlaceHandler,
@@ -11,6 +12,7 @@ const {
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/", getAllFoodPlacesHandler);
+router.get("/suggestions", getFoodPlacesSuggestionsHandler);
 router.get("/api-usage", getApiUsage);          
 router.get("/convert-postcode", convertPostcodeHandler);  
 

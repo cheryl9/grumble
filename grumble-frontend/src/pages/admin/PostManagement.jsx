@@ -99,24 +99,7 @@ export default function PostManagement() {
           </select>
         </div>
 
-        <div className="md:col-span-2">
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-        </div>
-
-        <div className="md:col-span-2">
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md" />
-        </div>
-
         <div className="md:col-span-2 flex gap-2">
-          <button
-            onClick={() => {
-              setPagination((p) => ({ ...p, page: 1 }));
-              fetchPosts();
-            }}
-            className="flex-1 px-3 py-2 bg-gray-900 text-white rounded-md"
-          >
-            Apply
-          </button>
           <button onClick={fetchPosts} className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>

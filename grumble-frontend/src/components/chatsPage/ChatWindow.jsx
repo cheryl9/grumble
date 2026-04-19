@@ -230,7 +230,7 @@ const ChatWindow = ({
       setFoodSearchLoading(true);
       setFoodSearchError(null);
 
-      const res = await api.get("/food-places", {
+      const res = await api.get("/food-places/suggestions", {
         params: { q, limit: 10, enrich: "false" },
       });
 

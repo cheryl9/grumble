@@ -3,6 +3,7 @@ const {
   createFoodPlace,
   convertPostcodeToCoordinates,
   getFriendsWhoVisited,
+  getAllFoodPlaces,
 } = require("../repositories/foodPlaceRepository");
 const { getGoogleData } = require("../services/googlePlacesService");
 const axios = require("axios");
@@ -231,7 +232,10 @@ async function getAllFoodPlacesHandler(req, res) {
       );
 
       console.log("Google Places text search status:", response.data.status);
-      console.log("Google Places results count:", response.data.results?.length);
+      console.log(
+        "Google Places results count:",
+        response.data.results?.length,
+      );
 
       const results = response.data.results
         .filter(
@@ -241,18 +245,20 @@ async function getAllFoodPlacesHandler(req, res) {
             place.geometry.location.lng >= 103.6 &&
             place.geometry.location.lng <= 104.1,
         )
-        .slice(0, 10);
+        .slice(0, 500);
 
       const places = results.map((place) => ({
         id: place.place_id,
         name: place.name,
         lat: place.geometry.location.lat,
         lon: place.geometry.location.lng,
-        address: place.formatted_address || place.vicinity || "Address unavailable",
+        address:
+          place.formatted_address || place.vicinity || "Address unavailable",
         cuisine: "Unknown",
         category: "restaurant",
         google: {
-          address: place.formatted_address || place.vicinity || "Address unavailable",
+          address:
+            place.formatted_address || place.vicinity || "Address unavailable",
           rating: place.rating ?? null,
           reviewCount: place.user_ratings_total ?? null,
           priceLevel: place.price_level ?? null,
@@ -261,7 +267,9 @@ async function getAllFoodPlacesHandler(req, res) {
             ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${place.photos[0].photo_reference}&key=${process.env.GOOGLE_PLACES_API_KEY}`
             : null,
         },
-        region: getRegionFromAddress(place.formatted_address || place.vicinity || ""),
+        region: getRegionFromAddress(
+          place.formatted_address || place.vicinity || "",
+        ),
       }));
 
       return res.json(places);
@@ -288,7 +296,7 @@ async function getAllFoodPlacesHandler(req, res) {
     console.log("Google Places results count:", response.data.results?.length);
     console.log("Google API key exists:", !!process.env.GOOGLE_PLACES_API_KEY);
 
-    const results = response.data.results.slice(0, 10);
+    const results = response.data.results.slice(0, 500);
 
     const places = results.map((place) => ({
       id: place.place_id,
@@ -443,10 +451,59 @@ async function getFriendsWhoVisitedHandler(req, res) {
   }
 }
 
+// Used by chat "Suggest Food". This searches the app database so the returned
+// IDs are compatible with food_suggestions.food_place_id (integer FK).
+async function getFoodPlacesSuggestionsHandler(req, res) {
+  try {
+    const {
+      q,
+      limit,
+      category,
+      cuisine,
+      minLat,
+      maxLat,
+      minLon,
+      maxLon,
+      enrich,
+    } = req.query;
+
+    const qTrimmed = typeof q === "string" ? q.trim() : "";
+    if (!qTrimmed) return res.json([]);
+
+    const parsedLimit = Number.parseInt(limit, 10);
+    const effectiveLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 10;
+
+    const places = await getAllFoodPlaces({
+      q: qTrimmed,
+      limit: effectiveLimit,
+      category: category || null,
+      cuisine: cuisine || null,
+      minLat,
+      maxLat,
+      minLon,
+      maxLon,
+    });
+
+    if (String(enrich).toLowerCase() === "true") {
+      const enriched = await Promise.all(
+        places.map(async (place) => enrichWithGoogle(place)),
+      );
+      return res.json(enriched);
+    }
+
+    return res.json(places);
+  } catch (error) {
+    console.error("Failed to fetch food place suggestions:", error);
+    res.status(500).json({ error: "Failed to fetch food place suggestions" });
+  }
+}
+
 module.exports = {
   getAllFoodPlacesHandler,
   getFoodPlaceByIdHandler,
   searchFoodPlaces,
+  getFoodPlacesSuggestionsHandler,
   getApiUsage,
   createFoodPlaceHandler,
   convertPostcodeHandler,
