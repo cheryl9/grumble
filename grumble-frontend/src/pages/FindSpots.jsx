@@ -46,13 +46,15 @@ const FindSpots = () => {
         const normalized = (res.data || []).map((p) => {
           const priceLevel = p.google?.priceLevel;
           const priceRange = priceLevel ? "$".repeat(priceLevel) : "-";
-          // Use region from backend (extracted from postal code in Google address)
+          // Use region from backend, fallback to "Unknown"
           const locationArea = p.region || "Unknown";
+          // Normalize cuisine to match CUISINE_CATEGORIES or keep as-is
+          const normalizedCuisine = p.cuisine || "Unknown";
 
           return {
             id: p.id,
             name: p.name || "Unknown place",
-            cuisine: p.cuisine || "Unknown",
+            cuisine: normalizedCuisine,
             category: p.category || "",
             location: p.google?.address || p.address || "Address unavailable",
             locationArea: locationArea,
@@ -156,23 +158,25 @@ const FindSpots = () => {
       ?.toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    // Match location filter - directly match the area
+    // Match location filter
     const matchesLocation =
       !filters.location ||
-      (restaurant.locationArea &&
-        restaurant.locationArea.toLowerCase() ===
-          filters.location.toLowerCase());
+      restaurant.locationArea?.toLowerCase() === filters.location.toLowerCase();
 
     // Match cuisine filter
     const matchesCuisine =
       !filters.cuisine ||
-      restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
+      (restaurant.cuisine &&
+        restaurant.cuisine.toLowerCase() === filters.cuisine.toLowerCase());
 
-    // Match price filter - compare the $ count with priceLevel
+    // Match price filter
     let matchesPrice = true;
     if (filters.price) {
-      const selectedPriceLength = filters.price.length; // "$" = 1, "$$" = 2, "$$$" = 3
-      matchesPrice = restaurant.priceRange.length === selectedPriceLength;
+      const selectedPriceLength = filters.price.length;
+      matchesPrice =
+        restaurant.priceLevel === selectedPriceLength ||
+        (restaurant.priceRange &&
+          restaurant.priceRange.length === selectedPriceLength);
     }
 
     return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
