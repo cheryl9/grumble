@@ -116,7 +116,6 @@ export default function UserManagement() {
       throw err;
     }
   };
-
   const confirmDelete = async () => {
     try {
       const reason = prompt('Enter reason for deletion (optional):');
@@ -200,24 +199,6 @@ export default function UserManagement() {
               <option value="username">Username</option>
             </select>
           </div>
-
-          {/* Sort Order */}
-          <div className="md:col-span-2 flex gap-2">
-            <button
-              onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
-            >
-              <Filter size={18} />
-              {sortOrder === 'ASC' ? '↑' : '↓'}
-            </button>
-            <button
-              onClick={fetchUsers}
-              disabled={loading}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-            >
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            </button>
-          </div>
         </div>
 
         {/* Stats */}
@@ -236,7 +217,6 @@ export default function UserManagement() {
           </div>
         </div>
       </div>
-
       {/* User Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         {loading ? (
