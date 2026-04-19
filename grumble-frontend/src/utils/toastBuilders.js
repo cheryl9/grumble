@@ -255,6 +255,37 @@ export function buildUnreadNotificationToast(notification) {
   return null;
 }
 
+export function buildChatMessageToast(payload) {
+  const roomId = Number(payload?.room_id);
+  if (!Number.isInteger(roomId)) return null;
+
+  const senderName = payload?.message?.sender?.username || "Someone";
+  const roomName = payload?.room?.name || "Chat";
+  const preview = payload?.preview || "New message";
+  const avatarUrl = payload?.room?.avatar_url;
+  const messageId = payload?.message?.id;
+
+  return {
+    id: `chat-${messageId ?? Date.now()}-${roomId}`,
+    kind: "chat_message",
+    kicker: "New message",
+    title: `${senderName} in ${roomName}`,
+    body: preview,
+    image: avatarUrl || logoImg,
+    actionLabel: "Open Chats",
+    actionTo: "/chats",
+    borderColor: "#a78bfa",
+    background: "linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%)",
+    shadow: "0 10px 24px rgba(124, 58, 202, 0.15)",
+    kickerColor: "#6b21a8",
+    titleColor: "#4c0519",
+    bodyColor: "#6b21a8",
+    actionBackground: "#7c3aed",
+    actionColor: "#fff",
+    closeColor: "#6b21a8",
+  };
+}
+
 // Local action toasts (for user actions, not from server notifications)
 export function buildLocalActionToast(type, message) {
   const toastConfigs = {

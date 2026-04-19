@@ -428,29 +428,6 @@ async function getApiUsage(req, res) {
   });
 }
 
-/**
- * Get friends who have visited a food place
- * Query: GET /api/food-places/:id/friends-visited
- * Requires authentication
- * Response: {friendsVisited: [{id, username}, ...]}
- */
-async function getFriendsWhoVisitedHandler(req, res) {
-  try {
-    const restaurantId = parseInt(req.params.id);
-    const userId = req.user.id;
-
-    if (!restaurantId) {
-      return res.status(400).json({ error: "Restaurant ID is required" });
-    }
-
-    const friendsVisited = await getFriendsWhoVisited(restaurantId, userId);
-    res.json({ friendsVisited });
-  } catch (error) {
-    console.error("Error fetching friends who visited:", error);
-    res.status(500).json({ error: "Failed to fetch friends who visited" });
-  }
-}
-
 // Used by chat "Suggest Food". This searches the app database so the returned
 // IDs are compatible with food_suggestions.food_place_id (integer FK).
 async function getFoodPlacesSuggestionsHandler(req, res) {

@@ -7,7 +7,7 @@ import CreatePostModal from "../components/explorePage/CreatePostModal";
 import ReportPostModal from "../components/explorePage/ReportPostModal";
 import EditPostModal from "../components/explorePage/EditPostModal";
 import logo from "../assets/logo.png";
-import { useToast } from "../context/ToastContext"; 
+import { useToast } from "../context/ToastContext";
 import { buildLocalActionToast } from "../utils/toastBuilders";
 
 const TABS = [
@@ -18,7 +18,7 @@ const TABS = [
 
 const Explore = () => {
   const location = useLocation();
-  const { pushToast } = useToast(); 
+  const { pushToast } = useToast();
   const [activeTab, setActiveTab] = useState("foryou");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,8 +80,13 @@ const Explore = () => {
     );
 
     // Show toast after optimistic update
-    const nowLiked = !posts.find(p => p.id === postId)?.liked_by_me;
-    pushToast(buildLocalActionToast("like_sent", nowLiked ? "Post liked!" : "Like removed"));
+    const nowLiked = !posts.find((p) => p.id === postId)?.liked_by_me;
+    pushToast(
+      buildLocalActionToast(
+        "like_sent",
+        nowLiked ? "Post liked!" : "Like removed",
+      ),
+    );
 
     try {
       await api.post(`/posts/${postId}/like`);
@@ -119,8 +124,13 @@ const Explore = () => {
     );
 
     // Show toast after optimistic update
-    const nowSaved = !posts.find(p => p.id === postId)?.saved_by_me;
-    pushToast(buildLocalActionToast("save_sent", nowSaved ? "Post saved!" : "Bookmark removed"));
+    const nowSaved = !posts.find((p) => p.id === postId)?.saved_by_me;
+    pushToast(
+      buildLocalActionToast(
+        "save_sent",
+        nowSaved ? "Post saved!" : "Bookmark removed",
+      ),
+    );
 
     try {
       const res = await api.post(`/posts/${postId}/save`);
@@ -172,7 +182,7 @@ const Explore = () => {
   };
 
   const handleCommentAdded = (postId) => {
-    pushToast(buildLocalActionToast("comment_sent", "Comment posted!")); 
+    pushToast(buildLocalActionToast("comment_sent", "Comment posted!"));
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p,
@@ -348,10 +358,16 @@ const Explore = () => {
       {showCreate && (
         <CreatePostModal
           onClose={() => setShowCreate(false)}
-          onPostCreated={() => {
+          onPostCreated={(newPost) => {
             setShowCreate(false);
             setActiveTab("mine");
-            fetchFeed("mine");
+            // Add new post to the beginning of the list without reloading
+            if (newPost) {
+              setPosts((prev) => [
+                newPost,
+                ...prev.filter((p) => p.id !== newPost.id),
+              ]);
+            }
           }}
         />
       )}

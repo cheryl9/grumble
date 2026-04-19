@@ -11,6 +11,7 @@ import {
   buildAchievementToast,
   buildFriendRequestToast,
   buildFriendRequestAcceptedToast,
+  buildChatMessageToast,
   buildPostLikeToast,
   buildPostCommentToast,
   buildPostSaveToast,
@@ -239,6 +240,12 @@ export default function MainLayout() {
     if (!socket) return undefined;
 
     const handleNotificationAlert = (payload) => {
+      // Chat message notifications (sent when the user is connected but not actively in the room)
+      if (payload?.room_id && payload?.message) {
+        pushToast(buildChatMessageToast(payload));
+        return;
+      }
+
       if (payload?.type === "achievement_unlocked") {
         pushToast(buildAchievementToast(payload));
         return;

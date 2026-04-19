@@ -1,58 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ChevronLeft, Star } from "lucide-react";
-import UserAvatar from "../common/UserAvatar";
-import { getFriendsVisitedByRestaurantId } from "../../services/friendsVisitedService";
 
-const RestaurantDetailModal = ({
-  restaurant,
-  onClose,
-  initialFriendsVisited = [],
-  initialLoaded = false,
-}) => {
+const RestaurantDetailModal = ({ restaurant, onClose }) => {
   const outlets =
     restaurant.outlets?.length > 0
       ? restaurant.outlets
       : restaurant.location
         ? [restaurant.location]
         : [];
-
-  const [friendsVisited, setFriendsVisited] = useState(initialFriendsVisited);
-  const [isLoading, setIsLoading] = useState(!initialLoaded);
-
-  useEffect(() => {
-    let isActive = true;
-
-    const fetchFriendsWhoVisited = async () => {
-      if (!restaurant?.id) {
-        if (isActive) setIsLoading(false);
-        return;
-      }
-
-      if (initialLoaded) {
-        if (isActive) setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const friends = await getFriendsVisitedByRestaurantId(restaurant.id);
-        if (!isActive) return;
-        setFriendsVisited(friends);
-      } catch (error) {
-        if (!isActive) return;
-        console.error("Failed to fetch friends who visited:", error);
-        setFriendsVisited([]);
-      } finally {
-        if (isActive) setIsLoading(false);
-      }
-    };
-
-    fetchFriendsWhoVisited();
-
-    return () => {
-      isActive = false;
-    };
-  }, [restaurant?.id, initialLoaded]);
 
   const openingHoursText = restaurant.openingHours || "Not available";
 
@@ -122,48 +77,6 @@ const RestaurantDetailModal = ({
                   </span>
                   <Star size={16} className="text-yellow-500 fill-yellow-500" />
                 </div>
-              </div>
-
-              <div className="detail-item">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="detail-label mb-0">
-                    Friends who have visited:
-                  </h3>
-                  {friendsVisited.length > 4 && (
-                    <span className="text-xs text-[#2945A8] cursor-pointer">
-                      View all ({friendsVisited.length})
-                    </span>
-                  )}
-                </div>
-
-                {isLoading ? (
-                  <p className="text-sm text-gray-500">
-                    Loading friends data...
-                  </p>
-                ) : friendsVisited.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No friends have posted from this location yet
-                  </p>
-                ) : (
-                  <div className="friends-visited-modal-grid">
-                    {friendsVisited.slice(0, 4).map((friend) => (
-                      <div
-                        key={friend.id}
-                        className="friends-visited-modal-item"
-                        title={`@${friend.username}`}
-                      >
-                        <UserAvatar
-                          avatarUrl={friend.avatar_url}
-                          equippedAvatar={friend.equipped_avatar}
-                          size={40}
-                        />
-                        <span className="friends-visited-handle">
-                          @{friend.username}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>
