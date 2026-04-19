@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { X, Eye, EyeOff } from "lucide-react";
 import api from "../../services/api";
+import { validatePassword } from "../../utils/validation";
 
 export default function EditProfileModal({
   user,
@@ -8,6 +10,7 @@ export default function EditProfileModal({
   onSave,
   initialTab = "info",
 }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState(initialTab); // 'info' | 'password' | 'preferences'
   const [username, setUsername] = useState(user?.username || "");
   const [phone_number, setPhoneNumber] = useState(user?.phoneNumber || "");
@@ -117,12 +120,17 @@ export default function EditProfileModal({
   const handleChangePassword = async () => {
     setError("");
     setSuccess("");
+
+    // Validation checks
     if (!currentPassword || !newPassword || !confirmPassword)
       return setError("All fields are required.");
+
     if (newPassword !== confirmPassword)
       return setError("New passwords do not match.");
-    if (newPassword.length < 6)
-      return setError("New password must be at least 6 characters.");
+
+    // Check new password against requirements
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) return setError(passwordError);
 
     setLoading(true);
     try {
@@ -135,6 +143,11 @@ export default function EditProfileModal({
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
       } else {
         setError(response.data.message || "Failed to change password.");
       }
@@ -171,6 +184,7 @@ export default function EditProfileModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: "#fff",
           borderRadius: "20px",
@@ -417,6 +431,10 @@ export default function EditProfileModal({
 }
 
 function Field({ label, value, onChange, type = "text" }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const inputType = type === "password" && showPassword ? "text" : type;
+  const isPasswordField = type === "password";
+
   return (
     <div>
       <label
@@ -430,22 +448,47 @@ function Field({ label, value, onChange, type = "text" }) {
       >
         {label}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: "100%",
-          padding: "10px 14px",
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          fontSize: "14px",
-          outline: "none",
-          boxSizing: "border-box",
-        }}
-        onFocus={(e) => (e.target.style.borderColor = "#F78660")}
-        onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
-      />
+      <div style={{ position: "relative" }}>
+        <input
+          type={inputType}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: "100%",
+            padding: isPasswordField ? "10px 40px 10px 14px" : "10px 14px",
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            fontSize: "14px",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+          onFocus={(e) => (e.target.style.borderColor = "#F78660")}
+          onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
+        />
+        {isPasswordField && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{
+              position: "absolute",
+              right: "12px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#999",
+              padding: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

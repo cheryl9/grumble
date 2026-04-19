@@ -11,7 +11,7 @@ const { getGoogleData } = require("../services/googlePlacesService");
 const POSTAL_CODE_TO_REGION = {
   "01": "Central",
   "02": "Central",
-  "03": "Central",
+  "03": "East",
   "04": "Central",
   "05": "Central",
   "06": "Central",
@@ -100,7 +100,21 @@ function getRegionFromAddress(address) {
   if (!address) return null;
   const match = address.match(/\b(\d{6})\b/);
   if (!match) return null;
-  const prefix = match[1].substring(0, 2);
+  const postalCode = match[1];
+  const prefix = postalCode.substring(0, 2);
+
+  // Special handling for 03 range which spans Central and East
+  if (prefix === "03") {
+    const full4Digit = postalCode.substring(0, 4);
+    const postal4 = parseInt(full4Digit);
+    // 0381-0389: East Coast areas (Katong, Marine Parade, etc.)
+    // 0390-0399 & 0301-0380: Central areas (Marina Bay, Bugis, Beach Road, Marina Square, etc.)
+    if (postal4 >= 381 && postal4 <= 389) {
+      return "East";
+    }
+    return "Central";
+  }
+
   return POSTAL_CODE_TO_REGION[prefix] || null;
 }
 
