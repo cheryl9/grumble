@@ -138,6 +138,10 @@ async function getFriends(userId) {
          WHEN f.user_id = $1 THEN u_friend.avatar_url
          ELSE u_user.avatar_url
        END AS friend_avatar_url
+       ,CASE
+         WHEN f.user_id = $1 THEN u_friend.equipped_avatar
+         ELSE u_user.equipped_avatar
+       END AS friend_equipped_avatar
      FROM friendships f
      JOIN users u_user   ON u_user.id   = f.user_id
      JOIN users u_friend ON u_friend.id = f.friend_id

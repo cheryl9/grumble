@@ -3,7 +3,7 @@ import { Trash2 } from "lucide-react";
 import * as friendService from "../../services/friendService";
 import UserAvatar from "../common/UserAvatar";
 
-const FriendCard = ({ friend, onRemoved }) => {
+const FriendCard = ({ friend, onRemoved, avatarCacheKey = null }) => {
   const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,7 +39,9 @@ const FriendCard = ({ friend, onRemoved }) => {
       <div className="friend-card-content">
         {/* Avatar */}
         <UserAvatar
+          avatarUrl={friend.avatar_url}
           equippedAvatar={friend.equipped_avatar}
+          cacheKey={avatarCacheKey}
           size={60}
           className="flex-shrink-0"
         />
