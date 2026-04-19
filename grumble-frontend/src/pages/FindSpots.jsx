@@ -2,25 +2,16 @@ import React, { useState, useEffect } from "react";
 import { Search, ChevronDown } from "lucide-react";
 import api from "../services/api";
 import RestaurantCard from "../components/findSpotsPage/RestaurantCard";
-import {
-  SINGAPORE_REGIONS,
-  REGION_LIST,
-  CUISINE_CATEGORIES,
-  PRICE_RANGES,
-} from "../utils/constants";
+import { PRICE_RANGES } from "../utils/constants";
 import { getAreaFromCoordinates } from "../utils/postalCodeMapper";
 import logo from "../assets/logo.png";
 
 const FindSpots = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
-    location: "",
-    cuisine: "",
     price: "",
   });
   const [showDropdown, setShowDropdown] = useState({
-    location: false,
-    cuisine: false,
     price: false,
   });
 
@@ -120,8 +111,6 @@ const FindSpots = () => {
 
   const handleResetFilters = () => {
     setFilters({
-      location: "",
-      cuisine: "",
       price: "",
     });
     setSearchQuery("");
@@ -156,26 +145,14 @@ const FindSpots = () => {
       ?.toLowerCase()
       .includes(searchQuery.toLowerCase());
 
-    // Match location filter - directly match the area
-    const matchesLocation =
-      !filters.location ||
-      (restaurant.locationArea &&
-        restaurant.locationArea.toLowerCase() ===
-          filters.location.toLowerCase());
-
-    // Match cuisine filter
-    const matchesCuisine =
-      !filters.cuisine ||
-      restaurant.cuisine?.toLowerCase() === filters.cuisine.toLowerCase();
-
-    // Match price filter - compare the $ count with priceLevel
+    // Match price filter
     let matchesPrice = true;
     if (filters.price) {
-      const selectedPriceLength = filters.price.length; // "$" = 1, "$$" = 2, "$$$" = 3
+      const selectedPriceLength = filters.price.length;
       matchesPrice = restaurant.priceRange.length === selectedPriceLength;
     }
 
-    return matchesSearch && matchesLocation && matchesCuisine && matchesPrice;
+    return matchesSearch && matchesPrice;
   });
 
   // Apply same filters to trending restaurants
@@ -218,54 +195,6 @@ const FindSpots = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
           />
-        </div>
-
-        {/* Location Filter */}
-        <div className="filter-dropdown">
-          <button
-            onClick={() => toggleDropdown("location")}
-            className="filter-btn"
-          >
-            <span>{filters.location || "Region"}</span>
-            <ChevronDown size={16} />
-          </button>
-          {showDropdown.location && (
-            <div className="dropdown-menu">
-              {REGION_LIST.map((region) => (
-                <button
-                  key={region}
-                  onClick={() => handleFilterChange("location", region)}
-                  className="dropdown-item"
-                >
-                  {region}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Cuisine Filter */}
-        <div className="filter-dropdown">
-          <button
-            onClick={() => toggleDropdown("cuisine")}
-            className="filter-btn"
-          >
-            <span>{filters.cuisine || "Cuisine"}</span>
-            <ChevronDown size={16} />
-          </button>
-          {showDropdown.cuisine && (
-            <div className="dropdown-menu">
-              {CUISINE_CATEGORIES.map((cuisine) => (
-                <button
-                  key={cuisine}
-                  onClick={() => handleFilterChange("cuisine", cuisine)}
-                  className="dropdown-item"
-                >
-                  {cuisine}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Price Filter */}
