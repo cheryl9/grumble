@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ override: false });
 const app = require("./app");
 
 const http = require("http");
@@ -17,7 +17,7 @@ const {
   unmarkUserActiveInRoom,
 } = require("./services/realtime");
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5001;
 
 const server = http.createServer(app);
 
@@ -126,8 +126,7 @@ io.on("connection", (socket) => {
 
 setSocketServer(io);
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🚀 Connected to Supabase DB`);
 });
-
